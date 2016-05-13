@@ -29,6 +29,7 @@ TRUSTY_ALL_USER_TASKS += \
 	trusty/user/app/sample/libcxx-test \
 	trusty/user/app/sample/storage-unittest \
 	trusty/user/app/sample/timer \
+	trusty/user/app/sample/uirq-unittest \
 
 TRUSTY_LOADABLE_USER_TASKS += \
 	trusty/user/app/sample/app-mgmt-test/syscalls-test/main/test_apps/duplicate_port \
