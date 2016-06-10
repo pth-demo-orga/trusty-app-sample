@@ -31,6 +31,7 @@
 /*  */
 static uint _tests_total  = 0; /* Number of conditions checked */
 static uint _tests_failed = 0; /* Number of conditions failed  */
+static handle_t handle_base;   /* base of valid handle range */
 
 static const uuid_t srv_app_uuid = IPC_UNITTEST_SRV_APP_UUID;
 
@@ -165,17 +166,32 @@ static void run_wait_negative_test(void)
 
 	TEST_BEGIN(__func__);
 
-	/* waiting on invalid (negative value) handle. */
+	/* waiting on invalid handle. */
 	rc = wait(INVALID_IPC_HANDLE, &event, timeout);
 	EXPECT_EQ (ERR_BAD_HANDLE, rc, "wait on invalid handle");
 
-	/* waiting on an invalid (out of range (big positive)) handle. */
-	rc = wait(MAX_USER_HANDLES, &event, timeout);
+	/*
+	 *   call wait on an invalid (out of range) handle
+	 *
+	 *   check handling of the following cases:
+	 *     - handle is on the upper boundary of valid handle range
+	 *     - handle is above of the upper boundary of valid handle range
+	 *     - handle is below of valid handle range
+	 *
+	 *   in all cases, the expected result is ERR_BAD_HANDLE error.
+	 */
+	rc = wait(handle_base + MAX_USER_HANDLES, &event, timeout);
+	EXPECT_EQ (ERR_BAD_HANDLE, rc, "wait on invalid handle");
+
+	rc = wait(handle_base + MAX_USER_HANDLES + 1, &event, timeout);
+	EXPECT_EQ (ERR_BAD_HANDLE, rc, "wait on invalid handle");
+
+	rc = wait(handle_base - 1, &event, timeout);
 	EXPECT_EQ (ERR_BAD_HANDLE, rc, "wait on invalid handle");
 
 	/* waiting on non-existing handle that is in valid range. */
 	for (uint i = 2; i < MAX_USER_HANDLES; i++) {
-		rc = wait(i, &event, timeout);
+		rc = wait(handle_base + i, &event, timeout);
 		EXPECT_EQ (ERR_NOT_FOUND, rc, "wait on invalid handle");
 	}
 
@@ -195,13 +211,28 @@ static void run_close_handle_negative_test(void)
 	rc = close(INVALID_IPC_HANDLE);
 	EXPECT_EQ (ERR_BAD_HANDLE, rc, "closing invalid handle");
 
-	/* closing an invalid (out of range (big positive)) handle. */
-	rc = close(MAX_USER_HANDLES);
+	/*
+	 *   call close on an invalid (out of range) handle
+	 *
+	 *   check handling of the following cases:
+	 *     - handle is on the upper boundary of valid handle range
+	 *     - handle is above of the upper boundary of valid handle range
+	 *     - handle is below of valid handle range
+	 *
+	 *   in all cases, the expected result is ERR_BAD_HANDLE error.
+	 */
+	rc = close(handle_base + MAX_USER_HANDLES);
+	EXPECT_EQ (ERR_BAD_HANDLE, rc, "closing invalid handle");
+
+	rc = close(handle_base + MAX_USER_HANDLES + 1);
+	EXPECT_EQ (ERR_BAD_HANDLE, rc, "closing invalid handle");
+
+	rc = close(handle_base - 1);
 	EXPECT_EQ (ERR_BAD_HANDLE, rc, "closing invalid handle");
 
 	/* closing non-existing handle that is in valid range. */
 	for (uint i = 2; i < MAX_USER_HANDLES; i++) {
-		rc = close(i);
+		rc = close(handle_base + i);
 		EXPECT_EQ (ERR_NOT_FOUND, rc, "closing invalid handle");
 	}
 
@@ -221,13 +252,28 @@ static void  run_set_cookie_negative_test(void)
 	rc = set_cookie(INVALID_IPC_HANDLE, (void *) 0x1BEEF);
 	EXPECT_EQ (ERR_BAD_HANDLE, rc, "set cookie for invalid handle");
 
-	/* set cookie for an invalid (out of range (big positive)) handle. */
-	rc = set_cookie(MAX_USER_HANDLES, (void *) 0x2BEEF);
+	/*
+	 *   calling set cookie for an invalid (out of range) handle
+	 *
+	 *   check handling of the following cases:
+	 *     - handle is on the upper boundary of valid handle range
+	 *     - handle is above of the upper boundary of valid handle range
+	 *     - handle is below of valid handle range
+	 *
+	 *   in all cases, the expected result is ERR_BAD_HANDLE error.
+	 */
+	rc = set_cookie(handle_base + MAX_USER_HANDLES, (void *) 0x2BEEF);
+	EXPECT_EQ (ERR_BAD_HANDLE, rc, "set cookie for invalid handle");
+
+	rc = set_cookie(handle_base + MAX_USER_HANDLES + 1, (void *) 0x2BEEF);
+	EXPECT_EQ (ERR_BAD_HANDLE, rc, "set cookie for invalid handle");
+
+	rc = set_cookie(handle_base - 1, (void *) 0x2BEEF);
 	EXPECT_EQ (ERR_BAD_HANDLE, rc, "set cookie for invalid handle");
 
 	/* set cookie for non-existing handle that is in valid range. */
 	for (uint i = 2; i < MAX_USER_HANDLES; i++) {
-		rc = set_cookie(i, (void *) 0x3BEEF);
+		rc = set_cookie(handle_base + i, (void *) 0x3BEEF);
 		EXPECT_EQ (ERR_NOT_FOUND, rc, "set cookie for invalid handle");
 	}
 
@@ -297,7 +343,7 @@ static void run_port_create_test (void)
 	for (i = 2; i < MAX_USER_HANDLES-1; i++) {
 		sprintf(path, "%s.port.%s%d", SRV_PATH_BASE, "test", i);
 		rc = port_create(path, 2, MAX_PORT_BUF_SIZE, 0);
-		EXPECT_GE_ZERO (rc, "create ports");
+		EXPECT_GT_ZERO (rc, "create ports");
 		ports[i] = (handle_t) rc;
 
 		/* create a new port that collide with an existing port */
@@ -308,7 +354,7 @@ static void run_port_create_test (void)
 	/* create one more that should succeed */
 	sprintf(path, "%s.port.%s%d", SRV_PATH_BASE, "test", i);
 	rc = port_create(path, 2, MAX_PORT_BUF_SIZE, 0);
-	EXPECT_GE_ZERO (rc, "create ports");
+	EXPECT_GT_ZERO (rc, "create ports");
 	ports[i] = (handle_t) rc;
 
 	/* but creating colliding port should fail with different
@@ -355,7 +401,7 @@ static void run_wait_on_port_test (void)
 	for (uint i = 2; i < MAX_USER_HANDLES; i++) {
 		sprintf(path, "%s.port.%s%d", SRV_PATH_BASE, "test", i);
 		rc = port_create(path, 2, MAX_PORT_BUF_SIZE, 0);
-		EXPECT_GE_ZERO (rc, "max ports");
+		EXPECT_GT_ZERO (rc, "max ports");
 		ports[i] = (handle_t) rc;
 
 		rc = set_cookie(ports[i], (void *) (COOKIE_BASE + i));
@@ -448,7 +494,7 @@ static void run_connect_close_test(void)
 		   not loosing handles */
 		for (uint i = 0; i < countof(chans); i++) {
 			rc = sync_connect(path, 1000);
-			EXPECT_GE_ZERO (rc, "connect/close");
+			EXPECT_GT_ZERO (rc, "connect/close");
 			chans[i] = (handle_t) rc;
 		}
 
@@ -577,7 +623,7 @@ static void run_async_connect_test (void)
 
 	/* connect to non existing port asynchronously with wait_for_port */
 	rc = connect (path,  IPC_CONNECT_ASYNC | IPC_CONNECT_WAIT_FOR_PORT);
-	EXPECT_GE_ZERO(rc, "async");
+	EXPECT_GT_ZERO(rc, "async");
 	if (rc >= 0) {
 		chan = (handle_t) rc;
 
@@ -592,7 +638,7 @@ static void run_async_connect_test (void)
 
 	/* connect to non-existing port asyncronously with wait_for_port */
 	rc = connect (path,  IPC_CONNECT_ASYNC | IPC_CONNECT_WAIT_FOR_PORT);
-	EXPECT_GE_ZERO (rc, "async");
+	EXPECT_GT_ZERO (rc, "async");
 	chan = (handle_t) rc;
 
 	if (rc >= 0) {
@@ -605,7 +651,7 @@ static void run_async_connect_test (void)
 
 		/* now create port */
 		rc = port_create(path, 1, 64, IPC_PORT_ALLOW_TA_CONNECT);
-		EXPECT_GE_ZERO (rc, "async");
+		EXPECT_GT_ZERO (rc, "async");
 		if (rc >= 0) {
 			port = (handle_t) rc;
 
@@ -620,7 +666,7 @@ static void run_async_connect_test (void)
 
 				/* got one, accept it */
 				rc = accept(port, &peer_uuid);
-				EXPECT_GE_ZERO (rc, "async");
+				EXPECT_GT_ZERO (rc, "async");
 				srv_chan = (handle_t) rc;
 
 				/* and close it */
@@ -660,7 +706,7 @@ static void run_connect_selfie_test (void)
 	sprintf(path, "%s.main.%s", SRV_PATH_BASE, "selfie");
 	rc = port_create(path, 2, MAX_PORT_BUF_SIZE,
 	                 IPC_PORT_ALLOW_TA_CONNECT);
-	EXPECT_GE_ZERO (rc, "selfie");
+	EXPECT_GT_ZERO (rc, "selfie");
 
 	if (rc >= 0) {
 		handle_t test_port = rc;
@@ -751,7 +797,7 @@ static void run_connect_access_test(void)
 	rc = sync_connect(path, 1000);
 
 	/* it is expected to succeed */
-	EXPECT_GE_ZERO(rc, "connect to ta_only");
+	EXPECT_GT_ZERO(rc, "connect to ta_only");
 
 	if (rc >= 0)
 		close((handle_t)rc);
@@ -781,8 +827,23 @@ static void run_accept_negative_test(void)
 	rc1 = memcmp(&peer_uuid, &zero_uuid, sizeof(zero_uuid));
 	EXPECT_EQ (0, rc1, "accept")
 
-	/* accept on an invalid (out of range (big positive)) handle */
-	rc = accept(MAX_USER_HANDLES, &peer_uuid);
+	/*
+	 *   calling accept on an invalid (out of range) handle
+	 *
+	 *   check handling of the following cases:
+	 *     - handle is on the upper boundary of valid handle range
+	 *     - handle is above of the upper boundary of valid handle range
+	 *     - handle is below of valid handle range
+	 *
+	 *   in all cases, the expected result is ERR_BAD_HANDLE error.
+	 */
+	rc = accept(handle_base + MAX_USER_HANDLES, &peer_uuid);
+	EXPECT_EQ (ERR_BAD_HANDLE, rc, "accept on invalid handle");
+
+	rc = accept(handle_base + MAX_USER_HANDLES + 1, &peer_uuid);
+	EXPECT_EQ (ERR_BAD_HANDLE, rc, "accept on invalid handle");
+
+	rc = accept(handle_base - 1, &peer_uuid);
 	EXPECT_EQ (ERR_BAD_HANDLE, rc, "accept on invalid handle");
 
 	rc1 = memcmp(&peer_uuid, &zero_uuid, sizeof(zero_uuid));
@@ -790,7 +851,7 @@ static void run_accept_negative_test(void)
 
 	/* accept on non-existing handle that is in valid range */
 	for (uint i = 2; i < MAX_USER_HANDLES; i++) {
-		rc = accept(i, &peer_uuid);
+		rc = accept(handle_base + i, &peer_uuid);
 		EXPECT_EQ (ERR_NOT_FOUND, rc, "accept on invalid handle");
 
 		rc1 = memcmp(&peer_uuid, &zero_uuid, sizeof(zero_uuid));
@@ -800,7 +861,7 @@ static void run_accept_negative_test(void)
 	/* connect to datasink service */
 	sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "datasink");
 	rc = sync_connect(path, 1000);
-	EXPECT_GE_ZERO (rc, "connect to datasink");
+	EXPECT_GT_ZERO (rc, "connect to datasink");
 	chan = (handle_t) rc;
 
 	/* call accept on channel handle which is an invalid operation */
@@ -834,7 +895,7 @@ static void run_accept_test (void)
 		sprintf(path, "%s.port.accept%d", SRV_PATH_BASE, i);
 		rc = port_create(path, 2, MAX_PORT_BUF_SIZE,
 		                 IPC_PORT_ALLOW_TA_CONNECT);
-		EXPECT_GE_ZERO (rc, "max ports");
+		EXPECT_GT_ZERO (rc, "max ports");
 		ports[i] = (handle_t) rc;
 
 		rc = set_cookie(ports[i], (void *) (COOKIE_BASE + ports[i]));
@@ -892,7 +953,7 @@ static void run_accept_test (void)
 		EXPECT_EQ (exp_cookie, event.cookie, "accept test");
 
 		rc = accept (event.handle, &peer_uuid);
-		EXPECT_EQ (2, rc, "accept test");
+		EXPECT_EQ(handle_base + 2, rc, "accept test");
 
 		/* check peer uuid */
 		rc1 = memcmp(&peer_uuid, &srv_app_uuid, sizeof(srv_app_uuid));
@@ -929,13 +990,28 @@ static void run_get_msg_negative_test(void)
 	rc = get_msg(INVALID_IPC_HANDLE, &inf);
 	EXPECT_EQ (ERR_BAD_HANDLE, rc, "get_msg on invalid handle");
 
-	/* get_msg on an invalid (out of range (big positive)) handle. */
-	rc = get_msg(MAX_USER_HANDLES, &inf);
+	/*
+	 *   calling get_msg on an invalid (out of range) handle
+	 *
+	 *   check handling of the following cases:
+	 *     - handle is on the upper boundary of valid handle range
+	 *     - handle is above of the upper boundary of valid handle range
+	 *     - handle is below of valid handle range
+	 *
+	 *   in all cases, the expected result is ERR_BAD_HANDLE error.
+	 */
+	rc = get_msg(handle_base + MAX_USER_HANDLES, &inf);
+	EXPECT_EQ (ERR_BAD_HANDLE, rc, "get_msg on invalid handle");
+
+	rc = get_msg(handle_base + MAX_USER_HANDLES + 1, &inf);
+	EXPECT_EQ (ERR_BAD_HANDLE, rc, "get_msg on invalid handle");
+
+	rc = get_msg(handle_base - 1, &inf);
 	EXPECT_EQ (ERR_BAD_HANDLE, rc, "get_msg on invalid handle");
 
 	/* get_msg on non-existing handle that is in valid range. */
 	for (uint i = 2; i < MAX_USER_HANDLES; i++) {
-		rc = get_msg(i, &inf);
+		rc = get_msg(handle_base + i, &inf);
 		EXPECT_EQ (ERR_NOT_FOUND, rc, "get_msg on invalid handle");
 	}
 
@@ -944,7 +1020,7 @@ static void run_get_msg_negative_test(void)
 	sprintf(path, "%s.main.%s", SRV_PATH_BASE,  "datasink");
 	rc = port_create(path, 2, MAX_PORT_BUF_SIZE,
 	                 IPC_PORT_ALLOW_TA_CONNECT);
-	EXPECT_GE_ZERO (rc, "create datasink port");
+	EXPECT_GT_ZERO (rc, "create datasink port");
 	port = (handle_t) rc;
 
 	rc = get_msg(port, &inf);
@@ -954,7 +1030,7 @@ static void run_get_msg_negative_test(void)
 	/* call get_msg on channel that do not have any pending messages */
 	sprintf(path, "%s.srv.%s", SRV_PATH_BASE,  "datasink");
 	rc = sync_connect(path, 1000);
-	EXPECT_GE_ZERO (rc, "connect to datasink");
+	EXPECT_GT_ZERO (rc, "connect to datasink");
 	chan = (handle_t) rc;
 
 	rc = get_msg(chan, &inf);
@@ -980,13 +1056,28 @@ static void run_put_msg_negative_test(void)
 	rc = put_msg(INVALID_IPC_HANDLE, 0);
 	EXPECT_EQ (ERR_BAD_HANDLE, rc, "put_msg on invalid handle");
 
-	/* put_msg on an invalid (out of range (big positive)) handle */
-	rc = put_msg(MAX_USER_HANDLES, 0);
+	/*
+	 *   calling put_msg on an invalid (out of range) handle
+	 *
+	 *   check handling of the following cases:
+	 *     - handle is on the upper boundary of valid handle range
+	 *     - handle is above of the upper boundary of valid handle range
+	 *     - handle is below of valid handle range
+	 *
+	 *   in all cases, the expected result is ERR_BAD_HANDLE error.
+	 */
+	rc = put_msg(handle_base + MAX_USER_HANDLES, 0);
+	EXPECT_EQ (ERR_BAD_HANDLE, rc, "put_msg on invalid handle");
+
+	rc = put_msg(handle_base + MAX_USER_HANDLES + 1, 0);
+	EXPECT_EQ (ERR_BAD_HANDLE, rc, "put_msg on invalid handle");
+
+	rc = put_msg(handle_base - 1, 0);
 	EXPECT_EQ (ERR_BAD_HANDLE, rc, "put_msg on invalid handle");
 
 	/* put_msg on non-existing handle that is in valid range */
 	for (uint i = 2; i < MAX_USER_HANDLES; i++) {
-		rc = put_msg (i, 0);
+		rc = put_msg (handle_base + i, 0);
 		EXPECT_EQ (ERR_NOT_FOUND, rc, "put_msg on invalid handle");
 	}
 
@@ -995,7 +1086,7 @@ static void run_put_msg_negative_test(void)
 	sprintf(path, "%s.main.%s", SRV_PATH_BASE,  "datasink");
 	rc = port_create(path, 2, MAX_PORT_BUF_SIZE,
 	                 IPC_PORT_ALLOW_TA_CONNECT);
-	EXPECT_GE_ZERO (rc, "create datasink port");
+	EXPECT_GT_ZERO (rc, "create datasink port");
 	port = (handle_t) rc;
 
 	rc = put_msg(port, 0);
@@ -1006,7 +1097,7 @@ static void run_put_msg_negative_test(void)
 	/* call put_msg on channel that do not have any pending messages */
 	sprintf(path, "%s.srv.%s", SRV_PATH_BASE,  "datasink");
 	rc = sync_connect(path, 1000);
-	EXPECT_GE_ZERO (rc, "connect to datasink");
+	EXPECT_GT_ZERO (rc, "connect to datasink");
 	chan = (handle_t) rc;
 
 	rc = put_msg(chan, 0);
@@ -1049,7 +1140,7 @@ static void run_send_msg_test(void)
 	/* open connection to datasink service */
 	sprintf(path, "%s.srv.%s", SRV_PATH_BASE,  "datasink");
 	rc = sync_connect(path, 1000);
-	EXPECT_GE_ZERO (rc, "connect to datasink");
+	EXPECT_GT_ZERO (rc, "connect to datasink");
 
 	if (rc >= 0) {
 		chan = (handle_t) rc;
@@ -1101,8 +1192,23 @@ static void run_send_msg_negative_test(void)
 	rc = send_msg(INVALID_IPC_HANDLE, NULL);
 	EXPECT_EQ (ERR_FAULT, rc, "send_msg on NULL msg");
 
-	/* send_msg on an invalid (out of range (big positive)) handle */
-	rc = send_msg(MAX_USER_HANDLES, &msg);
+	/*
+	 *   calling send_msg on an invalid (out of range) handle
+	 *
+	 *   check handling of the following cases:
+	 *     - handle is on the upper boundary of valid handle range
+	 *     - handle is above of the upper boundary of valid handle range
+	 *     - handle is below of valid handle range
+	 *
+	 *   in all cases, the expected result is ERR_BAD_HANDLE error.
+	 */
+	rc = send_msg(handle_base + MAX_USER_HANDLES, &msg);
+	EXPECT_EQ (ERR_BAD_HANDLE, rc, "send_msg on invalid handle");
+
+	rc = send_msg(handle_base + MAX_USER_HANDLES + 1, &msg);
+	EXPECT_EQ (ERR_BAD_HANDLE, rc, "send_msg on invalid handle");
+
+	rc = send_msg(handle_base - 1, &msg);
 	EXPECT_EQ (ERR_BAD_HANDLE, rc, "send_msg on invalid handle");
 
 	/* calling send_msg with NULL msg should fail for any handle */
@@ -1111,11 +1217,11 @@ static void run_send_msg_negative_test(void)
 
 	/* send_msg on non-existing handle that is in valid range */
 	for (uint i = 2; i < MAX_USER_HANDLES; i++) {
-		rc = send_msg(i, &msg);
+		rc = send_msg(handle_base + i, &msg);
 		EXPECT_EQ (ERR_NOT_FOUND, rc, "send on invalid handle");
 
 		/* calling send_msg with NULL msg should fail for any handle */
-		rc = send_msg(i, NULL);
+		rc = send_msg(handle_base + i, NULL);
 		EXPECT_EQ (ERR_FAULT, rc, "send_msg on NULL msg");
 	}
 
@@ -1124,7 +1230,7 @@ static void run_send_msg_negative_test(void)
 	sprintf(path, "%s.main.%s", SRV_PATH_BASE,  "datasink");
 	rc = port_create(path, 2, MAX_PORT_BUF_SIZE,
 	                 IPC_PORT_ALLOW_TA_CONNECT);
-	EXPECT_GE_ZERO (rc, "create datasink port");
+	EXPECT_GT_ZERO (rc, "create datasink port");
 	port = (handle_t) rc;
 
 	rc = send_msg(port, &msg);
@@ -1134,7 +1240,7 @@ static void run_send_msg_negative_test(void)
 	/* open connection to datasink service */
 	sprintf(path, "%s.srv.%s", SRV_PATH_BASE,  "datasink");
 	rc = sync_connect(path, 1000);
-	EXPECT_GE_ZERO (rc, "connect to datasink");
+	EXPECT_GT_ZERO (rc, "connect to datasink");
 	chan = (handle_t) rc;
 
 	/* handles are not supported */
@@ -1204,20 +1310,36 @@ static void run_read_msg_negative_test(void)
 	rc = read_msg(INVALID_IPC_HANDLE, 0, 0, NULL);
 	EXPECT_EQ (ERR_FAULT, rc, "read_msg on invalid handle");
 
-	/* calling read_msg with NULL msg should fail for any handle */
-	rc = read_msg(MAX_USER_HANDLES, 0, 0, &rx_msg);
-	EXPECT_EQ (ERR_BAD_HANDLE, rc, "read_msg on NULL msg");
+	/*
+	 *   calling read_msg on an invalid (out of range) handle
+	 *
+	 *   check handling of the following cases:
+	 *     - handle is on the upper boundary of valid handle range
+	 *     - handle is above of the upper boundary of valid handle range
+	 *     - handle is below of valid handle range
+	 *
+	 *   in all cases, the expected result is ERR_BAD_HANDLE error.
+	 */
+	rc = read_msg(handle_base + MAX_USER_HANDLES, 0, 0, &rx_msg);
+	EXPECT_EQ (ERR_BAD_HANDLE, rc, "read_msg on bad handle");
 
-	rc = read_msg(MAX_USER_HANDLES, 0, 0, NULL);
+	rc = read_msg(handle_base + MAX_USER_HANDLES + 1, 0, 0, &rx_msg);
+	EXPECT_EQ (ERR_BAD_HANDLE, rc, "read_msg on bad handle");
+
+	rc = read_msg(handle_base - 1, 0, 0, &rx_msg);
+	EXPECT_EQ (ERR_BAD_HANDLE, rc, "read_msg on bad handle");
+
+	/* calling read_msg with NULL msg should fail for any handle */
+	rc = read_msg(handle_base + MAX_USER_HANDLES, 0, 0, NULL);
 	EXPECT_EQ (ERR_FAULT, rc, "read_msg on NULL msg");
 
 	/* send_msg on non-existing handle that is in valid range */
 	for (uint i = 2; i < MAX_USER_HANDLES; i++) {
-		rc = read_msg(i, 0, 0, &rx_msg);
+		rc = read_msg(handle_base + i, 0, 0, &rx_msg);
 		EXPECT_EQ (ERR_NOT_FOUND, rc, "read_msg on non existing handle");
 
 		/* calling send_msg with NULL msg should fail for any handle */
-		rc = read_msg(i, 0, 0, NULL);
+		rc = read_msg(handle_base + i, 0, 0, NULL);
 		EXPECT_EQ (ERR_FAULT, rc, "read_msg on NULL msg");
 	}
 
@@ -1226,7 +1348,7 @@ static void run_read_msg_negative_test(void)
 	sprintf(path, "%s.main.%s", SRV_PATH_BASE,  "datasink");
 	rc = port_create(path, 2, MAX_PORT_BUF_SIZE,
 	                 IPC_PORT_ALLOW_TA_CONNECT);
-	EXPECT_GE_ZERO (rc, "create datasink port");
+	EXPECT_GT_ZERO (rc, "create datasink port");
 	port = (handle_t) rc;
 
 	rc = read_msg(port, 0, 0, &rx_msg);
@@ -1236,7 +1358,7 @@ static void run_read_msg_negative_test(void)
 	/* open connection to echo service */
 	sprintf(path, "%s.srv.%s", SRV_PATH_BASE,  "echo");
 	rc = sync_connect(path, 1000);
-	EXPECT_GE_ZERO (rc, "connect to datasink");
+	EXPECT_GT_ZERO (rc, "connect to datasink");
 	chan = (handle_t) rc;
 
 	/* NULL msg on valid channel */
@@ -1353,7 +1475,7 @@ static void run_end_to_end_msg_test(void)
 
 	sprintf(path, "%s.srv.%s", SRV_PATH_BASE,  "echo");
 	rc = sync_connect(path, 1000);
-	EXPECT_GE_ZERO (rc, "connect to echo");
+	EXPECT_GT_ZERO (rc, "connect to echo");
 
 	if (rc >= 0) {
 		uint tx_cnt = 0;
@@ -1513,6 +1635,7 @@ int main(void)
 		TLOGI("failed (%d) to create ctrl port\n", rc );
 		return rc;
 	}
+	handle_base = (handle_t)rc;
 
 	/* and just wait forever for now */
 	TLOGI("waiting forever\n");
