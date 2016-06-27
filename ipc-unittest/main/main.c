@@ -108,6 +108,15 @@ static const uuid_t srv_app_uuid = IPC_UNITTEST_SRV_APP_UUID;
 	}                                                       \
 }
 
+#define ABORT_IF(_cond, lbl)                                    \
+{                                                               \
+	if (_cond) {                                            \
+		goto lbl;                                       \
+	}                                                       \
+}
+
+#define ABORT_IF_NOT_OK(lbl) ABORT_IF((!_all_ok), lbl)
+
 /****************************************************************************/
 
 /*
@@ -1570,6 +1579,498 @@ abort_test:
 
 /****************************************************************************/
 
+static void run_hset_create_test(void)
+{
+	handle_t hset1;
+	handle_t hset2;
+
+	TEST_BEGIN(__func__);
+
+	hset1 = handle_set_create();
+	EXPECT_GE_ZERO((int)hset1, "create handle set1");
+
+	hset2 = handle_set_create();
+	EXPECT_GE_ZERO((int)hset2, "create handle set2");
+
+	close(hset1);
+	close(hset2);
+
+	TEST_END
+}
+
+static void run_hset_add_mod_del_test(void)
+{
+	int rc;
+	handle_t hset1;
+	handle_t hset2;
+
+	TEST_BEGIN(__func__);
+
+	hset1 = handle_set_create();
+	EXPECT_GE_ZERO((int)hset1, "create handle set1");
+
+	hset2 = handle_set_create();
+	EXPECT_GE_ZERO((int)hset2, "create handle set2");
+
+	ABORT_IF_NOT_OK(abort_test);
+
+	uevent_t evt = {
+		.handle = hset2,
+		.event  = ~0,
+		.cookie = NULL,
+	};
+
+	/* add handle to handle set */
+	rc = handle_set_ctrl(hset1, HSET_ADD, &evt);
+	EXPECT_EQ(0, rc, "hset add");
+
+	/* modify handle attributes in handle set */
+	rc = handle_set_ctrl(hset1, HSET_MOD, &evt);
+	EXPECT_EQ(0, rc, "hset mod");
+
+	/* remove handle from handle set */
+	rc = handle_set_ctrl(hset1, HSET_DEL, &evt);
+	EXPECT_EQ(0, rc, "hset del");
+
+abort_test:
+	close(hset1);
+	close(hset2);
+
+	TEST_END
+}
+
+static void run_hset_add_self_test(void)
+{
+	int rc;
+	handle_t hset1;
+
+	TEST_BEGIN(__func__);
+
+	hset1 = handle_set_create();
+	EXPECT_GE_ZERO((int)hset1, "create handle set1");
+
+	ABORT_IF_NOT_OK(abort_test);
+
+	uevent_t evt = {
+		.handle = hset1,
+		.event  = ~0,
+		.cookie = NULL,
+	};
+
+	/* add handle to handle set */
+	rc = handle_set_ctrl(hset1, HSET_ADD, &evt);
+	EXPECT_EQ(ERR_INVALID_ARGS, rc, "hset add self");
+
+abort_test:
+	close(hset1);
+
+	TEST_END
+}
+
+static void run_hset_add_loop_test(void)
+{
+	int rc;
+	handle_t hset1;
+	handle_t hset2;
+	handle_t hset3;
+
+	TEST_BEGIN(__func__);
+
+	hset1 = handle_set_create();
+	EXPECT_GE_ZERO((int)hset1, "create handle set1");
+
+	hset2 = handle_set_create();
+	EXPECT_GE_ZERO((int)hset2, "create handle set2");
+
+	hset3 = handle_set_create();
+	EXPECT_GE_ZERO((int)hset3, "create handle set3");
+
+	ABORT_IF_NOT_OK(abort_test);
+
+	uevent_t evt = {
+		.handle = hset2,
+		.event  = ~0,
+		.cookie = NULL,
+	};
+
+	/* add hset2 to hset1 */
+	rc = handle_set_ctrl(hset1, HSET_ADD, &evt);
+	EXPECT_EQ(0, rc, "add hset2 to hset1");
+
+	/* add hset3 to hset2 */
+	evt.handle = hset3;
+	rc = handle_set_ctrl(hset2, HSET_ADD, &evt);
+	EXPECT_EQ(0, rc, "add hset3 to hset2");
+
+	/* add hset1 to hset3 */
+	evt.handle = hset1;
+	rc = handle_set_ctrl(hset3, HSET_ADD, &evt);
+	EXPECT_EQ(ERR_INVALID_ARGS, rc, "add hset1 to hset3");
+
+abort_test:
+	close(hset2);
+	close(hset1);
+	close(hset3);
+
+	TEST_END
+}
+
+static void run_hset_add_duplicate_test(void)
+{
+	int rc;
+	handle_t hset1;
+	handle_t hset2;
+
+	TEST_BEGIN(__func__);
+
+	hset1 = handle_set_create();
+	EXPECT_GE_ZERO((int)hset1, "create handle set1");
+
+	hset2 = handle_set_create();
+	EXPECT_GE_ZERO((int)hset2, "create handle set2");
+
+	ABORT_IF_NOT_OK(abort_test);
+
+	uevent_t evt = {
+		.handle = hset2,
+		.event  = ~0,
+		.cookie = NULL,
+	};
+
+	/* add hset2 to hset1 */
+	rc = handle_set_ctrl(hset1, HSET_ADD, &evt);
+	EXPECT_EQ(0, rc, "add hset2 to hset1");
+
+	/* add hset2 to hset1 again */
+	rc = handle_set_ctrl(hset1, HSET_ADD, &evt);
+	EXPECT_EQ(ERR_ALREADY_EXISTS, rc, "add hset2 to hset1");
+
+abort_test:
+	close(hset1);
+	close(hset2);
+
+	TEST_END
+}
+
+static void run_hset_wait_on_empty_set_test(void)
+{
+	int rc;
+	uevent_t evt;
+	handle_t hset1;
+
+	TEST_BEGIN(__func__);
+
+	hset1 = handle_set_create();
+	EXPECT_GE_ZERO((int)hset1, "create hset");
+
+	ABORT_IF_NOT_OK(abort_test);
+
+	/* wait with zero timeout */
+	rc = wait(hset1, &evt, 0);
+	EXPECT_EQ(ERR_NOT_FOUND, rc, "wait on empty hset");
+
+	/* wait with non-zero timeout */
+	rc = wait(hset1, &evt, 100);
+	EXPECT_EQ(ERR_NOT_FOUND, rc, "wait on empty hset");
+
+	close(hset1);
+
+abort_test:
+	TEST_END
+}
+
+
+
+static void run_hset_wait_on_non_empty_set_test(void)
+{
+	int rc;
+	handle_t hset1;
+	handle_t hset2;
+
+	TEST_BEGIN(__func__);
+
+	hset1 = handle_set_create();
+	EXPECT_GE_ZERO((int)hset1, "create handle set1");
+
+	hset2 = handle_set_create();
+	EXPECT_GE_ZERO((int)hset2, "create handle set2");
+
+	ABORT_IF_NOT_OK(abort_test);
+
+	uevent_t evt = {
+		.handle = hset2,
+		.event  = ~0,
+		.cookie = NULL,
+	};
+
+	/* add hset2 to hset1 */
+	rc = handle_set_ctrl(hset1, HSET_ADD, &evt);
+	EXPECT_EQ(0, rc, "add hset2 to hset1");
+
+	/* wait with zero timeout on hset1 */
+	rc = wait(hset1, &evt, 0);
+	EXPECT_EQ(ERR_TIMED_OUT, rc, "wait on empty hset");
+
+	/* wait with non-zero timeout on hset1 */
+	rc = wait(hset1, &evt, 100);
+	EXPECT_EQ(ERR_TIMED_OUT, rc, "wait on empty hset");
+
+abort_test:
+	close(hset1);
+	close(hset2);
+
+	TEST_END
+}
+
+
+static void run_hset_add_chan_test(void)
+{
+	int rc;
+	uevent_t evt;
+	handle_t hset1;
+	handle_t hset2;
+	handle_t chan1;
+	handle_t chan2;
+	void *cookie1  = (void *)"cookie1";
+	void *cookie2  = (void *)"cookie2";
+	void *cookie11 = (void *)"cookie11";
+	void *cookie12 = (void *)"cookie12";
+	void *cookie21 = (void *)"cookie21";
+	void *cookie22 = (void *)"cookie22";
+	void *cookiehs2 = (void *)"cookiehs2";
+	uint8_t   buf0[64];
+	iovec_t   iov;
+	ipc_msg_t msg;
+
+	TEST_BEGIN(__func__);
+
+	/* prepare test buffer */
+	fill_test_buf(buf0, sizeof(buf0), 0x55);
+
+	chan1 = sync_connect( SRV_PATH_BASE ".srv.echo", 1000);
+	EXPECT_GT_ZERO ((int)chan1, "connect to echo chan1");
+
+	rc = set_cookie(chan1, cookie1);
+	EXPECT_EQ(0, rc, "cookie1");
+
+	chan2 = sync_connect( SRV_PATH_BASE ".srv.echo", 1000);
+	EXPECT_GT_ZERO ((int)chan2, "connect to echo chan2");
+
+	rc = set_cookie(chan2, cookie2);
+	EXPECT_EQ(0, rc, "cookie2");
+
+	/* send message over chan1 and chan2 */
+	iov.base = buf0;
+	iov.len  = sizeof(buf0);
+	msg.num_handles = 0;
+	msg.handles = NULL;
+	msg.num_iov = 1;
+	msg.iov = &iov;
+
+	rc = send_msg(chan1, &msg);
+	EXPECT_EQ(64, rc, "send over chan1");
+
+	rc = send_msg(chan2, &msg);
+	EXPECT_EQ(64, rc, "send over chan2");
+
+	hset1 = handle_set_create();
+	EXPECT_GE_ZERO((int)hset1, "create handle set1");
+
+	hset2 = handle_set_create();
+	EXPECT_GE_ZERO((int)hset2, "create handle set2");
+
+	ABORT_IF_NOT_OK(abort_test);
+
+	/* chan1 to hset2 */
+	evt.handle = chan1;
+	evt.event  = ~0;
+	evt.cookie = cookie12;
+	rc = handle_set_ctrl(hset2, HSET_ADD, &evt);
+	EXPECT_EQ(0, rc, "add hset2 to hset1");
+
+	/* chan2 to hset2 */
+	evt.handle = chan2;
+	evt.event  = ~0;
+	evt.cookie = cookie22;
+	rc = handle_set_ctrl(hset2, HSET_ADD, &evt);
+	EXPECT_EQ(0, rc, "add hset2 to hset1");
+
+	/* add hset2 to hset1 */
+	evt.handle = hset2;
+	evt.event  = ~0;
+	evt.cookie = cookiehs2;
+	rc = handle_set_ctrl(hset1, HSET_ADD, &evt);
+	EXPECT_EQ(0, rc, "add hset2 to hset1");
+
+	/* chan1 to hset1 */
+	evt.handle = chan1;
+	evt.event  = ~0;
+	evt.cookie = cookie11;
+	rc = handle_set_ctrl(hset1, HSET_ADD, &evt);
+	EXPECT_EQ(0, rc, "add hset2 to hset1");
+
+	/* chan2 to hset1 */
+	evt.handle = chan2;
+	evt.event  = ~0;
+	evt.cookie = cookie21;
+	rc = handle_set_ctrl(hset1, HSET_ADD, &evt);
+	EXPECT_EQ(0, rc, "add hset2 to hset1");
+
+	/* wait on chan1 directly */
+	rc = wait(chan1, &evt, 1000);
+	EXPECT_EQ(0, rc, "wait on chan1");
+	EXPECT_EQ(chan1, evt.handle, "event.handle");
+	EXPECT_EQ(cookie1, evt.cookie, "event.cookie");
+
+	/* wait on chan2 directly */
+	rc = wait(chan2, &evt, 1000);
+	EXPECT_EQ(0, rc, "wait on chan2");
+	EXPECT_EQ(chan2, evt.handle, "event.handle");
+	EXPECT_EQ(cookie2, evt.cookie, "event.cookie");
+
+	/* wait on hset1 */
+	rc = wait(hset1, &evt, 1000);
+	EXPECT_EQ(0, rc, "wait on hset1");
+	EXPECT_EQ(hset2, evt.handle, "event.handle");
+	EXPECT_EQ(cookiehs2, evt.cookie, "event.cookie");
+
+	/* wait on hset1 again (chan1 should be ready) */
+	rc = wait(hset1, &evt, 1000);
+	EXPECT_EQ(0, rc, "wait on hset1");
+	EXPECT_EQ(chan1, evt.handle, "event.handle");
+	EXPECT_EQ(cookie11, evt.cookie, "event.cookie");
+
+	/* wait on hset1 again (chan2 should be ready) */
+	rc = wait(hset1, &evt, 1000);
+	EXPECT_EQ(0, rc, "wait on hset1");
+	EXPECT_EQ(chan2, evt.handle, "event.handle");
+	EXPECT_EQ(cookie21, evt.cookie, "event.cookie");
+
+	/* wait on hset1 again (hset2 should be ready) */
+	rc = wait(hset1, &evt, 1000);
+	EXPECT_EQ(0, rc, "wait on hset1");
+	EXPECT_EQ(hset2, evt.handle, "event.handle");
+	EXPECT_EQ(cookiehs2, evt.cookie, "event.cookie");
+
+	/* wait on hset2 (chan1 should be ready) */
+	rc = wait(hset2, &evt, 1000);
+	EXPECT_EQ(0, rc, "wait on hset2");
+	EXPECT_EQ(chan1, evt.handle, "event.handle");
+	EXPECT_EQ(cookie12, evt.cookie, "event.cookie");
+
+	/* wait on hset2 again (chan2 should be ready) */
+	rc = wait(hset2, &evt, 1000);
+	EXPECT_EQ(0, rc, "wait on hset2");
+	EXPECT_EQ(chan2, evt.handle, "event.handle");
+	EXPECT_EQ(cookie22, evt.cookie, "event.cookie");
+
+	/* wait on hset2 again (chan1 should be ready) */
+	rc = wait(hset2, &evt, 1000);
+	EXPECT_EQ(0, rc, "wait on chan1");
+	EXPECT_EQ(chan1, evt.handle, "event.handle");
+	EXPECT_EQ(cookie12, evt.cookie, "event.cookie");
+
+abort_test:
+	close(chan1);
+	close(chan2);
+	close(hset1);
+	close(hset2);
+
+	TEST_END
+}
+
+
+static void run_hset_event_mask_test(void)
+{
+	int rc;
+	uevent_t evt;
+	handle_t hset1;
+	handle_t chan1;
+	void *cookie1  = (void *)"cookie1";
+	void *cookie11 = (void *)"cookie11";
+	uint8_t   buf0[64];
+	iovec_t   iov;
+	ipc_msg_t msg;
+
+	TEST_BEGIN(__func__);
+
+	/* prepare test buffer */
+	fill_test_buf(buf0, sizeof(buf0), 0x55);
+
+	chan1 = sync_connect( SRV_PATH_BASE ".srv.echo", 1000);
+	EXPECT_GT_ZERO ((int)chan1, "connect to echo");
+
+	rc = set_cookie(chan1, cookie1);
+	EXPECT_EQ(0, rc, "cookie1");
+
+	/* send message over chan1 and chan2 */
+	iov.base = buf0;
+	iov.len  = sizeof(buf0);
+	msg.num_handles = 0;
+	msg.handles = NULL;
+	msg.num_iov = 1;
+	msg.iov = &iov;
+
+	rc = send_msg(chan1, &msg);
+	EXPECT_EQ(64, rc, "send over chan1");
+
+	hset1 = handle_set_create();
+	EXPECT_GE_ZERO((int)hset1, "create handle set1");
+
+	ABORT_IF_NOT_OK(abort_test);
+
+	/* chan1 to hset1 */
+	evt.handle = chan1;
+	evt.event  = ~0;
+	evt.cookie = cookie11;
+	rc = handle_set_ctrl(hset1, HSET_ADD, &evt);
+	EXPECT_EQ(0, rc, "add chan1 to hset1");
+
+	/* wait of chan1 handle */
+	rc = wait(chan1, &evt, 100);
+	EXPECT_EQ(0, rc, "wait on chan1");
+	EXPECT_EQ(chan1, evt.handle, "event.handle");
+	EXPECT_EQ(cookie1, evt.cookie, "event.cookie");
+
+	/* wait on hset1 (should get chan1) */
+	rc = wait(hset1, &evt, 100);
+	EXPECT_EQ(0, rc, "wait on hset1");
+	EXPECT_EQ(chan1, evt.handle, "event.handle");
+	EXPECT_EQ(cookie11, evt.cookie, "event.cookie");
+
+	/* mask off chan1 in hset1 */
+	evt.handle = chan1;
+	evt.event  = 0;
+	evt.cookie = cookie11;
+	rc = handle_set_ctrl(hset1, HSET_MOD, &evt);
+	EXPECT_EQ(0, rc, "mod chan1 in hset1");
+
+	/* wait on hset1 (should get chan1) */
+	rc = wait(hset1, &evt, 100);
+	EXPECT_EQ(ERR_TIMED_OUT, rc, "wait on hset1");
+
+	/* unmask off chan1 in hset1 */
+	evt.handle = chan1;
+	evt.event  = ~0;
+	evt.cookie = cookie11;
+	rc = handle_set_ctrl(hset1, HSET_MOD, &evt);
+	EXPECT_EQ(0, rc, "mod chan1 in hset1");
+
+	/* wait on hset1 (should get chan1) */
+	rc = wait(hset1, &evt, 100);
+	EXPECT_EQ(0, rc, "wait on hset1");
+	EXPECT_EQ(chan1, evt.handle, "event.handle");
+	EXPECT_EQ(cookie11, evt.cookie, "event.cookie");
+
+abort_test:
+	close(chan1);
+	close(hset1);
+	TEST_END
+}
+
+
+/****************************************************************************/
+
 /*
  *
  */
@@ -1580,6 +2081,15 @@ static void run_all_tests (void)
 	/* reset test state */
 	_tests_total  = 0;
 	_tests_failed = 0;
+
+	/* handle sets: part 1 */
+	run_hset_create_test();
+	run_hset_add_mod_del_test();
+	run_hset_add_self_test();
+	run_hset_add_loop_test();
+	run_hset_add_duplicate_test();
+	run_hset_wait_on_empty_set_test();
+	run_hset_wait_on_non_empty_set_test();
 
 	/* positive tests */
 	run_port_create_test();
@@ -1607,6 +2117,10 @@ static void run_all_tests (void)
 	run_put_msg_negative_test();
 	run_send_msg_negative_test();
 	run_read_msg_negative_test();
+
+	/* handle sets: part 2 */
+	run_hset_add_chan_test();
+	run_hset_event_mask_test();
 
 	TLOGI("Conditions checked: %d\n", _tests_total);
 	TLOGI("Conditions failed:  %d\n", _tests_failed);
