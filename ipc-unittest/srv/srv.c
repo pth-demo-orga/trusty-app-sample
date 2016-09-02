@@ -611,6 +611,7 @@ static int _echo_handle_msg(const uevent_t *ev, int delay)
 	int rc;
 	iovec_t iov;
 	ipc_msg_t msg;
+	handle_t  handles[8];
 	echo_chan_state_t *st = containerof(ev->cookie, echo_chan_state_t, handler);
 
 	/* get all messages */
@@ -638,8 +639,8 @@ static int _echo_handle_msg(const uevent_t *ev, int delay)
 		iov.len  = sizeof(echo_msg_buf);
 		msg.num_iov = 1;
 		msg.iov     = &iov;
-		msg.num_handles = 0;
-		msg.handles  = NULL;
+		msg.handles = handles;
+		msg.num_handles = st->msg_queue[st->msg_next_r].num_handles;
 
 		/* read msg content */
 		rc = read_msg(ev->handle, st->msg_queue[st->msg_next_r].id, 0, &msg);
@@ -659,6 +660,12 @@ static int _echo_handle_msg(const uevent_t *ev, int delay)
 
 		/* and send it back */
 		rc = send_msg(ev->handle, &msg);
+
+		/* close all received handles */
+		for (uint i = 0; i < msg.num_handles; i++) {
+			close(handles[i]);
+		}
+
 		if (rc == ERR_NOT_ENOUGH_BUFFER)
 			break;
 

@@ -1252,10 +1252,13 @@ static void run_send_msg_negative_test(void)
 	EXPECT_GT_ZERO (rc, "connect to datasink");
 	chan = (handle_t) rc;
 
-	/* handles are not supported */
+	/* send message with handles pointing to NULL */
 	msg.num_handles = 1;
+	msg.handles  = NULL;
 	rc = send_msg(chan, &msg);
-	EXPECT_EQ (ERR_NOT_SUPPORTED, rc, "sending handles");
+	EXPECT_EQ (ERR_FAULT, rc, "sending handles");
+
+	/* reset handles */
 	msg.num_handles = 0;
 	msg.handles  = NULL;
 
@@ -1431,13 +1434,6 @@ static void run_read_msg_negative_test(void)
 	/* read with invalid offset with valid iovec array */
 	rc = read_msg(chan, inf.id, inf.len + 1, &rx_msg);
 	EXPECT_EQ (ERR_INVALID_ARGS, rc, "read with invalid offset");
-
-	/* read with handles */
-	rx_msg.num_handles = 1;
-	rx_msg.handles = NULL;
-	rc = read_msg(chan, inf.id, 0, &rx_msg);
-	EXPECT_EQ (ERR_NOT_SUPPORTED, rc, "read with handles");
-	rx_msg.num_handles = 0;
 
 	/* cleanup */
 	rc = put_msg(chan, inf.id);
@@ -2071,6 +2067,500 @@ abort_test:
 
 /****************************************************************************/
 
+static void run_send_handle_test(void)
+{
+	int       rc;
+	iovec_t   iov;
+	ipc_msg_t msg;
+	handle_t  hchan1;
+	handle_t  hchan2;
+	uint8_t   buf0[64];
+	char path[MAX_PORT_PATH_LEN];
+
+	TEST_BEGIN(__func__);
+
+	/* prepare test buffer */
+	fill_test_buf(buf0, sizeof(buf0), 0x55);
+
+	/* open connection to datasink service */
+	sprintf(path, "%s.srv.%s", SRV_PATH_BASE,  "datasink");
+	rc = sync_connect(path, 1000);
+	EXPECT_GT_ZERO (rc, "connect to datasink");
+	ABORT_IF_NOT_OK(err_connect1);
+	hchan1 = (handle_t)rc;
+
+	rc = sync_connect(path, 1000);
+	EXPECT_GT_ZERO (rc, "connect to datasink");
+	ABORT_IF_NOT_OK(err_connect2);
+	hchan2 = (handle_t)rc;
+
+	/* send hchan2 handle over hchan1 connection */
+	iov.base = buf0;
+	iov.len  = sizeof(buf0);
+	msg.iov  = &iov;
+	msg.num_iov = 1;
+	msg.handles = &hchan2;
+	msg.num_handles = 1;
+
+	/* send and wait a bit */
+	rc = send_msg(hchan1, &msg);
+	EXPECT_EQ (64, rc, "send handle");
+	nanosleep (0, 0, 100 * MSEC);
+
+	/* send it again and close it */
+	rc = send_msg(hchan1, &msg);
+	EXPECT_EQ (64, rc, "send handle");
+	rc = close(hchan2);
+	EXPECT_EQ (NO_ERROR, rc, "close chan2");
+
+err_connect2:
+	rc = close(hchan1);
+	EXPECT_EQ (NO_ERROR, rc, "close chan1");
+err_connect1:
+	TEST_END
+}
+
+
+static void run_send_handle_negative_test(void)
+{
+	int       rc;
+	ipc_msg_t msg;
+	handle_t  hchan;
+	handle_t  hsend[10];
+	char path[MAX_PORT_PATH_LEN];
+
+	TEST_BEGIN(__func__);
+
+	/* open connection to datasink service */
+	sprintf(path, "%s.srv.%s", SRV_PATH_BASE,  "datasink");
+	rc = sync_connect(path, 1000);
+	EXPECT_GT_ZERO (rc, "connect to datasink");
+	ABORT_IF_NOT_OK(err_connect);
+	hchan = (handle_t)rc;
+
+	for (uint i = 0; i < countof(hsend); i++)
+		hsend[i] = hchan;
+
+	/* send 8 copies of yourself to datasync (should be fine) */
+	msg.iov  = NULL;
+	msg.num_iov = 0;
+	msg.handles = &hsend[0];
+	msg.num_handles = 8;
+	rc = send_msg(hchan, &msg);
+	EXPECT_EQ (0, rc, "send handle");
+
+	/* send 8 copies of yourself to datasync with handle poiting to NULL*/
+	msg.iov  = NULL;
+	msg.num_iov = 0;
+	msg.handles = NULL;
+	msg.num_handles = 8;
+	rc = send_msg(hchan, &msg);
+	EXPECT_EQ (ERR_FAULT, rc, "send handle");
+
+	/* call with invalid handle should return ERR_FAULT */
+	msg.handles = (handle_t *)0x100;
+	msg.num_handles = 8;
+	rc = send_msg(hchan, &msg);
+	EXPECT_EQ (ERR_FAULT, rc, "send handle");
+
+	/* send more then 8, should fail */
+	msg.handles = &hsend[0];
+	msg.num_handles = 10;
+	rc = send_msg(hchan, &msg);
+	EXPECT_EQ (ERR_TOO_BIG, rc, "send handle");
+
+	rc = close(hchan);
+	EXPECT_EQ (NO_ERROR, rc, "close chan");
+err_connect:
+	TEST_END
+}
+
+static void run_recv_handle_test(void)
+{
+	int       rc;
+	handle_t  hchan1;
+	handle_t  hchan2;
+	handle_t  hrecv[2];
+	uint8_t   buf0[64];
+	iovec_t   iov;
+	ipc_msg_t msg;
+	uevent_t  evt;
+	ipc_msg_info_t inf;
+	char path[MAX_PORT_PATH_LEN];
+
+	TEST_BEGIN(__func__);
+
+	/* prepare test buffer */
+	fill_test_buf(buf0, sizeof(buf0), 0x55);
+
+	/* open connection to echo service */
+	sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "echo");
+	rc = sync_connect(path, 1000);
+	EXPECT_GT_ZERO (rc, "connect to echo");
+	ABORT_IF_NOT_OK(err_connect1);
+	hchan1 = (handle_t)rc;
+
+	/* open second connection to echo service */
+	sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "echo");
+	rc = sync_connect(path, 1000);
+	EXPECT_GT_ZERO (rc, "connect to echo");
+	ABORT_IF_NOT_OK(err_connect2);
+	hchan2 = (handle_t)rc;
+
+	/* send message with handle */
+	iov.base = buf0;
+	iov.len  = sizeof(buf0);
+	msg.iov  = &iov;
+	msg.num_iov = 1;
+	msg.handles = &hchan2;
+	msg.num_handles = 1;
+
+	rc = send_msg(hchan1, &msg);
+	EXPECT_EQ (64, rc, "send_handle");
+
+	/* wait for reply */
+	rc = wait(hchan1, &evt, 1000);
+	EXPECT_EQ(0, rc, "wait for reply");
+	EXPECT_EQ(hchan1, evt.handle, "event.handle");
+
+	/* get reply message */
+	rc = get_msg(hchan1, &inf);
+	EXPECT_EQ (NO_ERROR, rc, "getting echo reply");
+	EXPECT_EQ (sizeof(buf0), inf.len, "reply len");
+	EXPECT_EQ (1, inf.num_handles, "reply num_handles");
+
+	/* read reply data and no handles */
+	hrecv[0] = INVALID_IPC_HANDLE;
+	hrecv[1] = INVALID_IPC_HANDLE;
+	msg.handles = &hrecv[0];
+	msg.num_handles = 0;
+	rc = read_msg(hchan1, inf.id, 0, &msg);
+	EXPECT_EQ (64, rc, "reading echo reply");
+
+	rc = close(hrecv[0]);
+	EXPECT_EQ (ERR_BAD_HANDLE, rc, "close reply handle");
+
+	rc = close(hrecv[1]);
+	EXPECT_EQ (ERR_BAD_HANDLE, rc, "close reply handle");
+
+	/* read reply data and 1 handle */
+	hrecv[0] = INVALID_IPC_HANDLE;
+	hrecv[1] = INVALID_IPC_HANDLE;
+	msg.handles = &hrecv[0];
+	msg.num_handles = 1;
+	rc = read_msg(hchan1, inf.id, 0, &msg);
+	EXPECT_EQ (64, rc, "reading echo reply");
+
+	rc = close(hrecv[0]);
+	EXPECT_EQ (0, rc, "close reply handle");
+
+	rc = close(hrecv[1]);
+	EXPECT_EQ (ERR_BAD_HANDLE, rc, "close reply handle");
+
+	/* read reply data and 2 handles (second one should be invalid) */
+	hrecv[0] = INVALID_IPC_HANDLE;
+	hrecv[1] = INVALID_IPC_HANDLE;
+	msg.handles = &hrecv[0];
+	msg.num_handles = 2;
+	rc = read_msg(hchan1, inf.id, 0, &msg);
+	EXPECT_EQ (64, rc, "reading echo reply");
+
+	rc = close(hrecv[0]);
+	EXPECT_EQ (0, rc, "close reply handle");
+
+	rc = close(hrecv[1]);
+	EXPECT_EQ (ERR_BAD_HANDLE, rc, "close reply handle");
+
+	/* read 1 handle with no data */
+	hrecv[0] = INVALID_IPC_HANDLE;
+	hrecv[1] = INVALID_IPC_HANDLE;
+	msg.num_iov = 0;
+	msg.handles = &hrecv[0];
+	msg.num_handles = 1;
+	rc = read_msg(hchan1, inf.id, 0, &msg);
+	EXPECT_EQ (0, rc, "reading echo reply");
+
+	EXPECT_EQ (INVALID_IPC_HANDLE, hrecv[1], "reading echo reply");
+
+	/* read same handle for the second time */
+	msg.handles = &hrecv[1];
+	msg.num_handles = 1;
+	rc = read_msg(hchan1, inf.id, 0, &msg);
+	EXPECT_EQ (0, rc, "reading echo reply");
+
+	rc = close(hrecv[0]);
+	EXPECT_EQ (0, rc, "close reply handle");
+
+	rc = close(hrecv[1]);
+	EXPECT_EQ (0, rc, "close reply handle");
+
+	/* discard reply */
+	rc = put_msg(hchan1, inf.id);
+	EXPECT_EQ (NO_ERROR, rc, "putting echo reply");
+
+	close(hchan2);
+	EXPECT_EQ (NO_ERROR, rc, "close chan2");
+err_connect2:
+	close(hchan1);
+	EXPECT_EQ (NO_ERROR, rc, "close chan1");
+err_connect1:
+	TEST_END
+}
+
+
+static void run_recv_handle_negative_test(void)
+{
+	int       rc;
+	handle_t  hchan1;
+	ipc_msg_t msg;
+	uevent_t  evt;
+	ipc_msg_info_t inf;
+	char path[MAX_PORT_PATH_LEN];
+
+	TEST_BEGIN(__func__);
+
+	/* open connection to echo service */
+	sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "echo");
+	rc = sync_connect(path, 1000);
+	EXPECT_GT_ZERO (rc, "connect to echo");
+	ABORT_IF_NOT_OK(err_connect1);
+	hchan1 = (handle_t)rc;
+
+	/* send message with handle attached */
+	msg.iov = NULL;
+	msg.num_iov = 0;
+	msg.handles = &hchan1;
+	msg.num_handles = 1;
+
+	rc = send_msg(hchan1, &msg);
+	EXPECT_EQ (0, rc, "send_handle");
+
+	/* wait for reply */
+	rc = wait(hchan1, &evt, 1000);
+	EXPECT_EQ(0, rc, "wait for reply");
+	EXPECT_EQ(hchan1, evt.handle, "event.handle");
+
+	/* get reply message */
+	rc = get_msg(hchan1, &inf);
+	EXPECT_EQ (NO_ERROR, rc, "getting echo reply");
+	EXPECT_EQ (0, inf.len, "reply len");
+	EXPECT_EQ (1, inf.num_handles, "reply num_handles");
+
+	/* read reply data with handles pointing to NULL */
+	msg.handles = NULL;
+	msg.num_handles = 1;
+	rc = read_msg(hchan1, inf.id, 0, &msg);
+	EXPECT_EQ (ERR_FAULT, rc, "reading echo reply");
+
+	/* read reply data and bad handle ptr */
+	msg.handles = (handle_t *)0x100;
+	msg.num_handles = 1;
+	rc = read_msg(hchan1, inf.id, 0, &msg);
+	EXPECT_EQ (ERR_FAULT, rc, "reading echo reply");
+
+	/* discard reply */
+	rc = put_msg(hchan1, inf.id);
+	EXPECT_EQ (NO_ERROR, rc, "putting echo reply");
+
+	rc = close(hchan1);
+	EXPECT_EQ (NO_ERROR, rc, "close chan1");
+err_connect1:
+	TEST_END
+}
+
+
+static void run_send_handle_bulk_test(void)
+{
+	int       rc;
+	iovec_t   iov;
+	ipc_msg_t msg;
+	handle_t  hchan1;
+	handle_t  hchan2;
+	uint8_t   buf0[64];
+	char path[MAX_PORT_PATH_LEN];
+
+	TEST_BEGIN(__func__);
+
+	/* prepare test buffer */
+	fill_test_buf(buf0, sizeof(buf0), 0x55);
+
+	/* open connection to datasink service */
+	sprintf(path, "%s.srv.%s", SRV_PATH_BASE,  "datasink");
+	rc = sync_connect(path, 1000);
+	EXPECT_GT_ZERO (rc, "connect to datasink");
+	ABORT_IF_NOT_OK(err_connect1);
+	hchan1 = (handle_t)rc;
+
+	rc = sync_connect(path, 1000);
+	EXPECT_GT_ZERO (rc, "connect to datasink");
+	ABORT_IF_NOT_OK(err_connect2);
+	hchan2 = (handle_t)rc;
+
+	/* send hchan2 handle over hchan1 connection */
+	iov.base = buf0;
+	iov.len  = sizeof(buf0);
+	msg.iov  = &iov;
+	msg.num_iov = 1;
+	msg.handles = &hchan2;
+	msg.num_handles = 1;
+
+	for (uint i = 0; (i < 10000) && _all_ok; i++) {
+		while (_all_ok) {
+			rc = send_msg(hchan1, &msg);
+			if (rc == ERR_NOT_ENOUGH_BUFFER) { /* wait for room */
+				uevent_t uevt;
+				uint exp_event = IPC_HANDLE_POLL_SEND_UNBLOCKED;
+				rc = wait(hchan1, &uevt, 10000);
+				EXPECT_EQ (NO_ERROR, rc, "waiting for space");
+				EXPECT_EQ (hchan1, uevt.handle, "waiting for space");
+				EXPECT_EQ (exp_event, uevt.event,  "waiting for space");
+			} else {
+				EXPECT_EQ (64, rc, "send_msg bulk");
+				break;
+			}
+		}
+	}
+	rc = close(hchan2);
+	EXPECT_EQ (NO_ERROR, rc, "close chan2");
+
+	/* repeate the same while closing handle after sending it */
+	for (uint i = 0; (i < 10000) && _all_ok; i++) {
+
+		rc = sync_connect(path, 1000);
+		EXPECT_GT_ZERO (rc, "connect to datasink");
+		ABORT_IF_NOT_OK(err_connect2);
+		hchan2 = (handle_t)rc;
+
+		/* send hchan2 handle over hchan1 connection */
+		iov.base = buf0;
+		iov.len  = sizeof(buf0);
+		msg.iov  = &iov;
+		msg.num_iov = 1;
+		msg.handles = &hchan2;
+		msg.num_handles = 1;
+
+		while (_all_ok) {
+			rc = send_msg(hchan1, &msg);
+			if (rc == ERR_NOT_ENOUGH_BUFFER) { /* wait for room */
+				uevent_t uevt;
+				uint exp_event = IPC_HANDLE_POLL_SEND_UNBLOCKED;
+				rc = wait(hchan1, &uevt, 10000);
+				EXPECT_EQ (NO_ERROR, rc, "waiting for space");
+				EXPECT_EQ (hchan1, uevt.handle, "waiting for space");
+				EXPECT_EQ (exp_event, uevt.event,  "waiting for space");
+			} else {
+				EXPECT_EQ (64, rc, "send_msg bulk");
+				break;
+			}
+		}
+		rc = close(hchan2);
+		EXPECT_EQ (NO_ERROR, rc, "close chan2");
+	}
+
+err_connect2:
+	rc = close(hchan1);
+	EXPECT_EQ (NO_ERROR, rc, "close chan1");
+err_connect1:
+	TEST_END
+}
+
+
+static void run_echo_handle_bulk_test(void)
+{
+	int       rc;
+	handle_t  hchan1;
+	handle_t  hchan2;
+	handle_t  hrecv;
+	uint8_t   buf0[64];
+	iovec_t   iov;
+	ipc_msg_t msg;
+	uevent_t  evt;
+	ipc_msg_info_t inf;
+	char path[MAX_PORT_PATH_LEN];
+
+	TEST_BEGIN(__func__);
+
+	/* prepare test buffer */
+	fill_test_buf(buf0, sizeof(buf0), 0x55);
+
+	/* open connection to echo service */
+	sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "echo");
+	rc = sync_connect(path, 1000);
+	EXPECT_GT_ZERO (rc, "connect to echo");
+	ABORT_IF_NOT_OK(err_connect1);
+	hchan1 = (handle_t)rc;
+
+	/* open second connection to echo service */
+	sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "echo");
+	rc = sync_connect(path, 1000);
+	EXPECT_GT_ZERO (rc, "connect to echo");
+	ABORT_IF_NOT_OK(err_connect2);
+	hchan2 = (handle_t)rc;
+
+	/* send the same handle 10000 times */
+	for (uint i = 0; (i < 10000) && _all_ok; i++) {
+		/* send message with handle */
+		iov.base = buf0;
+		iov.len  = sizeof(buf0);
+		msg.iov  = &iov;
+		msg.num_iov = 1;
+		msg.handles = &hchan2;
+		msg.num_handles = 1;
+
+		while (_all_ok) {
+			rc = send_msg(hchan1, &msg);
+			EXPECT_EQ (64, rc, "send_handle");
+			if (rc == ERR_NOT_ENOUGH_BUFFER) { /* wait for room */
+				uevent_t uevt;
+				uint exp_event = IPC_HANDLE_POLL_SEND_UNBLOCKED;
+				rc = wait(hchan1, &uevt, 10000);
+				EXPECT_EQ (NO_ERROR, rc, "waiting for space");
+				EXPECT_EQ (hchan1, uevt.handle, "waiting for space");
+				EXPECT_EQ (exp_event, uevt.event,  "waiting for space");
+			} else {
+				EXPECT_EQ (64, rc, "send_msg bulk");
+				break;
+			}
+		}
+
+		/* wait for reply */
+		rc = wait(hchan1, &evt, 1000);
+		EXPECT_EQ(0, rc, "wait for reply");
+		EXPECT_EQ(hchan1, evt.handle, "event.handle");
+
+		/* get reply message */
+		rc = get_msg(hchan1, &inf);
+		EXPECT_EQ (NO_ERROR, rc, "getting echo reply");
+		EXPECT_EQ (sizeof(buf0), inf.len, "reply len");
+		EXPECT_EQ (1, inf.num_handles, "reply num_handles");
+
+		/* read reply data and 1 handle */
+		hrecv = INVALID_IPC_HANDLE;
+		msg.handles = &hrecv;
+		msg.num_handles = 1;
+		rc = read_msg(hchan1, inf.id, 0, &msg);
+		EXPECT_EQ (64, rc, "reading echo reply");
+
+		/* discard reply */
+		rc = put_msg(hchan1, inf.id);
+		EXPECT_EQ (NO_ERROR, rc, "putting echo reply");
+
+		/* close received handle */
+		rc = close(hrecv);
+		EXPECT_EQ (0, rc, "close reply handle");
+	}
+
+	rc = close(hchan2);
+	EXPECT_EQ (NO_ERROR, rc, "close chan2");
+err_connect2:
+	rc = close(hchan1);
+	EXPECT_EQ (NO_ERROR, rc, "close chan1");
+err_connect1:
+	TEST_END
+}
+
+/****************************************************************************/
+
 /*
  *
  */
@@ -2121,6 +2611,15 @@ static void run_all_tests (void)
 	/* handle sets: part 2 */
 	run_hset_add_chan_test();
 	run_hset_event_mask_test();
+
+	/* send handle */
+	run_send_handle_test();
+	run_send_handle_negative_test();
+	run_recv_handle_test();
+	run_recv_handle_negative_test();
+
+	run_send_handle_bulk_test();
+	run_echo_handle_bulk_test();
 
 	TLOGI("Conditions checked: %d\n", _tests_total);
 	TLOGI("Conditions failed:  %d\n", _tests_failed);
