@@ -248,7 +248,7 @@ static int _create_service(const struct tipc_srv *srv,
                            struct tipc_srv_state *state)
 {
 	if (!srv || !state) {
-		TLOGI("null service specified: %p: %p\n");
+		TLOGI("null services specified\n");
 		return ERR_INVALID_ARGS;
 	}
 
