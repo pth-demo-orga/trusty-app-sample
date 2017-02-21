@@ -20,7 +20,7 @@
 #include <string.h>
 #include <trusty_std.h>
 
-volatile void nop(void)
+void __attribute__((noinline)) nop(void)
 {
 	static int i;
 	i++;
