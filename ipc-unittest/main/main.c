@@ -556,7 +556,7 @@ static void run_async_connect_test (void)
 	int rc;
 	handle_t chan;
 	uevent_t event;
-	uuid_t peer_uuid = {0};
+	uuid_t peer_uuid = UUID_INITIAL_VALUE(peer_uuid);
 	char path[MAX_PORT_PATH_LEN];
 
 	TEST_BEGIN(__func__);
@@ -647,8 +647,8 @@ static void run_async_connect_test (void)
 static void run_connect_selfie_test (void)
 {
 	int rc, rc1;
-	uuid_t peer_uuid = {0};
-	uuid_t zero_uuid = {0};
+	uuid_t peer_uuid = UUID_INITIAL_VALUE(peer_uuid);
+	uuid_t zero_uuid = UUID_INITIAL_VALUE(zero_uuid);
 	char path[MAX_PORT_PATH_LEN];
 	lk_time_t connect_timeout = 1000;  // 1 sec
 
@@ -769,8 +769,8 @@ static void run_accept_negative_test(void)
 	int  rc, rc1;
 	char path[MAX_PORT_PATH_LEN];
 	handle_t chan;
-	uuid_t peer_uuid = {0};
-	uuid_t zero_uuid = {0};
+	uuid_t peer_uuid = UUID_INITIAL_VALUE(peer_uuid);
+	uuid_t zero_uuid = UUID_INITIAL_VALUE(zero_uuid);
 
 	TEST_BEGIN(__func__);
 
@@ -822,8 +822,8 @@ static void run_accept_test (void)
 	uevent_t event;
 	char path[MAX_PORT_PATH_LEN];
 	handle_t ports[MAX_USER_HANDLES];
-	uuid_t peer_uuid = {0};
-	uuid_t zero_uuid = {0};
+	uuid_t peer_uuid = UUID_INITIAL_VALUE(peer_uuid);
+	uuid_t zero_uuid = UUID_INITIAL_VALUE(zero_uuid);
 
 	TEST_BEGIN(__func__);
 
