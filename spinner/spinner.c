@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <err.h>
+#include <uapi/err.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>

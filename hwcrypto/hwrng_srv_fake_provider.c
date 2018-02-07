@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <err.h>
+#include <uapi/err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

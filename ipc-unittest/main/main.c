@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <err.h>
+#include <uapi/err.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,7 +26,7 @@
 #include <app/ipc_unittest/common.h>
 #include <app/ipc_unittest/uuids.h>
 
-#include <trace.h>
+#include <lk/trace.h>
 
 /*  */
 static uint _tests_total  = 0; /* Number of conditions checked */

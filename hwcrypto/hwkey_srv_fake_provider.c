@@ -15,7 +15,7 @@
  */
 
 #include <assert.h>
-#include <err.h>
+#include <uapi/err.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
