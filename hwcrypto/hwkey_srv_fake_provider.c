@@ -36,7 +36,7 @@
 #define LOCAL_TRACE  1
 #define LOG_TAG      "hwkey_fake_srv"
 
-#warning "Compiling FAKE HWKEY provider"
+#pragma message "Compiling FAKE HWKEY provider"
 
 /*
  *  This module is a sample only. For real device, this code

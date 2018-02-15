@@ -25,7 +25,7 @@
 #define LOCAL_TRACE  1
 #define LOG_TAG      "hwrng_fake_srv"
 
-#warning "Compiling FAKE HWRNG provider"
+#pragma message "Compiling FAKE HWRNG provider"
 
 void hwrng_dev_get_rng_data(uint8_t *buf, size_t buf_len)
 {
