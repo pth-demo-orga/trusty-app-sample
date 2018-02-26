@@ -57,8 +57,8 @@ static const uuid_t srv_app_uuid = IPC_UNITTEST_SRV_APP_UUID;
  */
 #define EXPECT_EQ(expected, actual, msg)                        \
 {                                                               \
-	typeof(actual) _e = expected;                           \
-	typeof(actual) _a = actual;                             \
+	__typeof__(actual) _e = expected;                       \
+	__typeof__(actual) _a = actual;                         \
 	_tests_total++;                                         \
 	if (_e != _a) {                                         \
 		TLOGI("%s: expected " #expected " (%d), "      \
@@ -71,8 +71,8 @@ static const uuid_t srv_app_uuid = IPC_UNITTEST_SRV_APP_UUID;
 
 #define EXPECT_GT(expected, actual, msg)                        \
 {                                                               \
-	typeof(actual) _e = expected;                           \
-	typeof(actual) _a = actual;                             \
+	__typeof__(actual) _e = expected;                       \
+	__typeof__(actual) _a = actual;                         \
 	_tests_total++;                                         \
 	if (_e <= _a) {                                         \
 		TLOGI("%s: expected " #expected " (%d), "      \
@@ -85,7 +85,7 @@ static const uuid_t srv_app_uuid = IPC_UNITTEST_SRV_APP_UUID;
 
 #define EXPECT_GE_ZERO(actual, msg)                             \
 {                                                               \
-	typeof(actual) _a = actual;                             \
+	__typeof__(actual) _a = actual;                         \
 	_tests_total++;                                         \
 	if (_a < 0) {                                           \
 		TLOGI("%s: expected >= 0 "                     \
@@ -98,7 +98,7 @@ static const uuid_t srv_app_uuid = IPC_UNITTEST_SRV_APP_UUID;
 
 #define EXPECT_GT_ZERO(actual, msg)                             \
 {                                                               \
-	typeof(actual) _a = actual;                             \
+	__typeof__(actual) _a = actual;                         \
 	_tests_total++;                                         \
 	if (_a <= 0) {                                          \
 		TLOGI("%s: expected > 0 "                      \
