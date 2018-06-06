@@ -863,6 +863,11 @@ static void dispatch_event(const uevent_t *ev)
 	return;
 }
 
+int ipc_printf(const char *fmt, ...)
+{
+	return 0;
+}
+
 /*
  *  Main entry point of service task
  */

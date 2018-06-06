@@ -16,14 +16,18 @@
 
 #pragma once
 
+int ipc_printf(const char *fmt, ...);
+
 /* Expected limits: should be in sync with kernel settings */
 #define MAX_USER_HANDLES     64    /* max number of user handles */
 #define MAX_PORT_PATH_LEN    64    /* max length of port path name   */
 #define MAX_PORT_BUF_NUM     32    /* max number of per port buffers */
 #define MAX_PORT_BUF_SIZE  4096    /* max size of per port buffer    */
 
-#define TLOGI(fmt, ...) \
-    fprintf(stderr, "%s: %d: " fmt, LOG_TAG, __LINE__,  ## __VA_ARGS__)
+#define TLOGI(fmt, ...) do { \
+    fprintf(stderr, "%s: %d: " fmt, LOG_TAG, __LINE__,  ## __VA_ARGS__); \
+    ipc_printf("%s: %d: " fmt, LOG_TAG, __LINE__,  ## __VA_ARGS__); \
+} while(0)
 
 #define MSEC 1000000ULL
 #define SRV_PATH_BASE   "com.android.ipc-unittest"

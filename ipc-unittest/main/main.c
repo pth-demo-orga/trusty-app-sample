@@ -2630,6 +2630,76 @@ static void run_all_tests (void)
 		TLOGI("Some tests FAILED\n");
 }
 
+static int send_msg_wait(handle_t handle, struct ipc_msg *msg)
+{
+    int ret;
+    struct uevent ev;
+
+    ret = send_msg(handle, msg);
+    if (ret != ERR_NOT_ENOUGH_BUFFER) {
+        return ret;
+    }
+
+    ret= wait(handle, &ev, -1);
+    if (ret < 0) {
+        return ret;
+    }
+
+    if (ev.event & IPC_HANDLE_POLL_SEND_UNBLOCKED) {
+        return send_msg(handle, msg);
+    }
+
+    if (ev.event & IPC_HANDLE_POLL_MSG) {
+        return ERR_BUSY;
+    }
+
+    if (ev.event & IPC_HANDLE_POLL_HUP) {
+        return ERR_CHANNEL_CLOSED;
+    }
+
+    return ret;
+}
+
+enum test_message_header {
+	TEST_PASSED = 0,
+	TEST_FAILED = 1,
+	TEST_MESSAGE = 2,
+	TEST_MESSAGE_HEADER_COUNT = 3,
+};
+
+static handle_t ipc_printf_handle = INVALID_IPC_HANDLE;
+int ipc_printf(const char *fmt, ...)
+{
+	char buf[256];
+	iovec_t tx_iov = {buf, 1};
+	ipc_msg_t tx_msg = {1, &tx_iov, 0, NULL};
+	va_list ap;
+	int ret;
+	int slen;
+
+	if (ipc_printf_handle == INVALID_IPC_HANDLE) {
+		return 0;
+	}
+
+	va_start(ap, fmt);
+	ret = vsnprintf(buf + 1, sizeof(buf) - 1, fmt, ap);
+	va_end(ap);
+
+	if (ret < 0) {
+		return ret;
+	}
+	slen = ret;
+
+	buf[0] = TEST_MESSAGE;
+	tx_iov.len = 1 + ret;
+	ret = send_msg_wait(ipc_printf_handle, &tx_msg);
+	if (ret < 0) {
+		return ret;
+	}
+
+	return slen;
+}
+
 /*
  *  Application entry point
  */
@@ -2663,8 +2733,28 @@ int main(void)
 				/* get connection request */
 				rc = accept(uevt.handle, &peer_uuid);
 				if (rc >= 0) {
+					char tx_buffer[1];
+					iovec_t tx_iov = {
+						tx_buffer,
+						sizeof(tx_buffer)
+					};
+					ipc_msg_t tx_msg = {
+						1,
+						&tx_iov,
+						0,
+						NULL
+					};
+
 					/* then run unittest test */
+					ipc_printf_handle = rc;
 					run_all_tests();
+					ipc_printf_handle = INVALID_IPC_HANDLE;
+
+					tx_buffer[0] = (_tests_failed != 0) ?
+					               TEST_FAILED :
+					               TEST_PASSED;
+
+					send_msg_wait(rc, &tx_msg);
 
 					/* and close it */
 					close(rc);
