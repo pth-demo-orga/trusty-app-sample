@@ -15,13 +15,13 @@
  */
 
 #include <assert.h>
-#include <uapi/err.h>
 #include <lk/list.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <trusty_ipc.h>
+#include <uapi/err.h>
 
-#include <trusty_std.h>
 #include <interface/hwrng/hwrng.h>
 
 #include "common.h"

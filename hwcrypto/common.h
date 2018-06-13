@@ -18,7 +18,7 @@
 
 #include <lk/compiler.h>
 #include <sys/types.h>
-#include <trusty_std.h>
+#include <trusty_ipc.h>
 
 #define TLOGE(fmt, ...) \
     fprintf(stderr, "%s: %d: " fmt, LOG_TAG, __LINE__,  ## __VA_ARGS__)

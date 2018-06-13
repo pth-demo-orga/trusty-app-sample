@@ -19,7 +19,7 @@
 #define APP_MGMT_H
 
 #include <stdio.h>
-#include <trusty_std.h>
+#include <trusty_ipc.h>
 
 #define MAX_CMD_LEN 1
 

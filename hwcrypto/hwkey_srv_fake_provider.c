@@ -15,13 +15,12 @@
  */
 
 #include <assert.h>
-#include <uapi/err.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <uapi/err.h>
 
-#include <trusty_std.h>
 #include <interface/hwkey/hwkey.h>
 #include <openssl/cipher.h>
 #include <openssl/aes.h>

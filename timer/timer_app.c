@@ -18,7 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <trusty_std.h>
+#include <time.h>
 
 void __attribute__((noinline)) nop(void)
 {

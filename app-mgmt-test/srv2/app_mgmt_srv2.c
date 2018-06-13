@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <trusty_std.h>
+#include <time.h>
 #include <trusty_ipc.h>
 #include <uapi/err.h>
 

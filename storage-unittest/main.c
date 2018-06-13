@@ -15,15 +15,14 @@
  */
 
 #include <assert.h>
-#include <uapi/err.h>
+#include <malloc.h>
 #include <stdio.h>
 #include <string.h>
-#include <malloc.h>
+#include <uapi/err.h>
 
 #include <lib/storage/storage.h>
 
 #include <trusty_unittest.h>
-#include <trusty_std.h>
 
 #define LOG_TAG "ss_unittest"
 #define TLOGE(fmt, ...) \

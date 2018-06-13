@@ -16,13 +16,13 @@
 
 #include <assert.h>
 #include <lk/compiler.h>
-#include <uapi/err.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <trusty_ipc.h>
+#include <uapi/err.h>
 
-#include <trusty_std.h>
 #include <interface/hwkey/hwkey.h>
 
 #include "common.h"

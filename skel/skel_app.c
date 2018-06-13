@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-#include <stddef.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <trusty_std.h>
 
 int main(void)
 {
