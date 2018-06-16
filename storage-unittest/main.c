@@ -32,8 +32,8 @@
 typedef void (*test_body)(storage_session_t ss, storage_session_t ss_aux);
 
 void test_wrapper(const char* port, test_body test_proc) {
-    storage_session_t ss;
-    storage_session_t ss_aux;
+    storage_session_t ss = STORAGE_INVALID_SESSION;
+    storage_session_t ss_aux = STORAGE_INVALID_SESSION;
 
     int rc = storage_open_session(&ss, port);
     if (rc < 0) {
@@ -41,16 +41,21 @@ void test_wrapper(const char* port, test_body test_proc) {
         return;
     }
 
+#ifndef STORAGE_FAKE
     rc = storage_open_session(&ss_aux, port);
     if (rc < 0) {
         TLOGE("failed (%d) to open session\n", rc);
         storage_close_session(ss);
         return;
     }
+#endif
 
     test_proc(ss, ss_aux);
     storage_close_session(ss);
+
+#ifndef STORAGE_FAKE
     storage_close_session(ss_aux);
+#endif
 }
 
 #define TEST_P(name) \
@@ -328,6 +333,7 @@ test_abort:
     TEST_END;
 }
 
+#ifndef STORAGE_FAKE
 TEST_P(CreateMoveDelete) {
     int rc;
     file_handle_t handle;
@@ -540,6 +546,7 @@ test_abort:
     }
     TEST_END;
 }
+#endif
 
 TEST_P(DeleteOpened) {
     int rc;
@@ -826,7 +833,7 @@ TEST_P(OpenMany) {
     TEST_BEGIN(__func__);
 
     // open or create a bunch of files (expect 0)
-    for (uint i = 0; i < countof(handles); ++i) {
+    for (uint32_t i = 0; i < countof(handles); ++i) {
         snprintf(filename, sizeof(filename), fname_fmt, i);
         rc = storage_open_file(ss, &handles[i], filename,
                                STORAGE_FILE_OPEN_CREATE, STORAGE_OP_COMPLETE);
@@ -834,33 +841,33 @@ TEST_P(OpenMany) {
     }
 
     // check that all handles are different
-    for (uint i = 0; i < countof(handles) - 1; i++) {
-        for (uint j = i + 1; j < countof(handles); j++) {
+    for (uint32_t i = 0; i < countof(handles) - 1; i++) {
+        for (uint32_t j = i + 1; j < countof(handles); j++) {
             ASSERT_NE(handles[i], handles[j]);
         }
     }
 
     // close them all
-    for (uint i = 0; i < countof(handles); ++i) {
+    for (uint32_t i = 0; i < countof(handles); ++i) {
         storage_close_file(handles[i]);
     }
 
     // open all files without CREATE flags (expect 0)
-    for (uint i = 0; i < countof(handles); ++i) {
+    for (uint32_t i = 0; i < countof(handles); ++i) {
         snprintf(filename, sizeof(filename), fname_fmt, i);
         rc = storage_open_file(ss, &handles[i], filename, 0, 0);
         ASSERT_EQ(0, rc);
     }
 
     // check that all handles are different
-    for (uint i = 0; i < countof(handles) - 1; i++) {
-        for (uint j = i + 1; j < countof(handles); j++) {
+    for (uint32_t i = 0; i < countof(handles) - 1; i++) {
+        for (uint32_t j = i + 1; j < countof(handles); j++) {
             ASSERT_NE(handles[i], handles[j]);
         }
     }
 
     // close and remove all test files
-    for (uint i = 0; i < countof(handles); ++i) {
+    for (uint32_t i = 0; i < countof(handles); ++i) {
         storage_close_file(handles[i]);
         snprintf(filename, sizeof(filename), fname_fmt, i);
         rc = storage_delete_file(ss, filename, STORAGE_OP_COMPLETE);
@@ -1063,7 +1070,7 @@ TEST_P(WriteReadAtOffset) {
     ASSERT_EQ(0, rc);
 
     // write a bunch of blocks filled with zeroes
-    for (uint i = 0; i < blk_cnt; i++) {
+    for (size_t i = 0; i < blk_cnt; i++) {
         rc = WriteZeroChunk(handle, i * blk, blk, true);
         ASSERT_EQ((int)blk, rc);
     }
@@ -1491,6 +1498,7 @@ test_abort:
     TEST_END;
 }
 
+#ifndef STORAGE_FAKE
 TEST_P(TransactDiscardInactive) {
     int rc;
 
@@ -1646,7 +1654,7 @@ TEST_P(TransactDiscardWriteRead) {
     ASSERT_EQ((storage_off_t)0, fsize);
 
     // Fill with zeroes (with commit)
-    for (uint i = 0; i < 32; i++) {
+    for (uint32_t i = 0; i < 32; i++) {
         rc = WriteZeroChunk(handle, i * blk, blk, true);
         ASSERT_EQ((int)blk, rc);
     }
@@ -2079,7 +2087,7 @@ TEST_P(TransactCommitWrites2) {
     ASSERT_EQ(0, rc);
 
     // Fill with zeroes (with commit)
-    for (uint i = 0; i < 8; i++) {
+    for (uint32_t i = 0; i < 8; i++) {
         rc = WriteZeroChunk(handle, i * blk, blk, true);
         ASSERT_EQ((int)blk, rc);
     }
@@ -2777,7 +2785,7 @@ TEST_P(TransactRewriteExistingTruncate) {
     storage_close_file(handle);
 
     // up
-    for (uint i = 1; i < 32; i++) {
+    for (uint32_t i = 1; i < 32; i++) {
         // open truncate (no commit)
         rc = storage_open_file(ss, &handle, fname, STORAGE_FILE_OPEN_TRUNCATE,
                                0);
@@ -2792,7 +2800,7 @@ TEST_P(TransactRewriteExistingTruncate) {
     }
 
     // down
-    for (uint i = 1; i < 32; i++) {
+    for (uint32_t i = 1; i < 32; i++) {
         // open truncate (no commit)
         rc = storage_open_file(ss, &handle, fname, STORAGE_FILE_OPEN_TRUNCATE,
                                0);
@@ -2936,6 +2944,7 @@ TEST_P(TransactResumeAfterNonFatalError) {
 test_abort:
     TEST_END;
 }
+#endif
 
 void run_all_tests(const char* port) {
     int rc;
@@ -2947,15 +2956,23 @@ void run_all_tests(const char* port) {
         if (rc < 0) {
             TLOGE("failed (%d) to connect to storage server - retrying\n", rc);
         }
+
+#ifndef STORAGE_FAKE
         nanosleep(0, 0, 1000000);
+#endif
+
     } while (rc < 0);
     storage_close_session(session);
 
     TLOGI("SS-unittest: %s: begins\n", port);
 
     RUN_TEST_P(port, CreateDelete);
+#ifndef STORAGE_FAKE
+    // Moving file and opening directory is not supported in fake secure storage
+    // implementation.
     RUN_TEST_P(port, CreateMoveDelete);
     RUN_TEST_P(port, FileList);
+#endif
     RUN_TEST_P(port, DeleteOpened);
     RUN_TEST_P(port, OpenNoCreate);
     RUN_TEST_P(port, OpenOrCreate);
@@ -2977,6 +2994,7 @@ void run_all_tests(const char* port) {
     RUN_TEST_P(port, BadFileHandle);
     RUN_TEST_P(port, ClosedFileHandle);
 
+#ifndef STORAGE_FAKE
     // Transaction tests
     RUN_TEST_P(port, TransactDiscardInactive);
     RUN_TEST_P(port, TransactCommitInactive);
@@ -3001,6 +3019,7 @@ void run_all_tests(const char* port) {
     RUN_TEST_P(port, TransactRewriteExistingTruncate);
     RUN_TEST_P(port, TransactRewriteExistingSetSize);
     RUN_TEST_P(port, TransactResumeAfterNonFatalError);
+#endif
 
     TLOGI("SS-unittest: %s: ends\n", port);
 }
@@ -3011,4 +3030,10 @@ int main(void) {
     //  run_all_tests(STORAGE_CLIENT_TDEA_PORT);
     //  run_all_tests(STORAGE_CLIENT_TP_PORT);
     TLOGI("SS-unittest: complete!");
+    TLOGI("PASSED: %u, FAILED: %u\n", _tests_total - _tests_failed,
+          _tests_failed);
+    if (_tests_failed > 0) {
+        return -1;
+    }
+    return 0;
 }
