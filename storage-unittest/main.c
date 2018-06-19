@@ -18,6 +18,7 @@
 #include <malloc.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <uapi/err.h>
 
 #include <lib/storage/storage.h>
