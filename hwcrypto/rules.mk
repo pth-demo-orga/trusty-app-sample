@@ -37,6 +37,6 @@ MODULE_DEPS := \
 	lib/libc-trusty \
 	interface/hwrng \
 	interface/hwkey \
-	openssl \
+	external/boringssl \
 
 include make/module.mk
