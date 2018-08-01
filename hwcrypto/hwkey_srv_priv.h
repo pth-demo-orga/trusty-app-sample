@@ -20,25 +20,27 @@
 #include <trusty_uuid.h>
 
 struct hwkey_keyslot {
-	const char *key_id;
-	const uuid_t *uuid;
-	const void *priv;
-	uint32_t (*handler)(const struct hwkey_keyslot *slot,
-			    uint8_t *kbuf, size_t kbuf_len, size_t *klen);
+    const char* key_id;
+    const uuid_t* uuid;
+    const void* priv;
+    uint32_t (*handler)(const struct hwkey_keyslot* slot,
+                        uint8_t* kbuf,
+                        size_t kbuf_len,
+                        size_t* klen);
 };
 
 __BEGIN_CDECLS
 
 void hwkey_init_srv_provider(void);
 
-void hwkey_install_keys(const struct hwkey_keyslot *keys, uint kcnt);
+void hwkey_install_keys(const struct hwkey_keyslot* keys, uint kcnt);
 
-int  hwkey_start_service(void);
+int hwkey_start_service(void);
 
-uint32_t derive_key_v1(const uuid_t *uuid,
-		       const uint8_t *ikm_data, size_t ikm_len,
-		       uint8_t *key_data, size_t *key_len);
+uint32_t derive_key_v1(const uuid_t* uuid,
+                       const uint8_t* ikm_data,
+                       size_t ikm_len,
+                       uint8_t* key_data,
+                       size_t* key_len);
 
 __END_CDECLS
-
-

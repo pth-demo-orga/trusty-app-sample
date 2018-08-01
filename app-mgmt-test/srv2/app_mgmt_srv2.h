@@ -20,4 +20,3 @@
 #define START_PORT "com.android.trusty.appmgmt.srv2.start"
 
 #endif
-

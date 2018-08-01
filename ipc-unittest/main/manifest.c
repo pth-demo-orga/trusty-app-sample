@@ -14,23 +14,21 @@
  * limitations under the License.
  */
 
-#include <trusty_app_manifest.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <trusty_app_manifest.h>
 
 #include <app/ipc_unittest/uuids.h>
 
-trusty_app_manifest_t TRUSTY_APP_MANIFEST_ATTRS trusty_app_manifest =
-{
-	.uuid = IPC_UNITTEST_MAIN_APP_UUID,
+trusty_app_manifest_t TRUSTY_APP_MANIFEST_ATTRS trusty_app_manifest = {
+        .uuid = IPC_UNITTEST_MAIN_APP_UUID,
 
-	/* optional configuration options here */
-	{
-		/* four pages for heap */
-		TRUSTY_APP_CONFIG_MIN_HEAP_SIZE(4 * 4096),
+        /* optional configuration options here */
+        {
+                /* four pages for heap */
+                TRUSTY_APP_CONFIG_MIN_HEAP_SIZE(4 * 4096),
 
-		/* 2 pages for stack */
-		TRUSTY_APP_CONFIG_MIN_STACK_SIZE(2 * 4096),
-	},
+                /* 2 pages for stack */
+                TRUSTY_APP_CONFIG_MIN_STACK_SIZE(2 * 4096),
+        },
 };
-

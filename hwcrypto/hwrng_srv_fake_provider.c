@@ -14,35 +14,32 @@
  * limitations under the License.
  */
 
-#include <uapi/err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <uapi/err.h>
 
 #include "common.h"
 #include "hwrng_srv_priv.h"
 
-#define LOCAL_TRACE  1
-#define LOG_TAG      "hwrng_fake_srv"
+#define LOCAL_TRACE 1
+#define LOG_TAG "hwrng_fake_srv"
 
 #pragma message "Compiling FAKE HWRNG provider"
 
-void hwrng_dev_get_rng_data(uint8_t *buf, size_t buf_len)
-{
-	memset(buf, 0, buf_len);
+void hwrng_dev_get_rng_data(uint8_t* buf, size_t buf_len) {
+    memset(buf, 0, buf_len);
 }
 
-void hwrng_init_srv_provider(void)
-{
-	int rc;
+void hwrng_init_srv_provider(void) {
+    int rc;
 
-	TLOGE("Init FAKE!!!! HWRNG service provider\n");
-	TLOGE("FAKE HWRNG service provider MUST be replaced with the REAL one\n");
+    TLOGE("Init FAKE!!!! HWRNG service provider\n");
+    TLOGE("FAKE HWRNG service provider MUST be replaced with the REAL one\n");
 
-	/* Nothing to initialize here, just start service */
-	rc = hwrng_start_service();
-	if (rc != NO_ERROR) {
-		TLOGE("failed (%d) to start HWRNG service\n", rc);
-	}
+    /* Nothing to initialize here, just start service */
+    rc = hwrng_start_service();
+    if (rc != NO_ERROR) {
+        TLOGE("failed (%d) to start HWRNG service\n", rc);
+    }
 }
-

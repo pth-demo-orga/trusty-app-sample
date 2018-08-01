@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #ifndef APP_MGMT_H
 #define APP_MGMT_H
 
@@ -24,23 +23,22 @@
 #define MAX_CMD_LEN 1
 
 #define TLOGI(fmt, ...) \
-    fprintf(stderr, "%s: %d: " fmt, __FILE__, __LINE__,  ## __VA_ARGS__)
-
+    fprintf(stderr, "%s: %d: " fmt, __FILE__, __LINE__, ##__VA_ARGS__)
 
 enum {
-    CMD_NOP             = 0,
-    CMD_CLOSE_PORT      = 1,
-    CMD_EXIT            = 2,
-    CMD_DELAYED_EXIT    = 3,
+    CMD_NOP = 0,
+    CMD_CLOSE_PORT = 1,
+    CMD_EXIT = 2,
+    CMD_DELAYED_EXIT = 3,
 };
 
 enum {
-    RSP_OK              = 0,
-    RSP_CMD_FAILED      = 1,
-    RSP_INVALID_CMD     = 2,
+    RSP_OK = 0,
+    RSP_CMD_FAILED = 1,
+    RSP_INVALID_CMD = 2,
 };
 
 int send_rsp(handle_t channel, uint8_t rsp);
-int recv_cmd(handle_t channel, uint8_t *cmd);
+int recv_cmd(handle_t channel, uint8_t* cmd);
 
 #endif

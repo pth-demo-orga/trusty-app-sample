@@ -18,8 +18,7 @@
 
 #include <uapi/err.h>
 
-int send_rsp(handle_t channel, uint8_t rsp)
-{
+int send_rsp(handle_t channel, uint8_t rsp) {
     uint8_t tx_buffer[1];
     iovec_t tx_iov = {tx_buffer, 1};
     ipc_msg_t tx_msg = {1, &tx_iov, 0, NULL};
@@ -35,8 +34,7 @@ int send_rsp(handle_t channel, uint8_t rsp)
     return 0;
 }
 
-int recv_cmd(handle_t channel, uint8_t *cmd)
-{
+int recv_cmd(handle_t channel, uint8_t* cmd) {
     int rc;
     uint8_t rx_buffer[MAX_CMD_LEN];
     iovec_t rx_iov = {rx_buffer, MAX_CMD_LEN};
@@ -66,7 +64,7 @@ int recv_cmd(handle_t channel, uint8_t *cmd)
         return rc;
     }
 
-    *cmd = ((uint8_t *)(rx_msg.iov->base))[0];
+    *cmd = ((uint8_t*)(rx_msg.iov->base))[0];
 
     return 0;
 }

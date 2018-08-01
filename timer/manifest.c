@@ -14,19 +14,20 @@
  * limitations under the License.
  */
 
-#include <trusty_app_manifest.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <trusty_app_manifest.h>
 
-trusty_app_manifest_t TRUSTY_APP_MANIFEST_ATTRS trusty_app_manifest =
-{
-	/* UUID : {c43565af-4235-4bf9-8a52-8d51e7a3e54b} */
-	{ 0xc43565af, 0x4235, 0x4bf9,
-	  { 0x8a, 0x52, 0x8d, 0x51, 0xe7, 0xa3, 0xe5, 0x4b } },
+trusty_app_manifest_t TRUSTY_APP_MANIFEST_ATTRS trusty_app_manifest = {
+        /* UUID : {c43565af-4235-4bf9-8a52-8d51e7a3e54b} */
+        {0xc43565af,
+         0x4235,
+         0x4bf9,
+         {0x8a, 0x52, 0x8d, 0x51, 0xe7, 0xa3, 0xe5, 0x4b}},
 
-	/* optional configuration options here */
-	{
-		/* four pages for heap */
-		TRUSTY_APP_CONFIG_MIN_HEAP_SIZE(4 * 4096),
-	},
+        /* optional configuration options here */
+        {
+                /* four pages for heap */
+                TRUSTY_APP_CONFIG_MIN_HEAP_SIZE(4 * 4096),
+        },
 };

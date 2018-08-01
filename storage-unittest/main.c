@@ -27,12 +27,11 @@
 
 #define LOG_TAG "ss_unittest"
 #define TLOGE(fmt, ...) \
-    fprintf(stderr, "%s: %d: " fmt, LOG_TAG, __LINE__,  ## __VA_ARGS__)
+    fprintf(stderr, "%s: %d: " fmt, LOG_TAG, __LINE__, ##__VA_ARGS__)
 
 typedef void (*test_body)(storage_session_t ss, storage_session_t ss_aux);
 
-void test_wrapper(const char *port, test_body test_proc)
-{
+void test_wrapper(const char* port, test_body test_proc) {
     storage_session_t ss;
     storage_session_t ss_aux;
 
@@ -54,33 +53,29 @@ void test_wrapper(const char *port, test_body test_proc)
     storage_close_session(ss_aux);
 }
 
+#define TEST_P(name) \
+    static void test_##name(storage_session_t ss, storage_session_t ss_aux)
 
-#define TEST_P(name) static void test_##name(storage_session_t ss, storage_session_t ss_aux)
+#define RUN_TEST_P(port, tn) test_wrapper(port, test_##tn)
 
+#define ASSERT_ALL_OK()  \
+    if (!_all_ok) {      \
+        goto test_abort; \
+    }
 
-#define RUN_TEST_P(port, tn) test_wrapper(port, test_## tn)
+#define ASSERT_EQ(e, a)      \
+    do {                     \
+        EXPECT_EQ(e, a, ""); \
+        ASSERT_ALL_OK();     \
+    } while (0)
 
+#define ASSERT_NE(e, a)      \
+    do {                     \
+        EXPECT_NE(e, a, ""); \
+        ASSERT_ALL_OK();     \
+    } while (0)
 
-#define ASSERT_ALL_OK()  if (!_all_ok) { goto test_abort; }
-
-
-#define ASSERT_EQ(e, a)    \
-do {                       \
-    EXPECT_EQ(e, a, "");   \
-    ASSERT_ALL_OK();       \
-} while(0)
-
-
-#define ASSERT_NE(e, a)    \
-do {                       \
-    EXPECT_NE(e, a, "");   \
-    ASSERT_ALL_OK();       \
-} while(0)
-
-
-
-static inline bool is_32bit_aligned(size_t sz)
-{
+static inline bool is_32bit_aligned(size_t sz) {
     return ((sz & 0x3) == 0);
 }
 
@@ -88,13 +83,11 @@ static inline bool is_valid_size(size_t sz) {
     return (sz > 0) && is_32bit_aligned(sz);
 }
 
-static bool is_valid_offset(storage_off_t off)
-{
+static bool is_valid_offset(storage_off_t off) {
     return (off & 0x3) == 0ULL;
 }
 
-static void fill_pattern32(uint32_t *buf, size_t len, storage_off_t off)
-{
+static void fill_pattern32(uint32_t* buf, size_t len, storage_off_t off) {
     size_t cnt = len / sizeof(uint32_t);
     uint32_t pattern = (uint32_t)(off / sizeof(uint32_t));
     while (cnt--) {
@@ -102,8 +95,9 @@ static void fill_pattern32(uint32_t *buf, size_t len, storage_off_t off)
     }
 }
 
-static bool check_pattern32(const uint32_t *buf, size_t len, storage_off_t off)
-{
+static bool check_pattern32(const uint32_t* buf,
+                            size_t len,
+                            storage_off_t off) {
     size_t cnt = len / sizeof(uint32_t);
     uint32_t pattern = (uint32_t)(off / sizeof(uint32_t));
     while (cnt--) {
@@ -115,8 +109,7 @@ static bool check_pattern32(const uint32_t *buf, size_t len, storage_off_t off)
     return true;
 }
 
-static bool check_value32(const uint32_t *buf, size_t len, uint32_t val)
-{
+static bool check_value32(const uint32_t* buf, size_t len, uint32_t val) {
     size_t cnt = len / sizeof(uint32_t);
     while (cnt--) {
         if (*buf != val)
@@ -126,10 +119,11 @@ static bool check_value32(const uint32_t *buf, size_t len, uint32_t val)
     return true;
 }
 
-static int WriteZeroChunk(file_handle_t handle, storage_off_t off,
-                          size_t chunk_len, bool complete)
-{
-    uint32_t data_buf[chunk_len/sizeof(uint32_t)];
+static int WriteZeroChunk(file_handle_t handle,
+                          storage_off_t off,
+                          size_t chunk_len,
+                          bool complete) {
+    uint32_t data_buf[chunk_len / sizeof(uint32_t)];
 
     assert(is_valid_size(chunk_len));
     assert(is_valid_offset(off));
@@ -140,10 +134,11 @@ static int WriteZeroChunk(file_handle_t handle, storage_off_t off,
                          complete ? STORAGE_OP_COMPLETE : 0);
 }
 
-static int WritePatternChunk(file_handle_t handle, storage_off_t off,
-                             size_t chunk_len, bool complete)
-{
-    uint32_t data_buf[chunk_len/sizeof(uint32_t)];
+static int WritePatternChunk(file_handle_t handle,
+                             storage_off_t off,
+                             size_t chunk_len,
+                             bool complete) {
+    uint32_t data_buf[chunk_len / sizeof(uint32_t)];
 
     assert(is_valid_size(chunk_len));
     assert(is_valid_offset(off));
@@ -154,9 +149,11 @@ static int WritePatternChunk(file_handle_t handle, storage_off_t off,
                          complete ? STORAGE_OP_COMPLETE : 0);
 }
 
-static int WritePattern(file_handle_t handle, storage_off_t off,
-                        size_t data_len, size_t chunk_len, bool complete)
-{
+static int WritePattern(file_handle_t handle,
+                        storage_off_t off,
+                        size_t data_len,
+                        size_t chunk_len,
+                        bool complete) {
     size_t written = 0;
 
     assert(is_valid_size(data_len));
@@ -165,7 +162,8 @@ static int WritePattern(file_handle_t handle, storage_off_t off,
     while (data_len) {
         if (data_len < chunk_len)
             chunk_len = data_len;
-        int rc = WritePatternChunk(handle, off, chunk_len, (chunk_len == data_len) && complete);
+        int rc = WritePatternChunk(handle, off, chunk_len,
+                                   (chunk_len == data_len) && complete);
         if (rc < 0)
             return rc;
         if ((size_t)rc != chunk_len)
@@ -177,15 +175,15 @@ static int WritePattern(file_handle_t handle, storage_off_t off,
     return (int)written;
 }
 
-
 static int ReadChunk(file_handle_t handle,
-                     storage_off_t off, size_t chunk_len,
-                     size_t head_len, size_t pattern_len,
-                     size_t tail_len)
-{
+                     storage_off_t off,
+                     size_t chunk_len,
+                     size_t head_len,
+                     size_t pattern_len,
+                     size_t tail_len) {
     int rc;
-    uint32_t data_buf[chunk_len/sizeof(uint32_t)];
-    uint8_t *data_ptr = (uint8_t *)data_buf;
+    uint32_t data_buf[chunk_len / sizeof(uint32_t)];
+    uint8_t* data_ptr = (uint8_t*)data_buf;
 
     assert(is_valid_size(chunk_len));
     assert(is_valid_offset(off));
@@ -196,32 +194,33 @@ static int ReadChunk(file_handle_t handle,
         return rc;
 
     if (head_len) {
-        if (!check_value32((const uint32_t *)data_ptr, head_len, 0))
+        if (!check_value32((const uint32_t*)data_ptr, head_len, 0))
             return ERR_CHECKSUM_FAIL;
         data_ptr += head_len;
         off += head_len;
     }
 
     if (pattern_len) {
-        if (!check_pattern32((const uint32_t *)data_ptr, pattern_len, off))
+        if (!check_pattern32((const uint32_t*)data_ptr, pattern_len, off))
             return ERR_CHECKSUM_FAIL;
         data_ptr += pattern_len;
     }
 
     if (tail_len) {
-        if (!check_value32((const uint32_t *)data_ptr, tail_len, 0))
+        if (!check_value32((const uint32_t*)data_ptr, tail_len, 0))
             return ERR_CHECKSUM_FAIL;
     }
 
     return chunk_len;
 }
 
-static int ReadPattern(file_handle_t handle, storage_off_t off,
-                       size_t data_len, size_t chunk_len)
-{
+static int ReadPattern(file_handle_t handle,
+                       storage_off_t off,
+                       size_t data_len,
+                       size_t chunk_len) {
     int rc;
     size_t bytes_read = 0;
-    uint32_t data_buf[chunk_len/sizeof(uint32_t)];
+    uint32_t data_buf[chunk_len / sizeof(uint32_t)];
 
     assert(is_valid_size(chunk_len));
     assert(is_valid_size(data_len));
@@ -245,37 +244,34 @@ static int ReadPattern(file_handle_t handle, storage_off_t off,
 }
 
 static int ReadPatternEOF(file_handle_t handle,
-                          storage_off_t off, size_t chunk_len)
-{
+                          storage_off_t off,
+                          size_t chunk_len) {
     int rc;
     size_t bytes_read = 0;
-    uint32_t data_buf[chunk_len/sizeof(uint32_t)];
+    uint32_t data_buf[chunk_len / sizeof(uint32_t)];
 
     assert(is_valid_size(chunk_len));
 
     while (true) {
-         rc = storage_read(handle, off, data_buf, sizeof(data_buf));
-         if (rc < 0)
-             return rc;
-         if (rc == 0)
-             break; // end of file reached
-         if (!is_valid_size((size_t)rc))
-             return ERR_BAD_LEN;
-         if (!check_pattern32(data_buf, rc, off))
-             return ERR_CHECKSUM_FAIL;
-         off += rc;
-         bytes_read += rc;
+        rc = storage_read(handle, off, data_buf, sizeof(data_buf));
+        if (rc < 0)
+            return rc;
+        if (rc == 0)
+            break;  // end of file reached
+        if (!is_valid_size((size_t)rc))
+            return ERR_BAD_LEN;
+        if (!check_pattern32(data_buf, rc, off))
+            return ERR_CHECKSUM_FAIL;
+        off += rc;
+        bytes_read += rc;
     }
     return bytes_read;
 }
 
-
-
-TEST_P(CreateDelete)
-{
+TEST_P(CreateDelete) {
     int rc;
     file_handle_t handle;
-    const char *fname = "test_create_delete_file";
+    const char* fname = "test_create_delete_file";
 
     TEST_BEGIN(__func__);
 
@@ -291,16 +287,19 @@ TEST_P(CreateDelete)
     ASSERT_ALL_OK();
 
     // create file (expect 0)
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE,
+            STORAGE_OP_COMPLETE);
     EXPECT_EQ(0, rc, "create test file");
     ASSERT_ALL_OK();
 
-    // try to create it again while it is still opened (expect ERR_ALREADY_EXISTS)
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE,
-                           STORAGE_OP_COMPLETE);
+    // try to create it again while it is still opened (expect
+    // ERR_ALREADY_EXISTS)
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE,
+            STORAGE_OP_COMPLETE);
     EXPECT_EQ(ERR_ALREADY_EXISTS, rc, "create again");
     ASSERT_ALL_OK();
 
@@ -308,9 +307,10 @@ TEST_P(CreateDelete)
     storage_close_file(handle);
 
     // try to create it again while it is closed (expect ERR_ALREADY_EXISTS)
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE,
+            STORAGE_OP_COMPLETE);
     EXPECT_EQ(ERR_ALREADY_EXISTS, rc, "create again");
     ASSERT_ALL_OK();
 
@@ -328,11 +328,10 @@ test_abort:
     TEST_END;
 }
 
-TEST_P(DeleteOpened)
-{
+TEST_P(DeleteOpened) {
     int rc;
     file_handle_t handle;
-    const char *fname = "delete_opened_test_file";
+    const char* fname = "delete_opened_test_file";
 
     TEST_BEGIN(__func__);
 
@@ -346,9 +345,10 @@ TEST_P(DeleteOpened)
     ASSERT_EQ(ERR_NOT_FOUND, rc);
 
     // open/create file (expect 0)
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // delete opened file (expect 0)
@@ -370,12 +370,10 @@ test_abort:
     TEST_END;
 }
 
-
-TEST_P(OpenNoCreate)
-{
+TEST_P(OpenNoCreate) {
     int rc;
     file_handle_t handle;
-    const char *fname = "test_open_no_create_file";
+    const char* fname = "test_open_no_create_file";
 
     TEST_BEGIN(__func__);
 
@@ -385,18 +383,19 @@ TEST_P(OpenNoCreate)
     ASSERT_EQ(0, rc);
 
     // open non-existing file (expect ERR_NOT_FOUND)
-    rc = storage_open_file(ss, &handle, fname,  0, 0);
+    rc = storage_open_file(ss, &handle, fname, 0, 0);
     ASSERT_EQ(ERR_NOT_FOUND, rc);
 
     // create file (expect 0)
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
     storage_close_file(handle);
 
     // open existing file (expect 0)
-    rc = storage_open_file(ss, &handle, fname,  0, 0);
+    rc = storage_open_file(ss, &handle, fname, 0, 0);
     ASSERT_EQ(0, rc);
 
     // close it
@@ -410,11 +409,10 @@ test_abort:
     TEST_END;
 }
 
-TEST_P(OpenOrCreate)
-{
+TEST_P(OpenOrCreate) {
     int rc;
     file_handle_t handle;
-    const char *fname = "test_open_create_file";
+    const char* fname = "test_open_create_file";
 
     TEST_BEGIN(__func__);
 
@@ -424,14 +422,14 @@ TEST_P(OpenOrCreate)
     ASSERT_EQ(0, rc);
 
     // open/create a non-existing file (expect 0)
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE, STORAGE_OP_COMPLETE);
+    rc = storage_open_file(ss, &handle, fname, STORAGE_FILE_OPEN_CREATE,
+                           STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
     storage_close_file(handle);
 
     // open/create an existing file (expect 0)
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE, STORAGE_OP_COMPLETE);
+    rc = storage_open_file(ss, &handle, fname, STORAGE_FILE_OPEN_CREATE,
+                           STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
     storage_close_file(handle);
 
@@ -443,22 +441,22 @@ test_abort:
     TEST_END;
 }
 
-TEST_P(OpenCreateDeleteCharset)
-{
+TEST_P(OpenCreateDeleteCharset) {
     int rc;
     file_handle_t handle;
-    const char *fname = "ABCDEFGHIJKLMNOPQRSTUVWXYZ-abcdefghijklmnopqrstuvwxyz_01234.56789";
+    const char* fname =
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ-abcdefghijklmnopqrstuvwxyz_01234.56789";
 
     TEST_BEGIN(__func__);
 
     // open/create file (expect 0)
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE, STORAGE_OP_COMPLETE);
+    rc = storage_open_file(ss, &handle, fname, STORAGE_FILE_OPEN_CREATE,
+                           STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
     storage_close_file(handle);
 
     // open/create an existing file (expect 0)
-    rc = storage_open_file(ss, &handle, fname,  0, 0);
+    rc = storage_open_file(ss, &handle, fname, 0, 0);
     ASSERT_EQ(0, rc);
     storage_close_file(handle);
 
@@ -467,19 +465,18 @@ TEST_P(OpenCreateDeleteCharset)
     ASSERT_EQ(0, rc);
 
     // open again
-    rc = storage_open_file(ss, &handle, fname,  0, 0);
+    rc = storage_open_file(ss, &handle, fname, 0, 0);
     ASSERT_EQ(ERR_NOT_FOUND, rc);
 
 test_abort:
     TEST_END;
 }
 
-TEST_P(WriteReadSequential)
-{
+TEST_P(WriteReadSequential) {
     int rc;
     size_t blk = 2048;
     file_handle_t handle;
-    const char *fname = "test_write_read_sequential";
+    const char* fname = "test_write_read_sequential";
 
     TEST_BEGIN(__func__);
 
@@ -489,9 +486,10 @@ TEST_P(WriteReadSequential)
     ASSERT_EQ(0, rc);
 
     // create file.
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // write a bunch of blocks (sequentially)
@@ -505,7 +503,7 @@ TEST_P(WriteReadSequential)
     storage_close_file(handle);
 
     // open the same file again
-    rc = storage_open_file(ss, &handle, fname,  0, 0);
+    rc = storage_open_file(ss, &handle, fname, 0, 0);
     ASSERT_EQ(0, rc);
 
     // read data back (sequentially) and check pattern again
@@ -520,13 +518,12 @@ test_abort:
     TEST_END;
 }
 
-TEST_P(OpenTruncate)
-{
+TEST_P(OpenTruncate) {
     int rc;
     uint32_t val;
     size_t blk = 2048;
     file_handle_t handle;
-    const char *fname = "test_open_truncate";
+    const char* fname = "test_open_truncate";
 
     TEST_BEGIN(__func__);
 
@@ -536,9 +533,10 @@ TEST_P(OpenTruncate)
     ASSERT_EQ(0, rc);
 
     // create file.
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // write some data and read it back
@@ -548,12 +546,12 @@ TEST_P(OpenTruncate)
     rc = ReadPattern(handle, 0, blk, blk);
     ASSERT_EQ((int)blk, rc);
 
-     // close file
+    // close file
     storage_close_file(handle);
 
     // reopen with truncate
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_TRUNCATE, STORAGE_OP_COMPLETE);
+    rc = storage_open_file(ss, &handle, fname, STORAGE_FILE_OPEN_TRUNCATE,
+                           STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     /* try to read data back (expect no data) */
@@ -568,20 +566,18 @@ test_abort:
     TEST_END;
 }
 
-
-TEST_P(OpenSame)
-{
+TEST_P(OpenSame) {
     int rc;
     file_handle_t handle1;
     file_handle_t handle2;
     file_handle_t handle3;
-    const char *fname = "test_open_same_file";
+    const char* fname = "test_open_same_file";
 
     TEST_BEGIN(__func__);
 
     // open/create file (expect 0)
-    rc = storage_open_file(ss, &handle1, fname,
-                           STORAGE_FILE_OPEN_CREATE, STORAGE_OP_COMPLETE);
+    rc = storage_open_file(ss, &handle1, fname, STORAGE_FILE_OPEN_CREATE,
+                           STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
     storage_close_file(handle1);
 
@@ -612,7 +608,7 @@ TEST_P(OpenMany) {
     int rc;
     file_handle_t handles[10];
     char filename[10];
-    const char *fname_fmt = "mf%d";
+    const char* fname_fmt = "mf%d";
 
     TEST_BEGIN(__func__);
 
@@ -625,8 +621,8 @@ TEST_P(OpenMany) {
     }
 
     // check that all handles are different
-    for (uint i = 0; i < countof(handles)-1; i++) {
-        for (uint j = i+1; j < countof(handles); j++) {
+    for (uint i = 0; i < countof(handles) - 1; i++) {
+        for (uint j = i + 1; j < countof(handles); j++) {
             ASSERT_NE(handles[i], handles[j]);
         }
     }
@@ -644,8 +640,8 @@ TEST_P(OpenMany) {
     }
 
     // check that all handles are different
-    for (uint i = 0; i < countof(handles)-1; i++) {
-        for (uint j = i+1; j < countof(handles); j++) {
+    for (uint i = 0; i < countof(handles) - 1; i++) {
+        for (uint j = i + 1; j < countof(handles); j++) {
             ASSERT_NE(handles[i], handles[j]);
         }
     }
@@ -662,21 +658,20 @@ test_abort:
     TEST_END;
 }
 
-
-TEST_P(ReadAtEOF)
-{
+TEST_P(ReadAtEOF) {
     int rc;
     uint32_t val;
     size_t blk = 2048;
     file_handle_t handle;
-    const char *fname = "test_read_eof";
+    const char* fname = "test_read_eof";
 
     TEST_BEGIN(__func__);
 
     // open/create/truncate file
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // write block at offset 0
@@ -699,8 +694,8 @@ TEST_P(ReadAtEOF)
     ASSERT_EQ(0, rc);
 
     // partial read at end of the file (expected partial data)
-    rc = ReadPatternEOF(handle, blk/2, blk);
-    ASSERT_EQ((int)blk/2, rc);
+    rc = ReadPatternEOF(handle, blk / 2, blk);
+    ASSERT_EQ((int)blk / 2, rc);
 
     // read past end of file
     rc = storage_read(handle, blk + 2, &val, sizeof(val));
@@ -714,21 +709,20 @@ test_abort:
     TEST_END;
 }
 
-
-TEST_P(GetFileSize)
-{
+TEST_P(GetFileSize) {
     int rc;
     size_t blk = 2048;
     storage_off_t size;
     file_handle_t handle;
-    const char *fname = "test_get_file_size";
+    const char* fname = "test_get_file_size";
 
     TEST_BEGIN(__func__);
 
     // open/create/truncate file.
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // check file size (expect success and size == 0)
@@ -753,7 +747,7 @@ TEST_P(GetFileSize)
     // check size again
     rc = storage_get_file_size(handle, &size);
     ASSERT_EQ(0, rc);
-    ASSERT_EQ(blk*2, size);
+    ASSERT_EQ(blk * 2, size);
 
     // cleanup
     storage_close_file(handle);
@@ -763,21 +757,20 @@ test_abort:
     TEST_END;
 }
 
-
-TEST_P(SetFileSize)
-{
+TEST_P(SetFileSize) {
     int rc;
     size_t blk = 2048;
     storage_off_t size;
     file_handle_t handle;
-    const char *fname = "test_set_file_size";
+    const char* fname = "test_set_file_size";
 
     TEST_BEGIN(__func__);
 
     // open/create/truncate file.
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // check file size (expect success and size == 0)
@@ -798,7 +791,7 @@ TEST_P(SetFileSize)
     storage_close_file(handle);
 
     // reopen normally
-    rc = storage_open_file(ss, &handle, fname,  0, 0);
+    rc = storage_open_file(ss, &handle, fname, 0, 0);
     ASSERT_EQ(0, rc);
 
     // check size again
@@ -807,17 +800,17 @@ TEST_P(SetFileSize)
     ASSERT_EQ(blk, size);
 
     // set file size to half
-    rc = storage_set_file_size(handle, blk/2, STORAGE_OP_COMPLETE);
+    rc = storage_set_file_size(handle, blk / 2, STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // check size again (should be half of original size)
     rc = storage_get_file_size(handle, &size);
     ASSERT_EQ(0, rc);
-    ASSERT_EQ(blk/2, size);
+    ASSERT_EQ(blk / 2, size);
 
     // read data back
     rc = ReadPatternEOF(handle, 0, blk);
-    ASSERT_EQ((int)blk/2, rc);
+    ASSERT_EQ((int)blk / 2, rc);
 
     // set file size to 0
     rc = storage_set_file_size(handle, 0, STORAGE_OP_COMPLETE);
@@ -845,14 +838,15 @@ TEST_P(WriteReadAtOffset) {
     file_handle_t handle;
     size_t blk = 2048;
     size_t blk_cnt = 32;
-    const char *fname = "test_write_at_offset";
+    const char* fname = "test_write_at_offset";
 
     TEST_BEGIN(__func__);
 
     // create/truncate file.
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // write a bunch of blocks filled with zeroes
@@ -862,7 +856,7 @@ TEST_P(WriteReadAtOffset) {
     }
 
     storage_off_t off1 = blk;
-    storage_off_t off2 = blk * (blk_cnt-1);
+    storage_off_t off2 = blk * (blk_cnt - 1);
 
     // write known pattern data at non-zero offset1
     rc = WritePatternChunk(handle, off1, blk, true);
@@ -880,9 +874,10 @@ TEST_P(WriteReadAtOffset) {
     rc = ReadPattern(handle, off2, blk, blk);
     ASSERT_EQ((int)blk, rc);
 
-    // read partially written data at end of file(expect to get data only, no padding)
-    rc = ReadPatternEOF(handle, off2 + blk/2, blk);
-    ASSERT_EQ((int)blk/2, rc);
+    // read partially written data at end of file(expect to get data only, no
+    // padding)
+    rc = ReadPatternEOF(handle, off2 + blk / 2, blk);
+    ASSERT_EQ((int)blk / 2, rc);
 
     // read data at offset 0 (expect success and zero data)
     rc = ReadChunk(handle, 0, blk, blk, 0, 0);
@@ -894,12 +889,12 @@ TEST_P(WriteReadAtOffset) {
 
     // read partially written data (start pointing within written data)
     // (expect to get written data back and zeroes at the end)
-    rc = ReadChunk(handle, off1 + blk/2, blk, 0, blk/2, blk/2);
+    rc = ReadChunk(handle, off1 + blk / 2, blk, 0, blk / 2, blk / 2);
     ASSERT_EQ((int)blk, rc);
 
     // read partially written data (start pointing withing unwritten data)
     // expect to get zeroes at the beginning and proper data at the end
-    rc = ReadChunk(handle, off1 - blk/2, blk, blk/2, blk/2, 0);
+    rc = ReadChunk(handle, off1 - blk / 2, blk, blk / 2, blk / 2, 0);
     ASSERT_EQ((int)blk, rc);
 
     // cleanup
@@ -910,18 +905,18 @@ test_abort:
     TEST_END;
 }
 
-TEST_P(WriteSparse)
-{
+TEST_P(WriteSparse) {
     int rc;
     file_handle_t handle;
-    const char *fname = "test_write_sparse";
+    const char* fname = "test_write_sparse";
 
     TEST_BEGIN(__func__);
 
     // open/create/truncate file.
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // write value past en of file
@@ -937,21 +932,20 @@ test_abort:
     TEST_END;
 }
 
-
-TEST_P(CreatePersistent32K)
-{
+TEST_P(CreatePersistent32K) {
     int rc;
     file_handle_t handle;
     size_t blk = 2048;
     size_t file_size = 32768;
-    const char *fname = "test_persistent_32K_file";
+    const char* fname = "test_persistent_32K_file";
 
     TEST_BEGIN(__func__);
 
     // create/truncate file.
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // write a bunch of blocks filled with pattern
@@ -965,17 +959,16 @@ test_abort:
     TEST_END;
 }
 
-TEST_P(ReadPersistent32k)
-{
+TEST_P(ReadPersistent32k) {
     int rc;
     file_handle_t handle;
     size_t exp_len = 32 * 1024;
-    const char *fname = "test_persistent_32K_file";
+    const char* fname = "test_persistent_32K_file";
 
     TEST_BEGIN(__func__);
 
     // create/truncate file.
-    rc = storage_open_file(ss, &handle, fname,  0, 0);
+    rc = storage_open_file(ss, &handle, fname, 0, 0);
     ASSERT_EQ(0, rc);
 
     rc = ReadPatternEOF(handle, 0, 2048);
@@ -984,7 +977,7 @@ TEST_P(ReadPersistent32k)
     rc = ReadPatternEOF(handle, 0, 1024);
     ASSERT_EQ((int)exp_len, rc);
 
-    rc = ReadPatternEOF(handle, 0,  332);
+    rc = ReadPatternEOF(handle, 0, 332);
     ASSERT_EQ((int)exp_len, rc);
 
     // close but do not delete file
@@ -994,11 +987,9 @@ test_abort:
     TEST_END;
 }
 
-
-TEST_P(CleanUpPersistent32K)
-{
+TEST_P(CleanUpPersistent32K) {
     int rc;
-    const char *fname = "test_persistent_32K_file";
+    const char* fname = "test_persistent_32K_file";
 
     TEST_BEGIN(__func__);
 
@@ -1010,25 +1001,26 @@ test_abort:
     TEST_END;
 }
 
-TEST_P(WriteReadLong)
-{
+TEST_P(WriteReadLong) {
     int rc;
     file_handle_t handle;
     size_t wc = 10000;
-    const char *fname = "test_write_read_long";
+    const char* fname = "test_write_read_long";
 
     TEST_BEGIN(__func__);
 
-    uint32_t *test_buf_ = malloc(wc * sizeof(uint32_t));
+    uint32_t* test_buf_ = malloc(wc * sizeof(uint32_t));
     ASSERT_NE(NULL, test_buf_);
 
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     fill_pattern32(test_buf_, wc * sizeof(uint32_t), 0);
-    rc = storage_write(handle, 0, test_buf_, wc * sizeof(uint32_t), STORAGE_OP_COMPLETE);
+    rc = storage_write(handle, 0, test_buf_, wc * sizeof(uint32_t),
+                       STORAGE_OP_COMPLETE);
     ASSERT_EQ((int)(wc * sizeof(uint32_t)), rc);
 
     rc = storage_read(handle, 0, test_buf_, wc * sizeof(uint32_t));
@@ -1047,48 +1039,51 @@ test_abort:
     TEST_END;
 }
 
-
 // Negative tests
 
-TEST_P(OpenInvalidFileName)
-{
+TEST_P(OpenInvalidFileName) {
     int rc;
     file_handle_t handle;
-    const char *fname1 = "";
-    const char *fname2 = "ffff$ffff";
-    const char *fname3 = "ffff\\ffff";
-    char max_name[STORAGE_MAX_NAME_LENGTH_BYTES+1];
+    const char* fname1 = "";
+    const char* fname2 = "ffff$ffff";
+    const char* fname3 = "ffff\\ffff";
+    char max_name[STORAGE_MAX_NAME_LENGTH_BYTES + 1];
 
     TEST_BEGIN(__func__);
 
-    rc = storage_open_file(ss, &handle, fname1,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname1,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(ERR_NOT_VALID, rc);
 
-    rc = storage_open_file(ss, &handle, fname2,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname2,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(ERR_NOT_VALID, rc);
 
-    rc = storage_open_file(ss, &handle, fname3,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname3,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(ERR_NOT_VALID, rc);
 
     /* max name */
     memset(max_name, 'a', sizeof(max_name));
-    max_name[sizeof(max_name)-1] = 0;
+    max_name[sizeof(max_name) - 1] = 0;
 
-    rc = storage_open_file(ss, &handle, max_name,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, max_name,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(ERR_NOT_VALID, rc);
 
-    max_name[sizeof(max_name)-2] = 0;
-    rc = storage_open_file(ss, &handle, max_name,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    max_name[sizeof(max_name) - 2] = 0;
+    rc = storage_open_file(
+            ss, &handle, max_name,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     storage_close_file(handle);
@@ -1098,36 +1093,35 @@ test_abort:
     TEST_END;
 }
 
-
-TEST_P(BadFileHandle)
-{
+TEST_P(BadFileHandle) {
     int rc;
     file_handle_t handle;
-    const char *fname = "test_invalid_file_handle";
+    const char* fname = "test_invalid_file_handle";
 
     TEST_BEGIN(__func__);
 
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // write to invalid file handle
     uint32_t val = 0xDEDBEEF;
-    rc = storage_write(handle + 1,  0, &val, sizeof(val), STORAGE_OP_COMPLETE);
+    rc = storage_write(handle + 1, 0, &val, sizeof(val), STORAGE_OP_COMPLETE);
     ASSERT_EQ(ERR_NOT_VALID, rc);
 
     // read from invalid handle
-    rc = storage_read(handle + 1,  0, &val, sizeof(val));
+    rc = storage_read(handle + 1, 0, &val, sizeof(val));
     ASSERT_EQ(ERR_NOT_VALID, rc);
 
     // set size
-    rc = storage_set_file_size(handle + 1,  0, STORAGE_OP_COMPLETE);
+    rc = storage_set_file_size(handle + 1, 0, STORAGE_OP_COMPLETE);
     ASSERT_EQ(ERR_NOT_VALID, rc);
 
     // get size
     storage_off_t fsize = (storage_off_t)(-1);
-    rc = storage_get_file_size(handle + 1,  &fsize);
+    rc = storage_get_file_size(handle + 1, &fsize);
     ASSERT_EQ(ERR_NOT_VALID, rc);
 
     // close (there is no way to check errors here)
@@ -1140,25 +1134,25 @@ test_abort:
     TEST_END;
 }
 
-
-TEST_P(ClosedFileHandle)
-{
+TEST_P(ClosedFileHandle) {
     int rc;
     file_handle_t handle1;
     file_handle_t handle2;
-    const char *fname1 = "test_invalid_file_handle1";
-    const char *fname2 = "test_invalid_file_handle2";
+    const char* fname1 = "test_invalid_file_handle1";
+    const char* fname2 = "test_invalid_file_handle2";
 
     TEST_BEGIN(__func__);
 
-    rc = storage_open_file(ss, &handle1, fname1,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle1, fname1,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
-    rc = storage_open_file(ss, &handle2, fname2,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle2, fname2,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // close first file handle
@@ -1166,20 +1160,20 @@ TEST_P(ClosedFileHandle)
 
     // write to invalid file handle
     uint32_t val = 0xDEDBEEF;
-    rc = storage_write(handle1,  0, &val, sizeof(val), STORAGE_OP_COMPLETE);
+    rc = storage_write(handle1, 0, &val, sizeof(val), STORAGE_OP_COMPLETE);
     ASSERT_EQ(ERR_NOT_VALID, rc);
 
     // read from invalid handle
-    rc = storage_read(handle1,  0, &val, sizeof(val));
+    rc = storage_read(handle1, 0, &val, sizeof(val));
     ASSERT_EQ(ERR_NOT_VALID, rc);
 
     // set size
-    rc = storage_set_file_size(handle1,  0, STORAGE_OP_COMPLETE);
+    rc = storage_set_file_size(handle1, 0, STORAGE_OP_COMPLETE);
     ASSERT_EQ(ERR_NOT_VALID, rc);
 
     // get size
     storage_off_t fsize = (storage_off_t)(-1);
-    rc = storage_get_file_size(handle1,  &fsize);
+    rc = storage_get_file_size(handle1, &fsize);
     ASSERT_EQ(ERR_NOT_VALID, rc);
 
     // close (there is no way to check errors here)
@@ -1194,9 +1188,7 @@ test_abort:
     TEST_END;
 }
 
-
-TEST_P(TransactDiscardInactive)
-{
+TEST_P(TransactDiscardInactive) {
     int rc;
 
     TEST_BEGIN(__func__);
@@ -1213,8 +1205,7 @@ test_abort:
     TEST_END;
 }
 
-TEST_P(TransactCommitInactive)
-{
+TEST_P(TransactCommitInactive) {
     int rc;
 
     TEST_BEGIN(__func__);
@@ -1231,21 +1222,21 @@ test_abort:
     TEST_END;
 }
 
-TEST_P(TransactDiscardWrite)
-{
+TEST_P(TransactDiscardWrite) {
     int rc;
     file_handle_t handle;
     size_t blk = 2048;
     size_t exp_len = 32 * 1024;
     storage_off_t fsize = (storage_off_t)(-1);
-    const char *fname = "test_transact_discard_write";
+    const char* fname = "test_transact_discard_write";
 
     TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // check file size
@@ -1279,30 +1270,30 @@ test_abort:
     TEST_END;
 }
 
-TEST_P(TransactDiscardWriteAppend)
-{
+TEST_P(TransactDiscardWriteAppend) {
     int rc;
     file_handle_t handle;
     size_t blk = 2048;
     size_t exp_len = 32 * 1024;
     storage_off_t fsize = (storage_off_t)(-1);
-    const char *fname = "test_transact_write_append";
+    const char* fname = "test_transact_write_append";
 
     TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // write data with commit
-    rc = WritePattern(handle, 0, exp_len/2, blk, true);
-    ASSERT_EQ((int)exp_len/2, rc);
+    rc = WritePattern(handle, 0, exp_len / 2, blk, true);
+    ASSERT_EQ((int)exp_len / 2, rc);
 
     // write data without commit
-    rc = WritePattern(handle, exp_len/2, exp_len/2, blk, false);
-    ASSERT_EQ((int)exp_len/2, rc);
+    rc = WritePattern(handle, exp_len / 2, exp_len / 2, blk, false);
+    ASSERT_EQ((int)exp_len / 2, rc);
 
     // check file size (should be exp_len)
     rc = storage_get_file_size(handle, &fsize);
@@ -1316,11 +1307,11 @@ TEST_P(TransactDiscardWriteAppend)
     // check file size, it should be exp_len/2
     rc = storage_get_file_size(handle, &fsize);
     ASSERT_EQ(0, rc);
-    ASSERT_EQ((storage_off_t)exp_len/2, fsize);
+    ASSERT_EQ((storage_off_t)exp_len / 2, fsize);
 
     // check file data
     rc = ReadPatternEOF(handle, 0, blk);
-    ASSERT_EQ((int)exp_len/2, rc);
+    ASSERT_EQ((int)exp_len / 2, rc);
 
     // cleanup
     storage_close_file(handle);
@@ -1330,20 +1321,20 @@ test_abort:
     TEST_END;
 }
 
-TEST_P(TransactDiscardWriteRead)
-{
+TEST_P(TransactDiscardWriteRead) {
     int rc;
     file_handle_t handle;
     size_t blk = 2048;
     storage_off_t fsize = (storage_off_t)(-1);
-    const char *fname = "test_transact_discard_write_read";
+    const char* fname = "test_transact_discard_write_read";
 
     TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // check file size
@@ -1385,9 +1376,7 @@ test_abort:
     TEST_END;
 }
 
-
-TEST_P(TransactDiscardWriteMany)
-{
+TEST_P(TransactDiscardWriteMany) {
     int rc;
     file_handle_t handle1;
     file_handle_t handle2;
@@ -1395,21 +1384,23 @@ TEST_P(TransactDiscardWriteMany)
     size_t exp_len1 = 32 * 1024;
     size_t exp_len2 = 31 * 1024;
     storage_off_t fsize = (storage_off_t)(-1);
-    const char *fname1 = "test_transact_discard_write_file1";
-    const char *fname2 = "test_transact_discard_write_file2";
+    const char* fname1 = "test_transact_discard_write_file1";
+    const char* fname2 = "test_transact_discard_write_file2";
 
     TEST_BEGIN(__func__);
 
     // open create truncate (with commit)
-    rc = storage_open_file(ss, &handle1, fname1,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle1, fname1,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // open create truncate (with commit)
-    rc = storage_open_file(ss, &handle2, fname2,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle2, fname2,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // file1: fill file with pattern (without commit)
@@ -1461,21 +1452,21 @@ test_abort:
     TEST_END;
 }
 
-TEST_P(TransactDiscardTruncate)
-{
+TEST_P(TransactDiscardTruncate) {
     int rc;
     file_handle_t handle;
     size_t blk = 2048;
     size_t exp_len = 32 * 1024;
     storage_off_t fsize = (storage_off_t)(-1);
-    const char *fname = "test_transact_discard_truncate";
+    const char* fname = "test_transact_discard_truncate";
 
     TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // write data (with commit)
@@ -1491,8 +1482,7 @@ TEST_P(TransactDiscardTruncate)
     storage_close_file(handle);
 
     // open truncate file (without commit)
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_TRUNCATE, 0);
+    rc = storage_open_file(ss, &handle, fname, STORAGE_FILE_OPEN_TRUNCATE, 0);
     ASSERT_EQ(0, rc);
 
     // check file size
@@ -1517,21 +1507,21 @@ test_abort:
     TEST_END;
 }
 
-TEST_P(TransactDiscardSetSize)
-{
+TEST_P(TransactDiscardSetSize) {
     int rc;
     file_handle_t handle;
     size_t blk = 2048;
     size_t exp_len = 32 * 1024;
     storage_off_t fsize = (storage_off_t)(-1);
-    const char *fname = "test_transact_discard_set_size";
+    const char* fname = "test_transact_discard_set_size";
 
     TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // write data (with commit)
@@ -1544,22 +1534,22 @@ TEST_P(TransactDiscardSetSize)
     ASSERT_EQ((storage_off_t)exp_len, fsize);
 
     // set file size to half of original (no commit)
-    rc = storage_set_file_size(handle,  (storage_off_t)exp_len/2, 0);
+    rc = storage_set_file_size(handle, (storage_off_t)exp_len / 2, 0);
     ASSERT_EQ(0, rc);
 
     // check file size
     rc = storage_get_file_size(handle, &fsize);
     ASSERT_EQ(0, rc);
-    ASSERT_EQ((storage_off_t)exp_len/2, fsize);
+    ASSERT_EQ((storage_off_t)exp_len / 2, fsize);
 
     // set file size to 1/3 of original (no commit)
-    rc = storage_set_file_size(handle,  (storage_off_t)exp_len/3, 0);
+    rc = storage_set_file_size(handle, (storage_off_t)exp_len / 3, 0);
     ASSERT_EQ(0, rc);
 
     // check file size
     rc = storage_get_file_size(handle, &fsize);
     ASSERT_EQ(0, rc);
-    ASSERT_EQ((storage_off_t)exp_len/3, fsize);
+    ASSERT_EQ((storage_off_t)exp_len / 3, fsize);
 
     // abort current transaction
     rc = storage_end_transaction(ss, false);
@@ -1578,21 +1568,21 @@ test_abort:
     TEST_END;
 }
 
-TEST_P(TransactDiscardDelete)
-{
+TEST_P(TransactDiscardDelete) {
     int rc;
     file_handle_t handle;
     size_t blk = 2048;
     size_t exp_len = 32 * 1024;
     storage_off_t fsize = (storage_off_t)(-1);
-    const char *fname = "test_transact_discard_delete";
+    const char* fname = "test_transact_discard_delete";
 
     TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // write data (with commit)
@@ -1631,11 +1621,10 @@ test_abort:
     TEST_END;
 }
 
-TEST_P(TransactDiscardCreate)
-{
+TEST_P(TransactDiscardCreate) {
     int rc;
     file_handle_t handle;
-    const char *fname = "test_transact_discard_create_excl";
+    const char* fname = "test_transact_discard_create_excl";
 
     TEST_BEGIN(__func__);
 
@@ -1643,16 +1632,16 @@ TEST_P(TransactDiscardCreate)
     storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
 
     // create file (without commit)
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE,
-                           0);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE, 0);
     ASSERT_EQ(0, rc);
 
     // close it
     storage_close_file(handle);
 
     // open it again without create and without commit (expect success)
-    rc = storage_open_file(ss, &handle, fname, 0,  0);
+    rc = storage_open_file(ss, &handle, fname, 0, 0);
     ASSERT_EQ(0, rc);
 
     // close it
@@ -1663,7 +1652,7 @@ TEST_P(TransactDiscardCreate)
     ASSERT_EQ(0, rc);
 
     // open it again without create without commit (expect not found)
-    rc = storage_open_file(ss, &handle, fname, 0,  0);
+    rc = storage_open_file(ss, &handle, fname, 0, 0);
     ASSERT_EQ(ERR_NOT_FOUND, rc);
 
     // cleanup
@@ -1673,27 +1662,26 @@ test_abort:
     TEST_END;
 }
 
-
-TEST_P(TransactCommitWrites)
-{
+TEST_P(TransactCommitWrites) {
     int rc;
     file_handle_t handle;
     file_handle_t handle_aux;
     size_t blk = 2048;
     size_t exp_len = 32 * 1024;
     storage_off_t fsize = (storage_off_t)(-1);
-    const char *fname = "test_transact_commit_writes";
+    const char* fname = "test_transact_commit_writes";
 
     TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // open the same file in aux session
-    rc = storage_open_file(ss_aux, &handle_aux, fname,  0, 0);
+    rc = storage_open_file(ss_aux, &handle_aux, fname, 0, 0);
     ASSERT_EQ(0, rc);
 
     // check file size, it should be 0
@@ -1702,12 +1690,12 @@ TEST_P(TransactCommitWrites)
     ASSERT_EQ((storage_off_t)0, fsize);
 
     // write data in primary session (without commit)
-    rc = WritePattern(handle, 0, exp_len/2, blk, false);
-    ASSERT_EQ((int)exp_len/2, rc);
+    rc = WritePattern(handle, 0, exp_len / 2, blk, false);
+    ASSERT_EQ((int)exp_len / 2, rc);
 
     // write more data in primary (without commit)
-    rc = WritePattern(handle, exp_len/2, exp_len/2, blk, false);
-    ASSERT_EQ((int)exp_len/2, rc);
+    rc = WritePattern(handle, exp_len / 2, exp_len / 2, blk, false);
+    ASSERT_EQ((int)exp_len / 2, rc);
 
     // check file size in aux session, it should still be 0
     rc = storage_get_file_size(handle_aux, &fsize);
@@ -1753,21 +1741,21 @@ test_abort:
     TEST_END;
 }
 
-TEST_P(TransactCommitWrites2)
-{
+TEST_P(TransactCommitWrites2) {
     int rc;
     file_handle_t handle;
     file_handle_t handle_aux;
     size_t blk = 2048;
     storage_off_t fsize = (storage_off_t)(-1);
-    const char *fname = "test_transact_commit_writes2";
+    const char* fname = "test_transact_commit_writes2";
 
     TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // open the same file in separate session
@@ -1784,7 +1772,7 @@ TEST_P(TransactCommitWrites2)
     ASSERT_EQ((storage_off_t)0, fsize);
 
     // discard transaction in aux_session
-    rc = storage_end_transaction(ss_aux,  false);
+    rc = storage_end_transaction(ss_aux, false);
     ASSERT_EQ(0, rc);
 
     // Fill with zeroes (with commit)
@@ -1823,7 +1811,7 @@ TEST_P(TransactCommitWrites2)
     ASSERT_EQ((int)blk, rc);
 
     // commit current transaction
-    rc = storage_end_transaction(ss,  true);
+    rc = storage_end_transaction(ss, true);
     ASSERT_EQ(0, rc);
 
     // read same chunk back in primary session
@@ -1841,7 +1829,7 @@ TEST_P(TransactCommitWrites2)
     ASSERT_EQ(ERR_BUSY, rc);
 
     // abort transaction in aux session
-    rc = storage_end_transaction(ss_aux,  false);
+    rc = storage_end_transaction(ss_aux, false);
     ASSERT_EQ(0, rc);
 
     // read same chunk again in aux session
@@ -1860,23 +1848,22 @@ test_abort:
     TEST_END;
 }
 
-
-TEST_P(TransactCommitSetSize)
-{
+TEST_P(TransactCommitSetSize) {
     int rc;
     file_handle_t handle;
     file_handle_t handle_aux;
     size_t blk = 2048;
     size_t exp_len = 32 * 1024;
     storage_off_t fsize = (storage_off_t)(-1);
-    const char *fname = "test_transact_commit_set_size";
+    const char* fname = "test_transact_commit_set_size";
 
     TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // open the same file in separate session
@@ -1898,26 +1885,26 @@ TEST_P(TransactCommitSetSize)
     ASSERT_EQ((storage_off_t)exp_len, fsize);
 
     // set file size to half of original (no commit)
-    rc = storage_set_file_size(handle,  (storage_off_t)exp_len/2, 0);
+    rc = storage_set_file_size(handle, (storage_off_t)exp_len / 2, 0);
     ASSERT_EQ(0, rc);
 
     // check file size
     rc = storage_get_file_size(handle, &fsize);
     ASSERT_EQ(0, rc);
-    ASSERT_EQ((storage_off_t)exp_len/2, fsize);
+    ASSERT_EQ((storage_off_t)exp_len / 2, fsize);
 
     rc = storage_get_file_size(handle_aux, &fsize);
     ASSERT_EQ(0, rc);
     ASSERT_EQ((storage_off_t)exp_len, fsize);
 
     // set file size to 1/3 of original (no commit)
-    rc = storage_set_file_size(handle,  (storage_off_t)exp_len/3, 0);
+    rc = storage_set_file_size(handle, (storage_off_t)exp_len / 3, 0);
     ASSERT_EQ(0, rc);
 
     // check file size
     rc = storage_get_file_size(handle, &fsize);
     ASSERT_EQ(0, rc);
-    ASSERT_EQ((storage_off_t)exp_len/3, fsize);
+    ASSERT_EQ((storage_off_t)exp_len / 3, fsize);
 
     rc = storage_get_file_size(handle_aux, &fsize);
     ASSERT_EQ(0, rc);
@@ -1930,7 +1917,7 @@ TEST_P(TransactCommitSetSize)
     // check file size (should be 1/3 of an original size)
     rc = storage_get_file_size(handle, &fsize);
     ASSERT_EQ(0, rc);
-    ASSERT_EQ((storage_off_t)exp_len/3, fsize);
+    ASSERT_EQ((storage_off_t)exp_len / 3, fsize);
 
     // check file size from aux session
     rc = storage_get_file_size(handle_aux, &fsize);
@@ -1943,7 +1930,7 @@ TEST_P(TransactCommitSetSize)
     // check again
     rc = storage_get_file_size(handle_aux, &fsize);
     ASSERT_EQ(0, rc);
-    ASSERT_EQ((storage_off_t)exp_len/3, fsize);
+    ASSERT_EQ((storage_off_t)exp_len / 3, fsize);
 
     // write data, increasing file size to exp_len (no commit)
     rc = WritePattern(handle, 0, exp_len, blk, false);
@@ -1961,7 +1948,7 @@ TEST_P(TransactCommitSetSize)
     // check file size from aux session
     rc = storage_get_file_size(handle_aux, &fsize);
     ASSERT_EQ(0, rc);
-    ASSERT_EQ((storage_off_t)exp_len/3, fsize);
+    ASSERT_EQ((storage_off_t)exp_len / 3, fsize);
 
     // set file size without actually changing size, but ask to commit
     rc = storage_set_file_size(handle, (storage_off_t)exp_len,
@@ -1986,21 +1973,21 @@ test_abort:
     TEST_END;
 }
 
-TEST_P(TransactCommitDelete)
-{
+TEST_P(TransactCommitDelete) {
     int rc;
     file_handle_t handle;
     file_handle_t handle_aux;
     size_t blk = 2048;
     size_t exp_len = 32 * 1024;
-    const char *fname = "test_transact_commit_delete";
+    const char* fname = "test_transact_commit_delete";
 
     TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // write data (with commit)
@@ -2020,7 +2007,7 @@ TEST_P(TransactCommitDelete)
     ASSERT_EQ(0, rc);
 
     // try to open it (should fail)
-    rc = storage_open_file(ss, &handle, fname,  0, 0);
+    rc = storage_open_file(ss, &handle, fname, 0, 0);
     ASSERT_EQ(ERR_NOT_FOUND, rc);
 
     // open the same file in separate session (should be fine)
@@ -2033,7 +2020,7 @@ TEST_P(TransactCommitDelete)
     ASSERT_EQ(0, rc);
 
     // try to open it (still fails)
-    rc = storage_open_file(ss, &handle, fname,  0, 0);
+    rc = storage_open_file(ss, &handle, fname, 0, 0);
     ASSERT_EQ(ERR_NOT_FOUND, rc);
 
     // open the same file in separate session (should fail)
@@ -2044,23 +2031,22 @@ test_abort:
     TEST_END;
 }
 
-
-TEST_P(TransactCommitTruncate)
-{
+TEST_P(TransactCommitTruncate) {
     int rc;
     file_handle_t handle;
     file_handle_t handle_aux;
     size_t blk = 2048;
     size_t exp_len = 32 * 1024;
     storage_off_t fsize = (storage_off_t)(-1);
-    const char *fname = "test_transact_commit_truncate";
+    const char* fname = "test_transact_commit_truncate";
 
     TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // write data (with commit)
@@ -2083,10 +2069,8 @@ TEST_P(TransactCommitTruncate)
     ASSERT_EQ(0, rc);
     ASSERT_EQ((storage_off_t)exp_len, fsize);
 
-
     // open truncate file (without commit)
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_TRUNCATE, 0);
+    rc = storage_open_file(ss, &handle, fname, STORAGE_FILE_OPEN_TRUNCATE, 0);
     ASSERT_EQ(0, rc);
 
     // check file size
@@ -2129,14 +2113,12 @@ test_abort:
     TEST_END;
 }
 
-
-TEST_P(TransactCommitCreate)
-{
+TEST_P(TransactCommitCreate) {
     int rc;
     file_handle_t handle;
     file_handle_t handle_aux;
     storage_off_t fsize = (storage_off_t)(-1);
-    const char *fname = "test_transact_commit_create";
+    const char* fname = "test_transact_commit_create";
 
     TEST_BEGIN(__func__);
 
@@ -2148,9 +2130,9 @@ TEST_P(TransactCommitCreate)
     ASSERT_EQ(ERR_NOT_FOUND, rc);
 
     // create file (without commit)
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE,
-                           0);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE, 0);
     ASSERT_EQ(0, rc);
 
     // check file size
@@ -2186,17 +2168,15 @@ test_abort:
     TEST_END;
 }
 
-
-TEST_P(TransactCommitCreateMany)
-{
+TEST_P(TransactCommitCreateMany) {
     int rc;
     file_handle_t handle1;
     file_handle_t handle2;
     file_handle_t handle1_aux;
     file_handle_t handle2_aux;
     storage_off_t fsize = (storage_off_t)(-1);
-    const char *fname1 = "test_transact_commit_create1";
-    const char *fname2 = "test_transact_commit_create2";
+    const char* fname1 = "test_transact_commit_create1";
+    const char* fname2 = "test_transact_commit_create2";
 
     TEST_BEGIN(__func__);
 
@@ -2205,15 +2185,15 @@ TEST_P(TransactCommitCreateMany)
     storage_delete_file(ss, fname2, STORAGE_OP_COMPLETE);
 
     // create file (without commit)
-    rc = storage_open_file(ss, &handle1, fname1,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE,
-                           0);
+    rc = storage_open_file(
+            ss, &handle1, fname1,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE, 0);
     ASSERT_EQ(0, rc);
 
     // create file (without commit)
-    rc = storage_open_file(ss, &handle2, fname2,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE,
-                           0);
+    rc = storage_open_file(
+            ss, &handle2, fname2,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE, 0);
     ASSERT_EQ(0, rc);
 
     // check file sizes
@@ -2265,9 +2245,7 @@ test_abort:
     TEST_END;
 }
 
-
-TEST_P(TransactCommitWriteMany)
-{
+TEST_P(TransactCommitWriteMany) {
     int rc;
     file_handle_t handle1;
     file_handle_t handle2;
@@ -2277,23 +2255,24 @@ TEST_P(TransactCommitWriteMany)
     size_t exp_len1 = 32 * 1024;
     size_t exp_len2 = 31 * 1024;
     storage_off_t fsize = (storage_off_t)(-1);
-    const char *fname1 = "test_transact_commit_write_file1";
-    const char *fname2 = "test_transact_commit_write_file2";
+    const char* fname1 = "test_transact_commit_write_file1";
+    const char* fname2 = "test_transact_commit_write_file2";
 
     TEST_BEGIN(__func__);
 
     // open create truncate (with commit)
-    rc = storage_open_file(ss, &handle1, fname1,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle1, fname1,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // open create truncate (with commit)
-    rc = storage_open_file(ss, &handle2, fname2,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle2, fname2,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
-
 
     // open same files from aux session
     rc = storage_open_file(ss_aux, &handle1_aux, fname1, 0, 0);
@@ -2383,22 +2362,22 @@ test_abort:
     TEST_END;
 }
 
-TEST_P(TransactCommitDeleteCreate)
-{
+TEST_P(TransactCommitDeleteCreate) {
     int rc;
     file_handle_t handle;
     file_handle_t handle_aux;
     size_t blk = 2048;
     size_t exp_len = 32 * 1024;
     storage_off_t fsize = (storage_off_t)(-1);
-    const char *fname = "test_transact_delete_create";
+    const char* fname = "test_transact_delete_create";
 
     TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // write data (with commit)
@@ -2413,7 +2392,7 @@ TEST_P(TransactCommitDeleteCreate)
     ASSERT_EQ(0, rc);
 
     // try to open it (should fail)
-    rc = storage_open_file(ss, &handle, fname,  0, 0);
+    rc = storage_open_file(ss, &handle, fname, 0, 0);
     ASSERT_EQ(ERR_NOT_FOUND, rc);
 
     // try to open it in aux session (should succeed)
@@ -2421,19 +2400,19 @@ TEST_P(TransactCommitDeleteCreate)
     ASSERT_EQ(0, rc);
 
     // create file with the same name (no commit)
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE,
-                           0);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE, 0);
     ASSERT_EQ(0, rc);
 
     // write half of data (with commit)
-    rc = WritePattern(handle, 0, exp_len/2, blk, true);
-    ASSERT_EQ((int)exp_len/2, rc);
+    rc = WritePattern(handle, 0, exp_len / 2, blk, true);
+    ASSERT_EQ((int)exp_len / 2, rc);
 
     // check file size (should be half)
     rc = storage_get_file_size(handle, &fsize);
     ASSERT_EQ(0, rc);
-    ASSERT_EQ((storage_off_t)exp_len/2, fsize);
+    ASSERT_EQ((storage_off_t)exp_len / 2, fsize);
 
     // commit transaction
     rc = storage_end_transaction(ss, true);
@@ -2441,7 +2420,7 @@ TEST_P(TransactCommitDeleteCreate)
 
     // check data
     rc = ReadPatternEOF(handle, 0, blk);
-    ASSERT_EQ((int)exp_len/2, rc);
+    ASSERT_EQ((int)exp_len / 2, rc);
 
     // check from aux session
     rc = storage_get_file_size(handle_aux, &fsize);
@@ -2462,10 +2441,10 @@ TEST_P(TransactCommitDeleteCreate)
 
     rc = storage_get_file_size(handle_aux, &fsize);
     ASSERT_EQ(0, rc);
-    ASSERT_EQ((storage_off_t)exp_len/2, fsize);
+    ASSERT_EQ((storage_off_t)exp_len / 2, fsize);
 
     rc = ReadPatternEOF(handle_aux, 0, blk);
-    ASSERT_EQ((int)exp_len/2, rc);
+    ASSERT_EQ((int)exp_len / 2, rc);
 
     // cleanup
     storage_close_file(handle);
@@ -2476,19 +2455,19 @@ test_abort:
     TEST_END;
 }
 
-TEST_P(TransactRewriteExistingTruncate)
-{
+TEST_P(TransactRewriteExistingTruncate) {
     int rc;
     file_handle_t handle;
     size_t blk = 2048;
-    const char *fname = "test_transact_rewrite_existing_truncate";
+    const char* fname = "test_transact_rewrite_existing_truncate";
 
     TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // close it
@@ -2497,7 +2476,8 @@ TEST_P(TransactRewriteExistingTruncate)
     // up
     for (uint i = 1; i < 32; i++) {
         // open truncate (no commit)
-        rc = storage_open_file(ss, &handle, fname, STORAGE_FILE_OPEN_TRUNCATE, 0);
+        rc = storage_open_file(ss, &handle, fname, STORAGE_FILE_OPEN_TRUNCATE,
+                               0);
         ASSERT_EQ(0, rc);
 
         // write data (with commit)
@@ -2511,7 +2491,8 @@ TEST_P(TransactRewriteExistingTruncate)
     // down
     for (uint i = 1; i < 32; i++) {
         // open truncate (no commit)
-        rc = storage_open_file(ss, &handle, fname, STORAGE_FILE_OPEN_TRUNCATE, 0);
+        rc = storage_open_file(ss, &handle, fname, STORAGE_FILE_OPEN_TRUNCATE,
+                               0);
         ASSERT_EQ(0, rc);
 
         // write data (with commit)
@@ -2529,20 +2510,19 @@ test_abort:
     TEST_END;
 }
 
-
-TEST_P(TransactRewriteExistingSetSize)
-{
+TEST_P(TransactRewriteExistingSetSize) {
     int rc;
     file_handle_t handle;
     size_t blk = 2048;
-    const char *fname = "test_transact_rewrite_existing_set_size";
+    const char* fname = "test_transact_rewrite_existing_set_size";
 
     TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // close it
@@ -2591,47 +2571,46 @@ test_abort:
     TEST_END;
 }
 
-
-TEST_P(TransactResumeAfterNonFatalError)
-{
+TEST_P(TransactResumeAfterNonFatalError) {
     int rc;
     file_handle_t handle;
     file_handle_t handle1;
     size_t blk = 2048;
     size_t exp_len = 32 * 1024;
     storage_off_t fsize = (storage_off_t)(-1);
-    const char *fname = "test_transact_resume_writes";
+    const char* fname = "test_transact_resume_writes";
 
     TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
-    rc = storage_open_file(ss, &handle, fname,
-                           STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
-                           STORAGE_OP_COMPLETE);
+    rc = storage_open_file(
+            ss, &handle, fname,
+            STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_TRUNCATE,
+            STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
     // write (without commit)
-    rc = WritePattern(handle, 0, exp_len/2, blk, false);
-    ASSERT_EQ((int)exp_len/2, rc);
+    rc = WritePattern(handle, 0, exp_len / 2, blk, false);
+    ASSERT_EQ((int)exp_len / 2, rc);
 
     // issue some commands that should fail with non-fatal errors
 
     // write past end of file
     uint32_t val = 0xDEADBEEF;
-    rc = storage_write(handle,  exp_len/2 + 1, &val, sizeof(val), 0);
+    rc = storage_write(handle, exp_len / 2 + 1, &val, sizeof(val), 0);
     ASSERT_EQ(ERR_NOT_VALID, rc);
 
     // read past end of file
-    rc = storage_read(handle, exp_len/2 + 1, &val, sizeof(val));
+    rc = storage_read(handle, exp_len / 2 + 1, &val, sizeof(val));
     ASSERT_EQ(ERR_NOT_VALID, rc);
 
     // try to extend file past end of file
-    rc = storage_set_file_size(handle, exp_len/2 + 1, 0);
+    rc = storage_set_file_size(handle, exp_len / 2 + 1, 0);
     ASSERT_EQ(ERR_NOT_VALID, rc);
 
     // open non existing file
-    rc = storage_open_file(ss, &handle1, "foo",
-                           STORAGE_FILE_OPEN_TRUNCATE, STORAGE_OP_COMPLETE);
+    rc = storage_open_file(ss, &handle1, "foo", STORAGE_FILE_OPEN_TRUNCATE,
+                           STORAGE_OP_COMPLETE);
     ASSERT_EQ(ERR_NOT_FOUND, rc);
 
     // delete non-existing file
@@ -2639,8 +2618,8 @@ TEST_P(TransactResumeAfterNonFatalError)
     ASSERT_EQ(ERR_NOT_FOUND, rc);
 
     // then resume writinga (without commit)
-    rc = WritePattern(handle, exp_len/2, exp_len/2, blk, false);
-    ASSERT_EQ((int)exp_len/2, rc);
+    rc = WritePattern(handle, exp_len / 2, exp_len / 2, blk, false);
+    ASSERT_EQ((int)exp_len / 2, rc);
 
     // commit current transaction
     rc = storage_end_transaction(ss, true);
@@ -2663,9 +2642,7 @@ test_abort:
     TEST_END;
 }
 
-
-void run_all_tests(const char *port)
-{
+void run_all_tests(const char* port) {
     int rc;
     storage_session_t session;
 
@@ -2731,11 +2708,10 @@ void run_all_tests(const char *port)
     TLOGI("SS-unittest: %s: ends\n", port);
 }
 
-int main(void)
-{
+int main(void) {
     TLOGI("SS-unittest: running all\n");
     run_all_tests(STORAGE_CLIENT_TD_PORT);
-//  run_all_tests(STORAGE_CLIENT_TDEA_PORT);
-//  run_all_tests(STORAGE_CLIENT_TP_PORT);
-    TLOGI("SS-unittest: complete!");}
-
+    //  run_all_tests(STORAGE_CLIENT_TDEA_PORT);
+    //  run_all_tests(STORAGE_CLIENT_TP_PORT);
+    TLOGI("SS-unittest: complete!");
+}

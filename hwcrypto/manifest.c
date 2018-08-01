@@ -20,13 +20,12 @@
 
 #include "uuids.h"
 
-trusty_app_manifest_t TRUSTY_APP_MANIFEST_ATTRS trusty_app_manifest =
-{
-	.uuid = GEN_HWCRYPTO_UUID,
+trusty_app_manifest_t TRUSTY_APP_MANIFEST_ATTRS trusty_app_manifest = {
+        .uuid = GEN_HWCRYPTO_UUID,
 
-	.config_options =
-	/* optional configuration options here */
-	{
-		TRUSTY_APP_CONFIG_MIN_HEAP_SIZE(6 * 4096),
-	},
+        .config_options =
+                {
+                        /* optional configuration options here */
+                        TRUSTY_APP_CONFIG_MIN_HEAP_SIZE(6 * 4096),
+                },
 };

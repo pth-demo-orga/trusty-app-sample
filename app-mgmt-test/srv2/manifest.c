@@ -16,23 +16,24 @@
 
 #include "app_mgmt_srv2.h"
 
-#include <trusty_app_manifest.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <trusty_app_manifest.h>
 #include <trusty_ipc.h>
 
+trusty_app_manifest_t TRUSTY_APP_MANIFEST_ATTRS trusty_app_manifest = {
+        /* UUID :{50a0686a-48b7-4089-87b1-20093168ef52} */
+        {0x50a0686a,
+         0x48b7,
+         0x4089,
+         {0x87, 0xb1, 0x20, 0x09, 0x31, 0x68, 0xef, 0x52}},
 
-trusty_app_manifest_t TRUSTY_APP_MANIFEST_ATTRS trusty_app_manifest =
-{
-    /* UUID :{50a0686a-48b7-4089-87b1-20093168ef52} */
-    { 0x50a0686a, 0x48b7, 0x4089,
-     {0x87, 0xb1, 0x20, 0x09, 0x31, 0x68, 0xef, 0x52} },
-
-    /* optional configuration options here */
-    {
-        TRUSTY_APP_CONFIG_MIN_HEAP_SIZE(4096),
-        TRUSTY_APP_CONFIG_MGMT_FLAGS(TRUSTY_APP_MGMT_FLAGS_DEFERRED_START),
-    },
+        /* optional configuration options here */
+        {
+                TRUSTY_APP_CONFIG_MIN_HEAP_SIZE(4096),
+                TRUSTY_APP_CONFIG_MGMT_FLAGS(
+                        TRUSTY_APP_MGMT_FLAGS_DEFERRED_START),
+        },
 };
 
 /* Start the application on connection to START_PORT */

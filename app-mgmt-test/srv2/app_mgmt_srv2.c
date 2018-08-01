@@ -25,15 +25,14 @@
 #include <trusty_ipc.h>
 #include <uapi/err.h>
 
-#define LOG_TAG    "app-mgmt-test-srv2"
-#define CTRL_PORT  "com.android.trusty.appmgmt.srv2"
+#define LOG_TAG "app-mgmt-test-srv2"
+#define CTRL_PORT "com.android.trusty.appmgmt.srv2"
 
 static handle_t ctrl_port;
 static handle_t start_port;
 static handle_t channel;
 
-static bool handle_cmd(uint8_t cmd)
-{
+static bool handle_cmd(uint8_t cmd) {
     int rc;
     bool done = false;
     bool delay = false;
@@ -74,8 +73,7 @@ static bool handle_cmd(uint8_t cmd)
     return done;
 }
 
-int main(void)
-{
+int main(void) {
     int rc;
     uint8_t cmd;
     bool done = false;
@@ -91,9 +89,9 @@ int main(void)
 
     handle_set = (handle_t)rc;
 
-    rc = port_create(START_PORT,  1, 1024, IPC_PORT_ALLOW_NS_CONNECT);
+    rc = port_create(START_PORT, 1, 1024, IPC_PORT_ALLOW_NS_CONNECT);
     if (rc < 0) {
-        TLOGI("failed (%d) to create start port\n", rc );
+        TLOGI("failed (%d) to create start port\n", rc);
         return rc;
     }
 
@@ -109,9 +107,9 @@ int main(void)
         return rc;
     }
 
-    rc = port_create(CTRL_PORT,  1, 1024, IPC_PORT_ALLOW_NS_CONNECT);
+    rc = port_create(CTRL_PORT, 1, 1024, IPC_PORT_ALLOW_NS_CONNECT);
     if (rc < 0) {
-        TLOGI("failed (%d) to create ctrl port\n", rc );
+        TLOGI("failed (%d) to create ctrl port\n", rc);
         return rc;
     }
 
@@ -129,14 +127,14 @@ int main(void)
 
     while (!done) {
         rc = wait(handle_set, &uevt, -1);
-        if (rc != NO_ERROR || !(uevt.event & IPC_HANDLE_POLL_READY)){
+        if (rc != NO_ERROR || !(uevt.event & IPC_HANDLE_POLL_READY)) {
             TLOGI("Port wait failed: %d(%d)\n", rc, uevt.event);
             return rc;
         }
 
         rc = accept(uevt.handle, &peer_uuid);
         if (rc < 0) {
-            TLOGI("Accept failed %d\n", rc );
+            TLOGI("Accept failed %d\n", rc);
             return rc;
         }
 

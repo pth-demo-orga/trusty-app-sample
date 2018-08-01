@@ -14,23 +14,22 @@
  * limitations under the License.
  */
 
-#include <trusty_app_manifest.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <trusty_app_manifest.h>
 
-trusty_app_manifest_t TRUSTY_APP_MANIFEST_ATTRS trusty_app_manifest =
-{
-	/* UUID : {f7fc6e07-78d8-5efa-b4a9-ecf5e077fd63} */
-	{ 0xf7fc6e07, 0x78d8, 0x5efa,
-	  { 0xb4, 0xa9, 0xec, 0xf5, 0xe0, 0x77, 0xfd, 0x63 } },
+trusty_app_manifest_t TRUSTY_APP_MANIFEST_ATTRS trusty_app_manifest = {
+        /* UUID : {f7fc6e07-78d8-5efa-b4a9-ecf5e077fd63} */
+        {0xf7fc6e07,
+         0x78d8,
+         0x5efa,
+         {0xb4, 0xa9, 0xec, 0xf5, 0xe0, 0x77, 0xfd, 0x63}},
 
-	/* optional configuration options here */
-	{
-		/* four pages for heap */
-		TRUSTY_APP_CONFIG_MIN_HEAP_SIZE(4 * 4096),
+        /* optional configuration options here */
+        {/* four pages for heap */
+         TRUSTY_APP_CONFIG_MIN_HEAP_SIZE(4 * 4096),
 
-		/* request two I/O mappings */
-		TRUSTY_APP_CONFIG_MAP_MEM(1, 0x70000000, 0x1000),
-		TRUSTY_APP_CONFIG_MAP_MEM(2, 0x70000804, 0x4)
-	},
+         /* request two I/O mappings */
+         TRUSTY_APP_CONFIG_MAP_MEM(1, 0x70000000, 0x1000),
+         TRUSTY_APP_CONFIG_MAP_MEM(2, 0x70000804, 0x4)},
 };

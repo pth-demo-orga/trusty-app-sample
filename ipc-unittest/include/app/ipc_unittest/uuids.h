@@ -17,11 +17,17 @@
 #pragma once
 
 /* Main App UUID : {766072e8-414e-48fc-9f8f-fb9a6f144124} */
-#define IPC_UNITTEST_MAIN_APP_UUID \
-	{ 0x766072e8, 0x414e, 0x48fc, \
-	  { 0x9f, 0x8f, 0xfb, 0x9a, 0x6f, 0x14, 0x41, 0x24 } }
+#define IPC_UNITTEST_MAIN_APP_UUID                         \
+    {                                                      \
+        0x766072e8, 0x414e, 0x48fc, {                      \
+            0x9f, 0x8f, 0xfb, 0x9a, 0x6f, 0x14, 0x41, 0x24 \
+        }                                                  \
+    }
 
 /* Srv App UUID:   {fee67f9f-e1b1-4e3d-8455-047f6001afef} */
-#define IPC_UNITTEST_SRV_APP_UUID \
-	{ 0xfee67f9f, 0xe1b1, 0x4e3d, \
-	  { 0x84, 0x55, 0x04, 0x7f, 0x60, 0x01, 0xaf, 0xef } }
+#define IPC_UNITTEST_SRV_APP_UUID                          \
+    {                                                      \
+        0xfee67f9f, 0xe1b1, 0x4e3d, {                      \
+            0x84, 0x55, 0x04, 0x7f, 0x60, 0x01, 0xaf, 0xef \
+        }                                                  \
+    }

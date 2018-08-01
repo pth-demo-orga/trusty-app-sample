@@ -20,24 +20,22 @@
 #include <string.h>
 #include <time.h>
 
-void __attribute__((noinline)) nop(void)
-{
-	static int i;
-	i++;
+void __attribute__((noinline)) nop(void) {
+    static int i;
+    i++;
 }
 
-int main(void)
-{
-	int i;
-	while (true) {
-		printf("Hello world from timer app 1\n");
-		for (i = 0; i < 100000000; i++)
-			nop();
-		printf("Hello world from timer app 2\n");
-		for (i = 0; i < 1000; i++)
-			nanosleep(0, 0, 1000 * 1000);
-		printf("Hello world from timer app 3\n");
-		nanosleep(0, 0, 10ULL * 1000 * 1000 * 1000);
-	}
-	return 0;
+int main(void) {
+    int i;
+    while (true) {
+        printf("Hello world from timer app 1\n");
+        for (i = 0; i < 100000000; i++)
+            nop();
+        printf("Hello world from timer app 2\n");
+        for (i = 0; i < 1000; i++)
+            nanosleep(0, 0, 1000 * 1000);
+        printf("Hello world from timer app 3\n");
+        nanosleep(0, 0, 10ULL * 1000 * 1000 * 1000);
+    }
+    return 0;
 }

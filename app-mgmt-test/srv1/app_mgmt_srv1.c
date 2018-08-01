@@ -22,12 +22,11 @@
 #include <trusty_ipc.h>
 #include <uapi/err.h>
 
-#define LOG_TAG    "app-mgmt-test-srv1"
-#define CTRL_PORT  "com.android.trusty.appmgmt.srv1"
+#define LOG_TAG "app-mgmt-test-srv1"
+#define CTRL_PORT "com.android.trusty.appmgmt.srv1"
 
 /* Resources are intentionally not freed to test application cleanup on exit */
-int main(void)
-{
+int main(void) {
     int rc;
     uint8_t cmd;
     uint8_t rsp = RSP_OK;
@@ -36,27 +35,27 @@ int main(void)
     uevent_t uevt;
     uuid_t peer_uuid;
 
-    rc = port_create(CTRL_PORT,  1, 1024, IPC_PORT_ALLOW_NS_CONNECT);
+    rc = port_create(CTRL_PORT, 1, 1024, IPC_PORT_ALLOW_NS_CONNECT);
     if (rc < 0) {
-        TLOGI("failed (%d) to create ctrl port\n", rc );
+        TLOGI("failed (%d) to create ctrl port\n", rc);
         return rc;
     }
 
     ctrl_port = (handle_t)rc;
 
     rc = wait(ctrl_port, &uevt, -1);
-    if (rc != NO_ERROR || !(uevt.event & IPC_HANDLE_POLL_READY)){
+    if (rc != NO_ERROR || !(uevt.event & IPC_HANDLE_POLL_READY)) {
         TLOGI("Port wait failed: %d(%d)\n", rc, uevt.event);
         return rc;
     }
 
     rc = accept(uevt.handle, &peer_uuid);
     if (rc < 0) {
-        TLOGI("Accept failed %d\n", rc );
+        TLOGI("Accept failed %d\n", rc);
         return rc;
     }
 
-    ctrl_chan = (handle_t) rc;
+    ctrl_chan = (handle_t)rc;
     rc = wait(ctrl_chan, &uevt, -1);
     if (rc < 0 || !(uevt.event & IPC_HANDLE_POLL_MSG)) {
         TLOGI("Channel wait failed: %d(%d)\n", rc, uevt.event);
