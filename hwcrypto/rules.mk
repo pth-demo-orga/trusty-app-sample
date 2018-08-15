@@ -34,7 +34,7 @@ endif
 
 MODULE_DEPS := \
 	app/trusty \
-	lib/libc-trusty \
+	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/interface/hwrng \
 	trusty/user/base/interface/hwkey \
 	external/boringssl \
