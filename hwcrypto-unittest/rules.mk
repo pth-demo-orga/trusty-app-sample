@@ -25,8 +25,8 @@ MODULE_DEPS += \
 	$(HWCRYPTO_UNITTEST_DEVICE_MODULE) \
 	app/trusty \
 	lib/libc-trusty \
-	lib/hwkey \
-	lib/rng
+	trusty/user/base/lib/hwkey \
+	trusty/user/base/lib/rng \
 
 include make/module.mk
 

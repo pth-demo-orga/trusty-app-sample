@@ -24,7 +24,7 @@ MODULE_SRCS += \
 MODULE_DEPS += \
 	app/trusty \
 	lib/libc-trusty \
-	lib/storage
+	trusty/user/base/lib/storage \
 
 include make/module.mk
 
