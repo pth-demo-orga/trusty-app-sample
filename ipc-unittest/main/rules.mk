@@ -25,7 +25,6 @@ MODULE_SRCS += \
 	$(LOCAL_DIR)/main.c \
 
 MODULE_DEPS += \
-	app/trusty \
 	trusty/user/base/lib/libc-trusty \
 
 include make/module.mk

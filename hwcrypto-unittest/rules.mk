@@ -23,7 +23,6 @@ MODULE_SRCS += \
 
 MODULE_DEPS += \
 	$(HWCRYPTO_UNITTEST_DEVICE_MODULE) \
-	app/trusty \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/lib/hwkey \
 	trusty/user/base/lib/rng \

@@ -25,7 +25,6 @@ MODULE_SRCS += \
 	$(LOCAL_DIR)/manifest.c
 
 MODULE_DEPS += \
-	app/trusty \
 	trusty/user/base/lib/libc-trusty \
 	app/sample/app-mgmt-test/common \
 

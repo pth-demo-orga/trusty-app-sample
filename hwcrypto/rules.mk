@@ -33,7 +33,6 @@ MODULE_SRCS += $(LOCAL_DIR)/hwkey_srv_fake_provider.c
 endif
 
 MODULE_DEPS := \
-	app/trusty \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/interface/hwrng \
 	trusty/user/base/interface/hwkey \
