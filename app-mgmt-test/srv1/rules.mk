@@ -25,6 +25,6 @@ MODULE_SRCS += \
 
 MODULE_DEPS += \
 	trusty/user/base/lib/libc-trusty \
-	app/sample/app-mgmt-test/common
+	trusty/user/app/sample/app-mgmt-test/common
 
 include make/module.mk
