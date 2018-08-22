@@ -26,6 +26,7 @@
 
 #include <app/ipc_unittest/common.h>
 #include <app/ipc_unittest/uuids.h>
+#include <lib/unittest/unittest.h>
 
 #include <lk/trace.h>
 
@@ -198,7 +199,7 @@ static void run_wait_negative_test(void) {
     EXPECT_EQ(ERR_BAD_HANDLE, rc, "wait on invalid handle");
 
     /* waiting on non-existing handle that is in valid range. */
-    for (uint i = 2; i < MAX_USER_HANDLES; i++) {
+    for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
         rc = wait(handle_base + i, &event, timeout);
         EXPECT_EQ(ERR_NOT_FOUND, rc, "wait on invalid handle");
     }
@@ -238,7 +239,7 @@ static void run_close_handle_negative_test(void) {
     EXPECT_EQ(ERR_BAD_HANDLE, rc, "closing invalid handle");
 
     /* closing non-existing handle that is in valid range. */
-    for (uint i = 2; i < MAX_USER_HANDLES; i++) {
+    for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
         rc = close(handle_base + i);
         EXPECT_EQ(ERR_NOT_FOUND, rc, "closing invalid handle");
     }
@@ -278,7 +279,7 @@ static void run_set_cookie_negative_test(void) {
     EXPECT_EQ(ERR_BAD_HANDLE, rc, "set cookie for invalid handle");
 
     /* set cookie for non-existing handle that is in valid range. */
-    for (uint i = 2; i < MAX_USER_HANDLES; i++) {
+    for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
         rc = set_cookie(handle_base + i, (void*)0x3BEEF);
         EXPECT_EQ(ERR_NOT_FOUND, rc, "set cookie for invalid handle");
     }
@@ -344,7 +345,7 @@ static void run_port_create_test(void) {
     TEST_BEGIN(__func__);
 
     /* create maximum number of ports */
-    for (i = 2; i < MAX_USER_HANDLES - 1; i++) {
+    for (i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES - 1; i++) {
         sprintf(path, "%s.port.%s%d", SRV_PATH_BASE, "test", i);
         rc = port_create(path, 2, MAX_PORT_BUF_SIZE, 0);
         EXPECT_GT_ZERO(rc, "create ports");
@@ -372,7 +373,7 @@ static void run_port_create_test(void) {
     EXPECT_EQ(ERR_NO_RESOURCES, rc, "max ports");
 
     /* close them all  */
-    for (i = 2; i < MAX_USER_HANDLES; i++) {
+    for (i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
         /* close a valid port  */
         rc = close(ports[i]);
         EXPECT_EQ(NO_ERROR, rc, "closing port");
@@ -401,7 +402,7 @@ static void run_wait_on_port_test(void) {
 #define COOKIE_BASE 100
 
     /* create maximum number of ports */
-    for (uint i = 2; i < MAX_USER_HANDLES; i++) {
+    for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
         sprintf(path, "%s.port.%s%d", SRV_PATH_BASE, "test", i);
         rc = port_create(path, 2, MAX_PORT_BUF_SIZE, 0);
         EXPECT_GT_ZERO(rc, "max ports");
@@ -412,7 +413,7 @@ static void run_wait_on_port_test(void) {
     }
 
     /* wait on each individual port */
-    for (uint i = 2; i < MAX_USER_HANDLES; i++) {
+    for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
         /* wait with zero timeout */
         rc = wait(ports[i], &event, 0);
         EXPECT_EQ(ERR_TIMED_OUT, rc, "zero timeout");
@@ -431,7 +432,7 @@ static void run_wait_on_port_test(void) {
     EXPECT_EQ(ERR_TIMED_OUT, rc, "non-zero timeout");
 
     /* close them all */
-    for (uint i = 2; i < MAX_USER_HANDLES; i++) {
+    for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
         /* close a valid port  */
         rc = close(ports[i]);
         EXPECT_EQ(NO_ERROR, rc, "closing closed port");
@@ -490,7 +491,7 @@ static void run_connect_close_test(void) {
 
     sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "datasink");
 
-    for (uint j = 2; j < MAX_USER_HANDLES; j++) {
+    for (uint j = FIRST_FREE_HANDLE; j < MAX_USER_HANDLES; j++) {
         /* do several iterations to make sure we are not
            not loosing handles */
         for (uint i = 0; i < countof(chans); i++) {
@@ -841,7 +842,7 @@ static void run_accept_negative_test(void) {
     EXPECT_EQ(0, rc1, "accept")
 
     /* accept on non-existing handle that is in valid range */
-    for (uint i = 2; i < MAX_USER_HANDLES; i++) {
+    for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
         rc = accept(handle_base + i, &peer_uuid);
         EXPECT_EQ(ERR_NOT_FOUND, rc, "accept on invalid handle");
 
@@ -881,7 +882,7 @@ static void run_accept_test(void) {
 #define COOKIE_BASE 100
 
     /* create maximum number of ports */
-    for (uint i = 2; i < MAX_USER_HANDLES; i++) {
+    for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
         sprintf(path, "%s.port.accept%d", SRV_PATH_BASE, i);
         rc = port_create(path, 2, MAX_PORT_BUF_SIZE, IPC_PORT_ALLOW_TA_CONNECT);
         EXPECT_GT_ZERO(rc, "max ports");
@@ -898,7 +899,7 @@ static void run_accept_test(void) {
         close((handle_t)rc);
 
     /* handle incoming connections */
-    for (uint i = 2; i < MAX_USER_HANDLES; i++) {
+    for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
         rc = wait_any(&event, 1000);
         EXPECT_EQ(NO_ERROR, rc, "accept test");
         EXPECT_EQ(IPC_HANDLE_POLL_READY, event.event, "accept test");
@@ -918,7 +919,7 @@ static void run_accept_test(void) {
     }
 
     /* free 1 handle  so we have room and repeat test */
-    rc = close(ports[2]);
+    rc = close(ports[FIRST_FREE_HANDLE]);
     EXPECT_EQ(NO_ERROR, 0, "close accept test");
     ports[2] = INVALID_IPC_HANDLE;
 
@@ -929,7 +930,7 @@ static void run_accept_test(void) {
         close((handle_t)rc);
 
     /* handle incoming connections */
-    for (uint i = 2; i < MAX_USER_HANDLES - 1; i++) {
+    for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES - 1; i++) {
         rc = wait_any(&event, 3000);
         EXPECT_EQ(NO_ERROR, rc, "accept test");
         EXPECT_EQ(IPC_HANDLE_POLL_READY, event.event, "accept test");
@@ -939,7 +940,7 @@ static void run_accept_test(void) {
         EXPECT_EQ(exp_cookie, event.cookie, "accept test");
 
         rc = accept(event.handle, &peer_uuid);
-        EXPECT_EQ(handle_base + 2, rc, "accept test");
+        EXPECT_EQ(handle_base + FIRST_FREE_HANDLE, rc, "accept test");
 
         /* check peer uuid */
         rc1 = memcmp(&peer_uuid, &srv_app_uuid, sizeof(srv_app_uuid));
@@ -950,7 +951,7 @@ static void run_accept_test(void) {
     }
 
     /* close them all */
-    for (uint i = 3; i < MAX_USER_HANDLES; i++) {
+    for (uint i = FIRST_FREE_HANDLE + 1; i < MAX_USER_HANDLES; i++) {
         /* close a valid port  */
         rc = close(ports[i]);
         EXPECT_EQ(NO_ERROR, rc, "close port");
@@ -995,7 +996,7 @@ static void run_get_msg_negative_test(void) {
     EXPECT_EQ(ERR_BAD_HANDLE, rc, "get_msg on invalid handle");
 
     /* get_msg on non-existing handle that is in valid range. */
-    for (uint i = 2; i < MAX_USER_HANDLES; i++) {
+    for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
         rc = get_msg(handle_base + i, &inf);
         EXPECT_EQ(ERR_NOT_FOUND, rc, "get_msg on invalid handle");
     }
@@ -1058,7 +1059,7 @@ static void run_put_msg_negative_test(void) {
     EXPECT_EQ(ERR_BAD_HANDLE, rc, "put_msg on invalid handle");
 
     /* put_msg on non-existing handle that is in valid range */
-    for (uint i = 2; i < MAX_USER_HANDLES; i++) {
+    for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
         rc = put_msg(handle_base + i, 0);
         EXPECT_EQ(ERR_NOT_FOUND, rc, "put_msg on invalid handle");
     }
@@ -1193,7 +1194,7 @@ static void run_send_msg_negative_test(void) {
     EXPECT_EQ(ERR_FAULT, rc, "send_msg on NULL msg");
 
     /* send_msg on non-existing handle that is in valid range */
-    for (uint i = 2; i < MAX_USER_HANDLES; i++) {
+    for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
         rc = send_msg(handle_base + i, &msg);
         EXPECT_EQ(ERR_NOT_FOUND, rc, "send on invalid handle");
 
@@ -1312,7 +1313,7 @@ static void run_read_msg_negative_test(void) {
     EXPECT_EQ(ERR_FAULT, rc, "read_msg on NULL msg");
 
     /* send_msg on non-existing handle that is in valid range */
-    for (uint i = 2; i < MAX_USER_HANDLES; i++) {
+    for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
         rc = read_msg(handle_base + i, 0, 0, &rx_msg);
         EXPECT_EQ(ERR_NOT_FOUND, rc, "read_msg on non existing handle");
 
@@ -2565,127 +2566,45 @@ static void run_all_tests(void) {
         TLOGI("Some tests FAILED\n");
 }
 
-static int send_msg_wait(handle_t handle, struct ipc_msg* msg) {
+static void kernel_wait_any_bug_workaround(void) {
     int ret;
-    struct uevent ev;
+    uevent_t event;
 
-    ret = send_msg(handle, msg);
-    if (ret != ERR_NOT_ENOUGH_BUFFER) {
-        return ret;
+    /* HACK: clear stuck event on handleset */
+    ret = wait_any(&event, 0);
+    if (ret == 0) {
+        TLOGI("retry ret %d, event handle %d, event 0x%x\n", ret, event.handle,
+              event.event);
+        ret = wait(event.handle, &event, 0);
+        TLOGI("nested ret %d, event handle %d, event 0x%x\n", ret, event.handle,
+              event.event);
     }
-
-    ret = wait(handle, &ev, -1);
-    if (ret < 0) {
-        return ret;
-    }
-
-    if (ev.event & IPC_HANDLE_POLL_SEND_UNBLOCKED) {
-        return send_msg(handle, msg);
-    }
-
-    if (ev.event & IPC_HANDLE_POLL_MSG) {
-        return ERR_BUSY;
-    }
-
-    if (ev.event & IPC_HANDLE_POLL_HUP) {
-        return ERR_CHANNEL_CLOSED;
-    }
-
-    return ret;
 }
 
-enum test_message_header {
-    TEST_PASSED = 0,
-    TEST_FAILED = 1,
-    TEST_MESSAGE = 2,
-    TEST_MESSAGE_HEADER_COUNT = 3,
-};
+static bool run_test(struct unittest* test) {
+    /*
+     * HACK: unittest library uses a hset. First handle is one before the port
+     * handle
+     */
+    handle_base = test->_port_handle - 1;
 
-static handle_t ipc_printf_handle = INVALID_IPC_HANDLE;
-int ipc_printf(const char* fmt, ...) {
-    char buf[256];
-    iovec_t tx_iov = {buf, 1};
-    ipc_msg_t tx_msg = {1, &tx_iov, 0, NULL};
-    va_list ap;
-    int ret;
-    int slen;
+    kernel_wait_any_bug_workaround();
 
-    if (ipc_printf_handle == INVALID_IPC_HANDLE) {
-        return 0;
-    }
-
-    va_start(ap, fmt);
-    ret = vsnprintf(buf + 1, sizeof(buf) - 1, fmt, ap);
-    va_end(ap);
-
-    if (ret < 0) {
-        return ret;
-    }
-    slen = ret;
-
-    buf[0] = TEST_MESSAGE;
-    tx_iov.len = 1 + ret;
-    ret = send_msg_wait(ipc_printf_handle, &tx_msg);
-    if (ret < 0) {
-        return ret;
-    }
-
-    return slen;
+    run_all_tests();
+    return _tests_failed == 0;
 }
 
 /*
  *  Application entry point
  */
 int main(void) {
-    int rc;
-    char path[MAX_PORT_PATH_LEN];
-    uuid_t peer_uuid;
+    struct unittest ipc_unittest = {
+            .port_name = SRV_PATH_BASE ".ctrl",
+            .run_test = run_test,
+    };
+    struct unittest* unittest = &ipc_unittest;
 
     TLOGI("Welcome to IPC unittest!!!\n");
 
-    /* create control port and just wait on it */
-    sprintf(path, "%s.%s", SRV_PATH_BASE, "ctrl");
-    rc = port_create(path, 1, MAX_PORT_BUF_SIZE, IPC_PORT_ALLOW_NS_CONNECT);
-    if (rc < 0) {
-        TLOGI("failed (%d) to create ctrl port\n", rc);
-        return rc;
-    }
-    handle_base = (handle_t)rc;
-
-    /* and just wait forever for now */
-    TLOGI("waiting forever\n");
-    for (;;) {
-        uevent_t uevt;
-        int rc = wait_any(&uevt, -1);
-        TLOGI("got event (rc=%d): ev=%x handle=%d\n", rc, uevt.event,
-              uevt.handle);
-        if (rc == NO_ERROR) {
-            if (uevt.event & IPC_HANDLE_POLL_READY) {
-                /* get connection request */
-                rc = accept(uevt.handle, &peer_uuid);
-                if (rc >= 0) {
-                    char tx_buffer[1];
-                    iovec_t tx_iov = {tx_buffer, sizeof(tx_buffer)};
-                    ipc_msg_t tx_msg = {1, &tx_iov, 0, NULL};
-
-                    /* then run unittest test */
-                    ipc_printf_handle = rc;
-                    run_all_tests();
-                    ipc_printf_handle = INVALID_IPC_HANDLE;
-
-                    tx_buffer[0] =
-                            (_tests_failed != 0) ? TEST_FAILED : TEST_PASSED;
-
-                    send_msg_wait(rc, &tx_msg);
-
-                    /* and close it */
-                    close(rc);
-                }
-            }
-        }
-        if (rc < 0)
-            break;
-    }
-
-    return rc;
+    return unittest_main(&unittest, 1);
 }

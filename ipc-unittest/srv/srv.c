@@ -397,7 +397,7 @@ static void connect_handle_port(const uevent_t* ev) {
         }
 
         /* but then issue a series of connect requests */
-        for (uint i = 2; i < MAX_USER_HANDLES; i++) {
+        for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
             sprintf(path, "%s.port.accept%d", SRV_PATH_BASE, i);
             rc = sync_connect(path, 1000);
             close(rc);
@@ -813,10 +813,6 @@ static void dispatch_event(const uevent_t* ev) {
     close(ev->handle);
 
     return;
-}
-
-int ipc_printf(const char* fmt, ...) {
-    return 0;
 }
 
 /*

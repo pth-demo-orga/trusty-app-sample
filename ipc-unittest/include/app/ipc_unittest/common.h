@@ -16,7 +16,13 @@
 
 #pragma once
 
-int ipc_printf(const char* fmt, ...);
+#ifdef USER_TASK_WITH_TRUSTY_USER_BASE_LIB_UNITTEST
+#include <lib/unittest/unittest.h>
+#else
+static inline int unittest_printf(const char* fmt, ...) {
+    return 0;
+}
+#endif
 
 /* Expected limits: should be in sync with kernel settings */
 #define MAX_USER_HANDLES 64    /* max number of user handles */
@@ -24,10 +30,12 @@ int ipc_printf(const char* fmt, ...);
 #define MAX_PORT_BUF_NUM 32    /* max number of per port buffers */
 #define MAX_PORT_BUF_SIZE 4096 /* max size of per port buffer    */
 
+#define FIRST_FREE_HANDLE (3)
+
 #define TLOGI(fmt, ...)                                                    \
     do {                                                                   \
         fprintf(stderr, "%s: %d: " fmt, LOG_TAG, __LINE__, ##__VA_ARGS__); \
-        ipc_printf("%s: %d: " fmt, LOG_TAG, __LINE__, ##__VA_ARGS__);      \
+        unittest_printf("%s: %d: " fmt, LOG_TAG, __LINE__, ##__VA_ARGS__); \
     } while (0)
 
 #define MSEC 1000000ULL
