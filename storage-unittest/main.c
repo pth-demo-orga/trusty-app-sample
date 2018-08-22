@@ -23,6 +23,10 @@
 
 #include <lib/storage/storage.h>
 
+#ifndef STORAGE_FAKE
+#include <lib/unittest/unittest.h>
+#endif
+
 #include <trusty_unittest.h>
 
 #define LOG_TAG "ss_unittest"
@@ -3024,6 +3028,8 @@ void run_all_tests(const char* port) {
     TLOGI("SS-unittest: %s: ends\n", port);
 }
 
+#ifdef STORAGE_FAKE
+
 int main(void) {
     TLOGI("SS-unittest: running all\n");
     run_all_tests(STORAGE_CLIENT_TD_PORT);
@@ -3037,3 +3043,47 @@ int main(void) {
     }
     return 0;
 }
+
+#else
+
+struct storage_unittest {
+    struct unittest unittest;
+    const char* port;
+};
+
+static bool run_test(struct unittest* test) {
+    struct storage_unittest* storage_test =
+            containerof(test, struct storage_unittest, unittest);
+    _tests_failed = 0;
+    run_all_tests(storage_test->port);
+    return _tests_failed == 0;
+}
+
+#define PORT_BASE "com.android.storage-unittest."
+
+#define DEFINE_STORAGE_UNIT_TESTS_FS(fs, fs_name)       \
+    {                                                   \
+        .unittest =                                     \
+                {                                       \
+                        .port_name = PORT_BASE fs_name, \
+                        .run_test = run_test,           \
+                },                                      \
+        .port = (fs),                                   \
+    }
+
+int main(void) {
+    static struct storage_unittest storage_unittests[] = {
+            DEFINE_STORAGE_UNIT_TESTS_FS(STORAGE_CLIENT_TD_PORT, "td"),
+            DEFINE_STORAGE_UNIT_TESTS_FS(STORAGE_CLIENT_TDEA_PORT, "tdea"),
+            DEFINE_STORAGE_UNIT_TESTS_FS(STORAGE_CLIENT_TP_PORT, "tp"),
+    };
+    static struct unittest* unittests[countof(storage_unittests)];
+
+    for (size_t i = 0; i < countof(storage_unittests); i++) {
+        unittests[i] = &storage_unittests[i].unittest;
+    }
+
+    return unittest_main(unittests, countof(unittests));
+}
+
+#endif
