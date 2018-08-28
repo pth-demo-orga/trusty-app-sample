@@ -2950,7 +2950,16 @@ test_abort:
 }
 #endif
 
-void run_all_tests(const char* port) {
+enum run_mode {
+    RUN_MODE_INIT = 1U << 0,
+    RUN_MODE_CHECK = 1U << 1,
+    RUN_MODE_CLEAN = 1U << 2,
+    RUN_MODE_FULL = 1U << 3,
+    RUN_MODE_ALL =
+            RUN_MODE_INIT | RUN_MODE_CHECK | RUN_MODE_CLEAN | RUN_MODE_FULL,
+};
+
+void run_all_tests(const char* port, enum run_mode mode) {
     int rc;
     storage_session_t session;
 
@@ -2970,60 +2979,68 @@ void run_all_tests(const char* port) {
 
     TLOGI("SS-unittest: %s: begins\n", port);
 
-    RUN_TEST_P(port, CreateDelete);
+    if (mode & RUN_MODE_FULL) {
+        RUN_TEST_P(port, CreateDelete);
 #ifndef STORAGE_FAKE
-    // Moving file and opening directory is not supported in fake secure storage
-    // implementation.
-    RUN_TEST_P(port, CreateMoveDelete);
-    RUN_TEST_P(port, FileList);
+        // Moving file and opening directory is not supported in fake secure
+        // storage implementation.
+        RUN_TEST_P(port, CreateMoveDelete);
+        RUN_TEST_P(port, FileList);
 #endif
-    RUN_TEST_P(port, DeleteOpened);
-    RUN_TEST_P(port, OpenNoCreate);
-    RUN_TEST_P(port, OpenOrCreate);
-    RUN_TEST_P(port, OpenCreateDeleteCharset);
-    RUN_TEST_P(port, WriteReadSequential);
-    RUN_TEST_P(port, OpenTruncate);
-    RUN_TEST_P(port, OpenSame);
-    RUN_TEST_P(port, OpenMany);
-    RUN_TEST_P(port, ReadAtEOF);
-    RUN_TEST_P(port, GetFileSize);
-    RUN_TEST_P(port, SetFileSize);
-    RUN_TEST_P(port, WriteReadAtOffset);
-    RUN_TEST_P(port, WriteReadAtOffsetSparse);
-    RUN_TEST_P(port, CreatePersistent32K);
-    RUN_TEST_P(port, ReadPersistent32k);
-    RUN_TEST_P(port, CleanUpPersistent32K);
-    RUN_TEST_P(port, WriteReadLong);
-    RUN_TEST_P(port, OpenInvalidFileName);
-    RUN_TEST_P(port, BadFileHandle);
-    RUN_TEST_P(port, ClosedFileHandle);
+        RUN_TEST_P(port, DeleteOpened);
+        RUN_TEST_P(port, OpenNoCreate);
+        RUN_TEST_P(port, OpenOrCreate);
+        RUN_TEST_P(port, OpenCreateDeleteCharset);
+        RUN_TEST_P(port, WriteReadSequential);
+        RUN_TEST_P(port, OpenTruncate);
+        RUN_TEST_P(port, OpenSame);
+        RUN_TEST_P(port, OpenMany);
+        RUN_TEST_P(port, ReadAtEOF);
+        RUN_TEST_P(port, GetFileSize);
+        RUN_TEST_P(port, SetFileSize);
+        RUN_TEST_P(port, WriteReadAtOffset);
+        RUN_TEST_P(port, WriteReadAtOffsetSparse);
+        RUN_TEST_P(port, WriteReadLong);
+        RUN_TEST_P(port, OpenInvalidFileName);
+        RUN_TEST_P(port, BadFileHandle);
+        RUN_TEST_P(port, ClosedFileHandle);
 
 #ifndef STORAGE_FAKE
-    // Transaction tests
-    RUN_TEST_P(port, TransactDiscardInactive);
-    RUN_TEST_P(port, TransactCommitInactive);
-    RUN_TEST_P(port, TransactDiscardWrite);
-    RUN_TEST_P(port, TransactDiscardWriteAppend);
-    RUN_TEST_P(port, TransactDiscardWriteRead);
-    RUN_TEST_P(port, TransactDiscardWriteMany);
-    RUN_TEST_P(port, TransactDiscardTruncate);
-    RUN_TEST_P(port, TransactDiscardSetSize);
-    RUN_TEST_P(port, TransactDiscardDelete);
-    RUN_TEST_P(port, TransactDiscardCreate);
+        // Transaction tests
+        RUN_TEST_P(port, TransactDiscardInactive);
+        RUN_TEST_P(port, TransactCommitInactive);
+        RUN_TEST_P(port, TransactDiscardWrite);
+        RUN_TEST_P(port, TransactDiscardWriteAppend);
+        RUN_TEST_P(port, TransactDiscardWriteRead);
+        RUN_TEST_P(port, TransactDiscardWriteMany);
+        RUN_TEST_P(port, TransactDiscardTruncate);
+        RUN_TEST_P(port, TransactDiscardSetSize);
+        RUN_TEST_P(port, TransactDiscardDelete);
+        RUN_TEST_P(port, TransactDiscardCreate);
 
-    RUN_TEST_P(port, TransactCommitWrites);
-    RUN_TEST_P(port, TransactCommitWrites2);
-    RUN_TEST_P(port, TransactCommitSetSize);
-    RUN_TEST_P(port, TransactCommitDelete);
-    RUN_TEST_P(port, TransactCommitTruncate);
-    RUN_TEST_P(port, TransactCommitCreate);
-    RUN_TEST_P(port, TransactCommitCreateMany);
-    RUN_TEST_P(port, TransactCommitWriteMany);
-    RUN_TEST_P(port, TransactCommitDeleteCreate);
-    RUN_TEST_P(port, TransactRewriteExistingTruncate);
-    RUN_TEST_P(port, TransactRewriteExistingSetSize);
-    RUN_TEST_P(port, TransactResumeAfterNonFatalError);
+        RUN_TEST_P(port, TransactCommitWrites);
+        RUN_TEST_P(port, TransactCommitWrites2);
+        RUN_TEST_P(port, TransactCommitSetSize);
+        RUN_TEST_P(port, TransactCommitDelete);
+        RUN_TEST_P(port, TransactCommitTruncate);
+        RUN_TEST_P(port, TransactCommitCreate);
+        RUN_TEST_P(port, TransactCommitCreateMany);
+        RUN_TEST_P(port, TransactCommitWriteMany);
+        RUN_TEST_P(port, TransactCommitDeleteCreate);
+        RUN_TEST_P(port, TransactRewriteExistingTruncate);
+        RUN_TEST_P(port, TransactRewriteExistingSetSize);
+        RUN_TEST_P(port, TransactResumeAfterNonFatalError);
 #endif
+    }
+    if (mode & RUN_MODE_INIT) {
+        RUN_TEST_P(port, CreatePersistent32K);
+    }
+    if (mode & RUN_MODE_CHECK) {
+        RUN_TEST_P(port, ReadPersistent32k);
+    }
+    if (mode & RUN_MODE_CLEAN) {
+        RUN_TEST_P(port, CleanUpPersistent32K);
+    }
 
     TLOGI("SS-unittest: %s: ends\n", port);
 }
@@ -3049,27 +3066,34 @@ int main(void) {
 struct storage_unittest {
     struct unittest unittest;
     const char* port;
+    enum run_mode run_mode;
 };
 
 static bool run_test(struct unittest* test) {
     struct storage_unittest* storage_test =
             containerof(test, struct storage_unittest, unittest);
     _tests_failed = 0;
-    run_all_tests(storage_test->port);
+    run_all_tests(storage_test->port, storage_test->run_mode);
     return _tests_failed == 0;
 }
 
 #define PORT_BASE "com.android.storage-unittest."
 
-#define DEFINE_STORAGE_UNIT_TESTS_FS(fs, fs_name)       \
-    {                                                   \
-        .unittest =                                     \
-                {                                       \
-                        .port_name = PORT_BASE fs_name, \
-                        .run_test = run_test,           \
-                },                                      \
-        .port = (fs),                                   \
+#define DEFINE_STORAGE_UNIT_TEST(fs, fs_name, run_mode_val, run_mode_name) \
+    {                                                                      \
+        .unittest =                                                        \
+                {                                                          \
+                        .port_name = PORT_BASE fs_name run_mode_name,      \
+                        .run_test = run_test,                              \
+                },                                                         \
+        .port = (fs), .run_mode = (run_mode_val),                          \
     }
+
+#define DEFINE_STORAGE_UNIT_TESTS_FS(fs, fs_name)                              \
+    DEFINE_STORAGE_UNIT_TEST((fs), fs_name, RUN_MODE_ALL, ""),                 \
+            DEFINE_STORAGE_UNIT_TEST((fs), fs_name, RUN_MODE_INIT, ".init"),   \
+            DEFINE_STORAGE_UNIT_TEST((fs), fs_name, RUN_MODE_CHECK, ".check"), \
+            DEFINE_STORAGE_UNIT_TEST((fs), fs_name, RUN_MODE_CLEAN, ".clean")
 
 int main(void) {
     static struct storage_unittest storage_unittests[] = {
