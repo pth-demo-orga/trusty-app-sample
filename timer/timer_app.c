@@ -20,22 +20,104 @@
 #include <string.h>
 #include <time.h>
 
-void __attribute__((noinline)) nop(void) {
+#include <lib/unittest/unittest.h>
+#include <trusty_unittest.h>
+
+#define LOG_TAG "timertest"
+
+static void __attribute__((noinline)) nop(void) {
     static int i;
     i++;
 }
 
-int main(void) {
-    int i;
-    while (true) {
-        printf("Hello world from timer app 1\n");
-        for (i = 0; i < 100000000; i++)
-            nop();
-        printf("Hello world from timer app 2\n");
-        for (i = 0; i < 1000; i++)
-            nanosleep(0, 0, 1000 * 1000);
-        printf("Hello world from timer app 3\n");
-        nanosleep(0, 0, 10ULL * 1000 * 1000 * 1000);
+struct timer_unittest {
+    struct unittest unittest;
+    bool loop;
+};
+
+#define TIMER_TEST_NOP_LOOP_COUNT (100000000)
+#define ONE_MS (1000 * 1000ULL)
+#define TIMER_TEST_MS_SLEEP_LOOP_COUNT (1000)
+#define ONE_S (1000 * ONE_MS)
+
+static void check_timestamps(int64_t t1,
+                             int64_t delta_min,
+                             int64_t delta_max,
+                             const char* name) {
+    int64_t delta;
+    int64_t t2 = t1 - 1;
+
+    gettime(0, 0, &t2);
+    delta = t2 - t1;
+
+    _tests_total++;
+    if (delta < delta_min || delta > delta_max) {
+        TLOGI("bad timestamp after %s: t1 %lld, t2 %lld, delta %lld, min %lld max %lld\n",
+              name, t1, t2, t2 - t1, delta_min, delta_max);
+        _tests_failed++;
     }
-    return 0;
+}
+
+static bool timer_test(struct unittest* test) {
+    struct timer_unittest* timer_test =
+            containerof(test, struct timer_unittest, unittest);
+    int i;
+    int64_t ts = 0;
+
+    _tests_total = 0;
+    _tests_failed = 0;
+
+    do {
+        TLOGI("Hello world from timer app 1\n");
+        gettime(0, 0, &ts);
+        for (i = 0; i < TIMER_TEST_NOP_LOOP_COUNT; i++)
+            nop();
+        check_timestamps(ts, TIMER_TEST_NOP_LOOP_COUNT / 100,
+                         TIMER_TEST_NOP_LOOP_COUNT * 10000ULL, "nop loop");
+
+        TLOGI("Hello world from timer app 2\n");
+        gettime(0, 0, &ts);
+        for (i = 0; i < TIMER_TEST_MS_SLEEP_LOOP_COUNT; i++)
+            nanosleep(0, 0, ONE_MS);
+        check_timestamps(ts, TIMER_TEST_MS_SLEEP_LOOP_COUNT * ONE_MS,
+                         TIMER_TEST_MS_SLEEP_LOOP_COUNT * ONE_MS * 10,
+                         "ms loop");
+
+        TLOGI("Hello world from timer app 3\n");
+        gettime(0, 0, &ts);
+        nanosleep(0, 0, 10ULL * ONE_S);
+        check_timestamps(ts, ONE_S * 10, ONE_S * 11, "10s sleep");
+    } while (timer_test->loop);
+
+    return _tests_failed == 0;
+}
+
+#define PORT_BASE "com.android.timer-unittest"
+
+int main(void) {
+    static struct timer_unittest timer_unittests[2] = {
+            {
+                    .unittest =
+                            {
+                                    .port_name = PORT_BASE,
+                                    .run_test = timer_test,
+                            },
+                    .loop = false,
+            },
+            {
+                    .unittest =
+                            {
+                                    .port_name = PORT_BASE ".loop",
+                                    .run_test = timer_test,
+                            },
+                    .loop = true,
+            },
+    };
+    static struct unittest* unittests[countof(timer_unittests)];
+
+    for (size_t i = 0; i < countof(timer_unittests); i++) {
+        unittests[i] = &timer_unittests[i].unittest;
+    }
+
+    return unittest_main(unittests, countof(unittests));
 }
