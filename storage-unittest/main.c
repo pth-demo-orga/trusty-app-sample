@@ -3049,9 +3049,9 @@ void run_all_tests(const char* port, enum run_mode mode) {
 
 int main(void) {
     TLOGI("SS-unittest: running all\n");
-    run_all_tests(STORAGE_CLIENT_TD_PORT);
-    //  run_all_tests(STORAGE_CLIENT_TDEA_PORT);
-    //  run_all_tests(STORAGE_CLIENT_TP_PORT);
+    run_all_tests(STORAGE_CLIENT_TD_PORT, RUN_MODE_ALL);
+    //  run_all_tests(STORAGE_CLIENT_TDEA_PORT, RUN_MODE_ALL);
+    //  run_all_tests(STORAGE_CLIENT_TP_PORT, RUN_MODE_ALL);
     TLOGI("SS-unittest: complete!");
     TLOGI("PASSED: %u, FAILED: %u\n", _tests_total - _tests_failed,
           _tests_failed);
