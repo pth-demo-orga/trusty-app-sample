@@ -26,6 +26,11 @@ MODULE_DEPS += \
 	trusty/user/base/lib/storage \
 	trusty/user/base/lib/unittest \
 
+# This test was written using variable-length arrays. We shouldn't be using
+# VLAs for security reasons, but this is just a test. Grandfather in this test
+# rather than rewriting it.
+MODULE_COMPILEFLAGS := -Wno-vla
+
 include make/module.mk
 
 
