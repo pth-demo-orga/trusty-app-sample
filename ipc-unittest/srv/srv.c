@@ -38,9 +38,9 @@ typedef struct tipc_event_handler {
 
 typedef struct tipc_srv {
     const char* name;
-    uint msg_num;
+    unsigned int msg_num;
     size_t msg_size;
-    uint port_flags;
+    unsigned int port_flags;
     size_t port_state_size;
     size_t chan_state_size;
     event_handler_proc_t port_handler;
@@ -58,20 +58,20 @@ typedef struct tipc_srv_state {
 static void closer1_handle_port(const uevent_t* ev);
 
 typedef struct closer1_state {
-    uint conn_cnt;
+    unsigned int conn_cnt;
 } closer1_state_t;
 
 static void closer2_handle_port(const uevent_t* ev);
 
 typedef struct closer2_state {
-    uint conn_cnt;
+    unsigned int conn_cnt;
 } closer2_state_t;
 
 static void closer3_handle_port(const uevent_t* ev);
 
 typedef struct closer3_state {
     handle_t chans[4];
-    uint chan_cnt;
+    unsigned int chan_cnt;
 } closer3_state_t;
 
 /* connect service */
@@ -95,10 +95,10 @@ static void echo_handle_chan(const uevent_t* ev);
 
 typedef struct echo_chan_state {
     struct tipc_event_handler handler;
-    uint msg_max_num;
-    uint msg_cnt;
-    uint msg_next_r;
-    uint msg_next_w;
+    unsigned int msg_max_num;
+    unsigned int msg_cnt;
+    unsigned int msg_next_r;
+    unsigned int msg_next_w;
     struct ipc_msg_info msg_queue[0];
 } echo_chan_state_t;
 
@@ -306,7 +306,7 @@ static void kill_services(void) {
     TLOGI("Terminating unittest services\n");
 
     /* close any opened ports */
-    for (uint i = 0; i < countof(_services); i++) {
+    for (unsigned int i = 0; i < countof(_services); i++) {
         _destroy_service(&_srv_states[i]);
     }
 }
@@ -317,7 +317,7 @@ static void kill_services(void) {
 static int init_services(void) {
     TLOGI("Init unittest services!!!\n");
 
-    for (uint i = 0; i < countof(_services); i++) {
+    for (unsigned int i = 0; i < countof(_services); i++) {
         int rc = _create_service(&_services[i], &_srv_states[i]);
         if (rc < 0) {
             TLOGI("Failed (%d) to create service %s\n", rc, _services[i].name);
@@ -353,7 +353,7 @@ static bool handle_port_errors(const uevent_t* ev) {
  *  Local wrapper on top of async connect that provides
  *  synchronos connect with timeout.
  */
-int sync_connect(const char* path, uint timeout) {
+int sync_connect(const char* path, unsigned int timeout) {
     int rc;
     uevent_t evt;
     handle_t chan;
@@ -397,7 +397,7 @@ static void connect_handle_port(const uevent_t* ev) {
         }
 
         /* but then issue a series of connect requests */
-        for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
+        for (unsigned int i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
             sprintf(path, "%s.port.accept%d", SRV_PATH_BASE, i);
             rc = sync_connect(path, 1000);
             close(rc);
@@ -486,7 +486,7 @@ static void closer3_handle_port(const uevent_t* ev) {
             nanosleep(0, 0, 100 * MSEC);
 
             /* and close them all */
-            for (uint i = 0; i < st->chan_cnt; i++)
+            for (unsigned int i = 0; i < st->chan_cnt; i++)
                 close(st->chans[i]);
             st->chan_cnt = 0;
         }
@@ -631,7 +631,7 @@ static int _echo_handle_msg(const uevent_t* ev, int delay) {
         rc = send_msg(ev->handle, &msg);
 
         /* close all received handles */
-        for (uint i = 0; i < msg.num_handles; i++) {
+        for (unsigned int i = 0; i < msg.num_handles; i++) {
             close(handles[i]);
         }
 

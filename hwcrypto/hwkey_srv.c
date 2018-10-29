@@ -50,7 +50,7 @@ static tipc_event_handler_t hwkey_port_evt_handler = {
 static uint8_t req_data[HWKEY_MAX_PAYLOAD_SIZE + 1];
 static uint8_t key_data[HWKEY_MAX_PAYLOAD_SIZE];
 
-static uint key_slot_cnt;
+static unsigned int key_slot_cnt;
 static const struct hwkey_keyslot* key_slots;
 
 #if WITH_HWCRYPTO_UNITTEST
@@ -110,14 +110,14 @@ static int hwkey_send_rsp(struct hwkey_chan_ctx* ctx,
 static uint32_t _handle_slots(struct hwkey_chan_ctx* ctx,
                               const char* slot_id,
                               const struct hwkey_keyslot* slots,
-                              uint slot_cnt,
+                              unsigned int slot_cnt,
                               uint8_t* kbuf,
                               size_t kbuf_len,
                               size_t* klen) {
     if (!slots)
         return HWKEY_ERR_NOT_FOUND;
 
-    for (uint i = 0; i < slot_cnt; i++, slots++) {
+    for (unsigned int i = 0; i < slot_cnt; i++, slots++) {
         /* check key id */
         if (strcmp(slots->key_id, slot_id))
             continue;
@@ -304,7 +304,7 @@ static void hwkey_port_handler(const uevent_t* ev, void* priv) {
 /*
  *  Install Key slot provider
  */
-void hwkey_install_keys(const struct hwkey_keyslot* keys, uint kcnt) {
+void hwkey_install_keys(const struct hwkey_keyslot* keys, unsigned int kcnt) {
     assert(key_slots == NULL);
     assert(key_slot_cnt == 0);
     assert(keys && kcnt);

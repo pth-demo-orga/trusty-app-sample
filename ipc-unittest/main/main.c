@@ -31,9 +31,9 @@
 #include <lk/trace.h>
 
 /*  */
-static uint _tests_total = 0;  /* Number of conditions checked */
-static uint _tests_failed = 0; /* Number of conditions failed  */
-static handle_t handle_base;   /* base of valid handle range */
+static unsigned int _tests_total = 0;  /* Number of conditions checked */
+static unsigned int _tests_failed = 0; /* Number of conditions failed  */
+static handle_t handle_base;           /* base of valid handle range */
 
 static const uuid_t srv_app_uuid = IPC_UNITTEST_SRV_APP_UUID;
 
@@ -139,7 +139,7 @@ static void fill_test_buf(uint8_t* buf, size_t cnt, uint8_t seed) {
  *  Local wrapper on top of async connect that provides
  *  synchronos connect with timeout.
  */
-int sync_connect(const char* path, uint timeout) {
+int sync_connect(const char* path, unsigned int timeout) {
     int rc;
     uevent_t evt;
     handle_t chan;
@@ -199,7 +199,7 @@ static void run_wait_negative_test(void) {
     EXPECT_EQ(ERR_BAD_HANDLE, rc, "wait on invalid handle");
 
     /* waiting on non-existing handle that is in valid range. */
-    for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
+    for (unsigned int i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
         rc = wait(handle_base + i, &event, timeout);
         EXPECT_EQ(ERR_NOT_FOUND, rc, "wait on invalid handle");
     }
@@ -239,7 +239,7 @@ static void run_close_handle_negative_test(void) {
     EXPECT_EQ(ERR_BAD_HANDLE, rc, "closing invalid handle");
 
     /* closing non-existing handle that is in valid range. */
-    for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
+    for (unsigned int i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
         rc = close(handle_base + i);
         EXPECT_EQ(ERR_NOT_FOUND, rc, "closing invalid handle");
     }
@@ -279,7 +279,7 @@ static void run_set_cookie_negative_test(void) {
     EXPECT_EQ(ERR_BAD_HANDLE, rc, "set cookie for invalid handle");
 
     /* set cookie for non-existing handle that is in valid range. */
-    for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
+    for (unsigned int i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
         rc = set_cookie(handle_base + i, (void*)0x3BEEF);
         EXPECT_EQ(ERR_NOT_FOUND, rc, "set cookie for invalid handle");
     }
@@ -325,7 +325,7 @@ static void run_port_create_negative_test(void) {
 
     /* create port with path oversized name */
     int len = sprintf(path, "%s.port", SRV_PATH_BASE);
-    for (uint i = len; i < sizeof(path); i++)
+    for (size_t i = len; i < sizeof(path); i++)
         path[i] = 'a';
     path[sizeof(path) - 1] = '\0';
     rc = port_create(path, 2, MAX_PORT_BUF_SIZE, 0);
@@ -338,7 +338,7 @@ static void run_port_create_negative_test(void) {
 
 static void run_port_create_test(void) {
     int rc;
-    uint i;
+    unsigned int i;
     char path[MAX_PORT_PATH_LEN];
     handle_t ports[MAX_USER_HANDLES];
 
@@ -402,7 +402,7 @@ static void run_wait_on_port_test(void) {
 #define COOKIE_BASE 100
 
     /* create maximum number of ports */
-    for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
+    for (unsigned int i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
         sprintf(path, "%s.port.%s%d", SRV_PATH_BASE, "test", i);
         rc = port_create(path, 2, MAX_PORT_BUF_SIZE, 0);
         EXPECT_GT_ZERO(rc, "max ports");
@@ -413,7 +413,7 @@ static void run_wait_on_port_test(void) {
     }
 
     /* wait on each individual port */
-    for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
+    for (unsigned int i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
         /* wait with zero timeout */
         rc = wait(ports[i], &event, 0);
         EXPECT_EQ(ERR_TIMED_OUT, rc, "zero timeout");
@@ -432,7 +432,7 @@ static void run_wait_on_port_test(void) {
     EXPECT_EQ(ERR_TIMED_OUT, rc, "non-zero timeout");
 
     /* close them all */
-    for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
+    for (unsigned int i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
         /* close a valid port  */
         rc = close(ports[i]);
         EXPECT_EQ(NO_ERROR, rc, "closing closed port");
@@ -470,7 +470,7 @@ static void run_connect_negative_test(void) {
 
     /* try to connect to port with very long name */
     int len = sprintf(path, "%s.conn.", SRV_PATH_BASE);
-    for (uint i = len; i < sizeof(path); i++)
+    for (size_t i = len; i < sizeof(path); i++)
         path[i] = 'a';
     path[sizeof(path) - 1] = '\0';
     rc = sync_connect(path, connect_timeout);
@@ -491,16 +491,16 @@ static void run_connect_close_test(void) {
 
     sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "datasink");
 
-    for (uint j = FIRST_FREE_HANDLE; j < MAX_USER_HANDLES; j++) {
+    for (unsigned int j = FIRST_FREE_HANDLE; j < MAX_USER_HANDLES; j++) {
         /* do several iterations to make sure we are not
            not loosing handles */
-        for (uint i = 0; i < countof(chans); i++) {
+        for (unsigned int i = 0; i < countof(chans); i++) {
             rc = sync_connect(path, 1000);
             EXPECT_GT_ZERO(rc, "connect/close");
             chans[i] = (handle_t)rc;
         }
 
-        for (uint i = 0; i < countof(chans); i++) {
+        for (unsigned int i = 0; i < countof(chans); i++) {
             rc = close(chans[i]);
             EXPECT_EQ(NO_ERROR, rc, "connect/close");
         }
@@ -514,7 +514,7 @@ static void run_connect_close_by_peer_test(const char* test) {
     char path[MAX_PORT_PATH_LEN];
     uevent_t event;
     handle_t chans[16];
-    uint chan_cnt = 0;
+    unsigned int chan_cnt = 0;
 
     TEST_BEGIN(__func__);
 
@@ -525,9 +525,9 @@ static void run_connect_close_by_peer_test(const char* test) {
      * close them all in a different way:
      */
     sprintf(path, "%s.srv.%s", SRV_PATH_BASE, test);
-    for (uint i = 0; i < countof(chans); i++) {
+    for (unsigned int i = 0; i < countof(chans); i++) {
         /* open new connection */
-        uint retry_cnt = 10;
+        unsigned int retry_cnt = 10;
         while (retry_cnt) {
             rc = sync_connect(path, 2000);
             if (rc == ERR_NOT_FOUND) {
@@ -563,7 +563,7 @@ static void run_connect_close_by_peer_test(const char* test) {
         /* check if any channels are closed */
         while ((rc = wait_any(&event, 0)) == NO_ERROR) {
             EXPECT_EQ(IPC_HANDLE_POLL_HUP, event.event, test);
-            uint idx = (uint)event.cookie - COOKIE_BASE;
+            unsigned int idx = (unsigned int)event.cookie - COOKIE_BASE;
             EXPECT_EQ(chans[idx], event.handle, test);
             EXPECT_GT(countof(chans), idx, test);
             if (idx < countof(chans)) {
@@ -581,7 +581,7 @@ static void run_connect_close_by_peer_test(const char* test) {
         EXPECT_EQ(NO_ERROR, rc, test);
         EXPECT_EQ(IPC_HANDLE_POLL_HUP, event.event, test);
 
-        uint idx = (uint)event.cookie - COOKIE_BASE;
+        unsigned int idx = (unsigned int)event.cookie - COOKIE_BASE;
         EXPECT_GT(countof(chans), idx, test);
         EXPECT_EQ(chans[idx], event.handle, test);
         if (idx < countof(chans)) {
@@ -723,7 +723,7 @@ static void run_connect_selfie_test(void) {
          * teared down by peer (us).
          */
         uevent_t event;
-        uint exp_event = IPC_HANDLE_POLL_READY;
+        unsigned int exp_event = IPC_HANDLE_POLL_READY;
 
         int rc = wait_any(&event, -1);
         EXPECT_EQ(NO_ERROR, rc, "wait on port");
@@ -842,7 +842,7 @@ static void run_accept_negative_test(void) {
     EXPECT_EQ(0, rc1, "accept")
 
     /* accept on non-existing handle that is in valid range */
-    for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
+    for (unsigned int i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
         rc = accept(handle_base + i, &peer_uuid);
         EXPECT_EQ(ERR_NOT_FOUND, rc, "accept on invalid handle");
 
@@ -882,7 +882,7 @@ static void run_accept_test(void) {
 #define COOKIE_BASE 100
 
     /* create maximum number of ports */
-    for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
+    for (unsigned int i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
         sprintf(path, "%s.port.accept%d", SRV_PATH_BASE, i);
         rc = port_create(path, 2, MAX_PORT_BUF_SIZE, IPC_PORT_ALLOW_TA_CONNECT);
         EXPECT_GT_ZERO(rc, "max ports");
@@ -899,7 +899,7 @@ static void run_accept_test(void) {
         close((handle_t)rc);
 
     /* handle incoming connections */
-    for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
+    for (unsigned int i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
         rc = wait_any(&event, 1000);
         EXPECT_EQ(NO_ERROR, rc, "accept test");
         EXPECT_EQ(IPC_HANDLE_POLL_READY, event.event, "accept test");
@@ -930,7 +930,7 @@ static void run_accept_test(void) {
         close((handle_t)rc);
 
     /* handle incoming connections */
-    for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES - 1; i++) {
+    for (unsigned int i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES - 1; i++) {
         rc = wait_any(&event, 3000);
         EXPECT_EQ(NO_ERROR, rc, "accept test");
         EXPECT_EQ(IPC_HANDLE_POLL_READY, event.event, "accept test");
@@ -951,7 +951,7 @@ static void run_accept_test(void) {
     }
 
     /* close them all */
-    for (uint i = FIRST_FREE_HANDLE + 1; i < MAX_USER_HANDLES; i++) {
+    for (unsigned int i = FIRST_FREE_HANDLE + 1; i < MAX_USER_HANDLES; i++) {
         /* close a valid port  */
         rc = close(ports[i]);
         EXPECT_EQ(NO_ERROR, rc, "close port");
@@ -996,7 +996,7 @@ static void run_get_msg_negative_test(void) {
     EXPECT_EQ(ERR_BAD_HANDLE, rc, "get_msg on invalid handle");
 
     /* get_msg on non-existing handle that is in valid range. */
-    for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
+    for (unsigned int i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
         rc = get_msg(handle_base + i, &inf);
         EXPECT_EQ(ERR_NOT_FOUND, rc, "get_msg on invalid handle");
     }
@@ -1059,7 +1059,7 @@ static void run_put_msg_negative_test(void) {
     EXPECT_EQ(ERR_BAD_HANDLE, rc, "put_msg on invalid handle");
 
     /* put_msg on non-existing handle that is in valid range */
-    for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
+    for (unsigned int i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
         rc = put_msg(handle_base + i, 0);
         EXPECT_EQ(ERR_NOT_FOUND, rc, "put_msg on invalid handle");
     }
@@ -1124,11 +1124,11 @@ static void run_send_msg_test(void) {
 
     if (rc >= 0) {
         chan = (handle_t)rc;
-        for (uint i = 0; i < 10000; i++) {
+        for (unsigned int i = 0; i < 10000; i++) {
             rc = send_msg(chan, &msg);
             if (rc == ERR_NOT_ENOUGH_BUFFER) { /* wait for room */
                 uevent_t uevt;
-                uint exp_event = IPC_HANDLE_POLL_SEND_UNBLOCKED;
+                unsigned int exp_event = IPC_HANDLE_POLL_SEND_UNBLOCKED;
                 rc = wait(chan, &uevt, 1000);
                 EXPECT_EQ(NO_ERROR, rc, "waiting for space");
                 EXPECT_EQ(chan, uevt.handle, "waiting for space");
@@ -1194,7 +1194,7 @@ static void run_send_msg_negative_test(void) {
     EXPECT_EQ(ERR_FAULT, rc, "send_msg on NULL msg");
 
     /* send_msg on non-existing handle that is in valid range */
-    for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
+    for (unsigned int i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
         rc = send_msg(handle_base + i, &msg);
         EXPECT_EQ(ERR_NOT_FOUND, rc, "send on invalid handle");
 
@@ -1313,7 +1313,7 @@ static void run_read_msg_negative_test(void) {
     EXPECT_EQ(ERR_FAULT, rc, "read_msg on NULL msg");
 
     /* send_msg on non-existing handle that is in valid range */
-    for (uint i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
+    for (unsigned int i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
         rc = read_msg(handle_base + i, 0, 0, &rx_msg);
         EXPECT_EQ(ERR_NOT_FOUND, rc, "read_msg on non existing handle");
 
@@ -1448,8 +1448,8 @@ static void run_end_to_end_msg_test(void) {
     EXPECT_GT_ZERO(rc, "connect to echo");
 
     if (rc >= 0) {
-        uint tx_cnt = 0;
-        uint rx_cnt = 0;
+        unsigned int tx_cnt = 0;
+        unsigned int rx_cnt = 0;
 
         chan = (handle_t)rc;
 
@@ -2084,7 +2084,7 @@ static void run_send_handle_negative_test(void) {
     ABORT_IF_NOT_OK(err_connect);
     hchan = (handle_t)rc;
 
-    for (uint i = 0; i < countof(hsend); i++)
+    for (unsigned int i = 0; i < countof(hsend); i++)
         hsend[i] = hchan;
 
     /* send 8 copies of yourself to datasync (should be fine) */
@@ -2345,12 +2345,12 @@ static void run_send_handle_bulk_test(void) {
     msg.handles = &hchan2;
     msg.num_handles = 1;
 
-    for (uint i = 0; (i < 10000) && _all_ok; i++) {
+    for (unsigned int i = 0; (i < 10000) && _all_ok; i++) {
         while (_all_ok) {
             rc = send_msg(hchan1, &msg);
             if (rc == ERR_NOT_ENOUGH_BUFFER) { /* wait for room */
                 uevent_t uevt;
-                uint exp_event = IPC_HANDLE_POLL_SEND_UNBLOCKED;
+                unsigned int exp_event = IPC_HANDLE_POLL_SEND_UNBLOCKED;
                 rc = wait(hchan1, &uevt, 10000);
                 EXPECT_EQ(NO_ERROR, rc, "waiting for space");
                 EXPECT_EQ(hchan1, uevt.handle, "waiting for space");
@@ -2365,7 +2365,7 @@ static void run_send_handle_bulk_test(void) {
     EXPECT_EQ(NO_ERROR, rc, "close chan2");
 
     /* repeate the same while closing handle after sending it */
-    for (uint i = 0; (i < 10000) && _all_ok; i++) {
+    for (unsigned int i = 0; (i < 10000) && _all_ok; i++) {
         rc = sync_connect(path, 1000);
         EXPECT_GT_ZERO(rc, "connect to datasink");
         ABORT_IF_NOT_OK(err_connect2);
@@ -2383,7 +2383,7 @@ static void run_send_handle_bulk_test(void) {
             rc = send_msg(hchan1, &msg);
             if (rc == ERR_NOT_ENOUGH_BUFFER) { /* wait for room */
                 uevent_t uevt;
-                uint exp_event = IPC_HANDLE_POLL_SEND_UNBLOCKED;
+                unsigned int exp_event = IPC_HANDLE_POLL_SEND_UNBLOCKED;
                 rc = wait(hchan1, &uevt, 10000);
                 EXPECT_EQ(NO_ERROR, rc, "waiting for space");
                 EXPECT_EQ(hchan1, uevt.handle, "waiting for space");
@@ -2436,7 +2436,7 @@ static void run_echo_handle_bulk_test(void) {
     hchan2 = (handle_t)rc;
 
     /* send the same handle 10000 times */
-    for (uint i = 0; (i < 10000) && _all_ok; i++) {
+    for (unsigned int i = 0; (i < 10000) && _all_ok; i++) {
         /* send message with handle */
         iov.base = buf0;
         iov.len = sizeof(buf0);
@@ -2450,7 +2450,7 @@ static void run_echo_handle_bulk_test(void) {
             EXPECT_EQ(64, rc, "send_handle");
             if (rc == ERR_NOT_ENOUGH_BUFFER) { /* wait for room */
                 uevent_t uevt;
-                uint exp_event = IPC_HANDLE_POLL_SEND_UNBLOCKED;
+                unsigned int exp_event = IPC_HANDLE_POLL_SEND_UNBLOCKED;
                 rc = wait(hchan1, &uevt, 10000);
                 EXPECT_EQ(NO_ERROR, rc, "waiting for space");
                 EXPECT_EQ(hchan1, uevt.handle, "waiting for space");

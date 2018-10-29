@@ -159,7 +159,8 @@ static uint32_t get_rpmb_ss_auth_key(const struct hwkey_keyslot* slot,
     if (!rc)
         goto evp_err;
 
-    uint min_kbuf_len = RPMB_SS_AUTH_KEY_SIZE + EVP_CIPHER_CTX_key_length(&evp);
+    size_t min_kbuf_len =
+            RPMB_SS_AUTH_KEY_SIZE + EVP_CIPHER_CTX_key_length(&evp);
     if (kbuf_len < min_kbuf_len) {
         TLOGE("buffer too small: (%zd vs. %zd )\n", kbuf_len, min_kbuf_len);
         goto other_err;

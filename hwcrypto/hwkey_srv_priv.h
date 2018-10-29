@@ -33,7 +33,7 @@ __BEGIN_CDECLS
 
 void hwkey_init_srv_provider(void);
 
-void hwkey_install_keys(const struct hwkey_keyslot* keys, uint kcnt);
+void hwkey_install_keys(const struct hwkey_keyslot* keys, unsigned int kcnt);
 
 int hwkey_start_service(void);
 

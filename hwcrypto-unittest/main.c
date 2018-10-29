@@ -236,8 +236,8 @@ static void run_hwkey_tests(void) {
 static uint32_t _hist[256];
 static uint8_t _rng_buf[1024];
 
-static void hwrng_update_hist(uint8_t* data, uint cnt) {
-    for (uint i = 0; i < cnt; i++) {
+static void hwrng_update_hist(uint8_t* data, unsigned int cnt) {
+    for (unsigned int i = 0; i < cnt; i++) {
         _hist[data[i]]++;
     }
 }
@@ -273,7 +273,7 @@ static void run_hwrng_show_data_test(void) {
 
 static void run_hwrng_var_rng_req_test(void) {
     int rc;
-    uint i;
+    unsigned int i;
     size_t req_cnt;
 
     TEST_BEGIN(__func__);
@@ -294,7 +294,7 @@ static void run_hwrng_var_rng_req_test(void) {
 
 static void run_hwrng_stats_test(void) {
     int rc;
-    uint i;
+    unsigned int i;
     size_t req_cnt;
     uint32_t exp_cnt;
     uint32_t cnt = 0;

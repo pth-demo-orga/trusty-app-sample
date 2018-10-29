@@ -2844,7 +2844,7 @@ TEST_P(TransactRewriteExistingSetSize) {
     storage_close_file(handle);
 
     // up
-    for (uint i = 1; i < 32; i++) {
+    for (unsigned int i = 1; i < 32; i++) {
         // open truncate (no commit)
         rc = storage_open_file(ss, &handle, fname, 0, 0);
         ASSERT_EQ(0, rc);
@@ -2862,7 +2862,7 @@ TEST_P(TransactRewriteExistingSetSize) {
     }
 
     // down
-    for (uint i = 1; i < 32; i++) {
+    for (unsigned int i = 1; i < 32; i++) {
         // open trancate (no commit)
         rc = storage_open_file(ss, &handle, fname, 0, 0);
         ASSERT_EQ(0, rc);
