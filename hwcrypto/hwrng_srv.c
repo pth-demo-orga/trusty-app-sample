@@ -16,6 +16,7 @@
 
 #include <assert.h>
 #include <lk/list.h>
+#include <lk/macros.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -60,7 +61,7 @@ static struct list_node hwrng_req_list = LIST_INITIAL_VALUE(hwrng_req_list);
  *  Hexdump content of memory region
  */
 static void _hexdump8(const void* ptr, size_t len) {
-    addr_t address = (addr_t)ptr;
+    uintptr_t address = (uintptr_t)ptr;
     size_t count;
     size_t i;
 

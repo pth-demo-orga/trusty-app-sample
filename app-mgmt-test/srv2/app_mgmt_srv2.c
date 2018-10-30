@@ -17,6 +17,7 @@
 #include "app_mgmt_srv2.h"
 
 #include <app_mgmt_test.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -171,7 +171,7 @@ int sync_connect(const char* path, unsigned int timeout) {
 static void run_wait_negative_test(void) {
     int rc;
     uevent_t event;
-    lk_time_t timeout = 1000;  // 1 sec
+    uint32_t timeout = 1000;  // 1 sec
 
     TEST_BEGIN(__func__);
 
@@ -450,7 +450,7 @@ static void run_wait_on_port_test(void) {
 static void run_connect_negative_test(void) {
     int rc;
     char path[MAX_PORT_PATH_LEN + 16];
-    lk_time_t connect_timeout = 1000;  // 1 sec
+    uint32_t connect_timeout = 1000;  // 1 sec
 
     TEST_BEGIN(__func__);
 
@@ -692,7 +692,7 @@ static void run_connect_selfie_test(void) {
     uuid_t peer_uuid = UUID_INITIAL_VALUE(peer_uuid);
     uuid_t zero_uuid = UUID_INITIAL_VALUE(zero_uuid);
     char path[MAX_PORT_PATH_LEN];
-    lk_time_t connect_timeout = 1000;  // 1 sec
+    uint32_t connect_timeout = 1000;  // 1 sec
 
     TEST_BEGIN(__func__);
 

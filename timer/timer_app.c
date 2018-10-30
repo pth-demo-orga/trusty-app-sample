@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <lk/macros.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>

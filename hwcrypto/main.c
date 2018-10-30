@@ -15,6 +15,7 @@
  */
 
 #include <assert.h>
+#include <lk/macros.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <trusty_ipc.h>
@@ -31,7 +32,7 @@
  *  Hexdump content of memory region
  */
 void _hexdump8(const void* ptr, size_t len) {
-    addr_t address = (addr_t)ptr;
+    uintptr_t address = (uintptr_t)ptr;
     size_t count;
     size_t i;
 
@@ -225,7 +226,7 @@ int main(void) {
     TLOGI("enter main event loop\n");
 
     /* enter main event loop */
-    while (true) {
+    while (1) {
         event.handle = INVALID_IPC_HANDLE;
         event.event = 0;
         event.cookie = NULL;
