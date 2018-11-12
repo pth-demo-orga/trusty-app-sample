@@ -533,7 +533,7 @@ static void run_connect_close_by_peer_test(const char* test) {
             if (rc == ERR_NOT_FOUND) {
                 /* wait a bit and retry */
                 --retry_cnt;
-                nanosleep(0, 0, 100 * MSEC);
+                trusty_nanosleep(0, 0, 100 * MSEC);
             } else {
                 break;
             }
@@ -2053,7 +2053,7 @@ static void run_send_handle_test(void) {
     /* send and wait a bit */
     rc = send_msg(hchan1, &msg);
     EXPECT_EQ(64, rc, "send handle");
-    nanosleep(0, 0, 100 * MSEC);
+    trusty_nanosleep(0, 0, 100 * MSEC);
 
     /* send it again and close it */
     rc = send_msg(hchan1, &msg);

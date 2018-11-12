@@ -428,7 +428,7 @@ static void closer1_handle_port(const uevent_t* ev) {
 
         if (st->conn_cnt & 1) {
             /* sleep a bit */
-            nanosleep(0, 0, 100 * MSEC);
+            trusty_nanosleep(0, 0, 100 * MSEC);
         }
         /* and close it */
         rc = close(chan);
@@ -449,7 +449,7 @@ static void closer2_handle_port(const uevent_t* ev) {
         st->conn_cnt++;
         if (st->conn_cnt & 1) {
             /* sleep a bit */
-            nanosleep(0, 0, 100 * MSEC);
+            trusty_nanosleep(0, 0, 100 * MSEC);
         }
 
         /*
@@ -483,7 +483,7 @@ static void closer3_handle_port(const uevent_t* ev) {
         /* when max number of connection reached */
         if (st->chan_cnt == countof(st->chans)) {
             /* wait a bit */
-            nanosleep(0, 0, 100 * MSEC);
+            trusty_nanosleep(0, 0, 100 * MSEC);
 
             /* and close them all */
             for (unsigned int i = 0; i < st->chan_cnt; i++)
@@ -624,7 +624,7 @@ static int _echo_handle_msg(const uevent_t* ev, int delay) {
 
         /* optionally sleep a bit an send it back */
         if (delay) {
-            nanosleep(0, 0, 1000);
+            trusty_nanosleep(0, 0, 1000);
         }
 
         /* and send it back */

@@ -68,7 +68,7 @@ static bool handle_cmd(uint8_t cmd) {
         TLOGI("Failed to send response: %d \n", rc);
         return true;
     } else if (delay) {
-        nanosleep(0, 0, 1000000);
+        trusty_nanosleep(0, 0, 1000000);
     }
 
     return done;

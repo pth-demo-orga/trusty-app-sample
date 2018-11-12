@@ -48,7 +48,7 @@ static void check_timestamps(int64_t t1,
     int64_t delta;
     int64_t t2 = t1 - 1;
 
-    gettime(0, 0, &t2);
+    trusty_gettime(0, &t2);
     delta = t2 - t1;
 
     _tests_total++;
@@ -70,23 +70,23 @@ static bool timer_test(struct unittest* test) {
 
     do {
         TLOGI("Hello world from timer app 1\n");
-        gettime(0, 0, &ts);
+        trusty_gettime(0, &ts);
         for (i = 0; i < TIMER_TEST_NOP_LOOP_COUNT; i++)
             nop();
         check_timestamps(ts, TIMER_TEST_NOP_LOOP_COUNT / 100,
                          TIMER_TEST_NOP_LOOP_COUNT * 10000ULL, "nop loop");
 
         TLOGI("Hello world from timer app 2\n");
-        gettime(0, 0, &ts);
+        trusty_gettime(0, &ts);
         for (i = 0; i < TIMER_TEST_MS_SLEEP_LOOP_COUNT; i++)
-            nanosleep(0, 0, ONE_MS);
+            trusty_nanosleep(0, 0, ONE_MS);
         check_timestamps(ts, TIMER_TEST_MS_SLEEP_LOOP_COUNT * ONE_MS,
                          TIMER_TEST_MS_SLEEP_LOOP_COUNT * ONE_MS * 10,
                          "ms loop");
 
         TLOGI("Hello world from timer app 3\n");
-        gettime(0, 0, &ts);
-        nanosleep(0, 0, 10ULL * ONE_S);
+        trusty_gettime(0, &ts);
+        trusty_nanosleep(0, 0, 10ULL * ONE_S);
         check_timestamps(ts, ONE_S * 10, ONE_S * 11, "10s sleep");
     } while (timer_test->loop);
 

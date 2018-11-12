@@ -2972,7 +2972,7 @@ void run_all_tests(const char* port, enum run_mode mode) {
         }
 
 #ifndef STORAGE_FAKE
-        nanosleep(0, 0, 1000000);
+        trusty_nanosleep(0, 0, 1000000);
 #endif
 
     } while (rc < 0);

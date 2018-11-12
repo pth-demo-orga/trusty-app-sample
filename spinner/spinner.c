@@ -34,10 +34,10 @@ static int _delay(int64_t ns_delay) {
     int64_t curr;
     int64_t start;
 
-    rc = gettime(0, 0, &start);
+    rc = trusty_gettime(0, &start);
     curr = start;
     while (!rc && curr < start + ns_delay)
-        rc = gettime(0, 0, &curr);
+        rc = trusty_gettime(0, &curr);
     return rc;
 }
 
@@ -67,7 +67,7 @@ int main(void) {
                 if (rc >= 0) {
                     handle_t ctrl_chan = (handle_t)rc;
 
-                    nanosleep(0, 0, 2 * 1000 * MSEC);
+                    trusty_nanosleep(0, 0, 2 * 1000 * MSEC);
                     for (;;) {
                         rc = _delay(2 * 1000 * MSEC);
                         if (rc < 0)
