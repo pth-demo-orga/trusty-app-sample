@@ -24,7 +24,7 @@
 #include <lib/unittest/unittest.h>
 #include <trusty_unittest.h>
 
-#define LOG_TAG "timertest"
+#define TLOG_TAG "timertest"
 
 static void __attribute__((noinline)) nop(void) {
     static int i;

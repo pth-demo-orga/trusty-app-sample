@@ -22,7 +22,7 @@
 #include <trusty_ipc.h>
 #include <uapi/err.h>
 
-#define LOG_TAG "ipc-unittest-main"
+#define TLOG_TAG "ipc-unittest-main"
 
 #include <app/ipc_unittest/common.h>
 #include <app/ipc_unittest/uuids.h>

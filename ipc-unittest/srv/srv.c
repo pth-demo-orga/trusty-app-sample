@@ -24,7 +24,7 @@
 #include <trusty_ipc.h>
 #include <uapi/err.h>
 
-#define LOG_TAG "ipc-unittest-srv"
+#define TLOG_TAG "ipc-unittest-srv"
 
 #include <app/ipc_unittest/common.h>
 #include <app/ipc_unittest/uuids.h>

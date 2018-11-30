@@ -26,7 +26,7 @@
 #include <trusty_ipc.h>
 #include <uapi/err.h>
 
-#define LOG_TAG "app-mgmt-test-srv2"
+#define TLOG_TAG "app-mgmt-test-srv2"
 #define CTRL_PORT "com.android.trusty.appmgmt.srv2"
 
 static handle_t ctrl_port;

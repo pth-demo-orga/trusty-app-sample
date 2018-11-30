@@ -29,8 +29,7 @@
 #include "hwkey_srv_priv.h"
 #include "uuids.h"
 
-#define LOCAL_TRACE 1
-#define LOG_TAG "hwkey_srv"
+#define TLOG_TAG "hwkey_srv"
 
 #define HWKEY_MAX_PAYLOAD_SIZE 2048
 

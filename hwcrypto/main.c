@@ -21,8 +21,7 @@
 #include <trusty_ipc.h>
 #include <uapi/err.h>
 
-#define LOCAL_TRACE 1
-#define LOG_TAG "hwcrypto_srv"
+#define TLOG_TAG "hwcrypto_srv"
 
 #include "common.h"
 #include "hwkey_srv_priv.h"

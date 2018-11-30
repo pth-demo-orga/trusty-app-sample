@@ -37,7 +37,7 @@
 #include <trusty_unittest.h>
 #include <uapi/err.h>
 
-#define LOG_TAG "hwcrypto_unittest"
+#define TLOG_TAG "hwcrypto_unittest"
 
 #define RPMB_STORAGE_AUTH_KEY_ID "com.android.trusty.storage_auth.rpmb"
 #define HWCRYPTO_UNITTEST_KEYBOX_ID "com.android.trusty.hwcrypto.unittest.key32"

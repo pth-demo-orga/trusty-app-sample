@@ -18,6 +18,8 @@
 
 #include <uapi/err.h>
 
+#define TLOG_TAG "app-mgmt-common"
+
 int send_rsp(handle_t channel, uint8_t rsp) {
     uint8_t tx_buffer[1];
     iovec_t tx_iov = {tx_buffer, 1};

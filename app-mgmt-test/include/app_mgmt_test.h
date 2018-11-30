@@ -19,11 +19,9 @@
 
 #include <stdio.h>
 #include <trusty_ipc.h>
+#include <trusty_log.h>
 
 #define MAX_CMD_LEN 1
-
-#define TLOGI(fmt, ...) \
-    fprintf(stderr, "%s: %d: " fmt, __FILE__, __LINE__, ##__VA_ARGS__)
 
 enum {
     CMD_NOP = 0,

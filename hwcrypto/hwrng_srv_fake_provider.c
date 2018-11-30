@@ -22,8 +22,7 @@
 #include "common.h"
 #include "hwrng_srv_priv.h"
 
-#define LOCAL_TRACE 1
-#define LOG_TAG "hwrng_fake_srv"
+#define TLOG_TAG "hwrng_fake_srv"
 
 #pragma message "Compiling FAKE HWRNG provider"
 

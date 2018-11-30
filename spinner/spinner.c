@@ -19,15 +19,13 @@
 #include <string.h>
 #include <time.h>
 #include <trusty_ipc.h>
+#include <trusty_log.h>
 #include <uapi/err.h>
 
-#define LOG_TAG "spinner-app"
+#define TLOG_TAG "spinner-app"
 #define TEST_CTRL_PORT "com.android.trusty.spinner"
 
 #define MSEC 1000000ULL
-
-#define TLOGI(fmt, ...) \
-    fprintf(stderr, "%s: %d: " fmt, LOG_TAG, __LINE__, ##__VA_ARGS__)
 
 static int _delay(int64_t ns_delay) {
     int rc;

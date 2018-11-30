@@ -33,8 +33,7 @@
 #include "hwkey_srv_priv.h"
 #include "uuids.h"
 
-#define LOCAL_TRACE 1
-#define LOG_TAG "hwkey_fake_srv"
+#define TLOG_TAG "hwkey_fake_srv"
 
 #pragma message "Compiling FAKE HWKEY provider"
 

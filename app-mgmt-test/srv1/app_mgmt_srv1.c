@@ -22,7 +22,7 @@
 #include <trusty_ipc.h>
 #include <uapi/err.h>
 
-#define LOG_TAG "app-mgmt-test-srv1"
+#define TLOG_TAG "app-mgmt-test-srv1"
 #define CTRL_PORT "com.android.trusty.appmgmt.srv1"
 
 /* Resources are intentionally not freed to test application cleanup on exit */

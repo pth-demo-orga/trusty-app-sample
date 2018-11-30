@@ -30,9 +30,7 @@
 
 #include <trusty_unittest.h>
 
-#define LOG_TAG "ss_unittest"
-#define TLOGE(fmt, ...) \
-    fprintf(stderr, "%s: %d: " fmt, LOG_TAG, __LINE__, ##__VA_ARGS__)
+#define TLOG_TAG "ss_unittest"
 
 typedef void (*test_body)(storage_session_t ss, storage_session_t ss_aux);
 
