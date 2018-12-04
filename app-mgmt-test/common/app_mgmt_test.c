@@ -50,7 +50,7 @@ int recv_cmd(handle_t channel, uint8_t* cmd) {
     }
 
     if (msg_inf.len == 0 || msg_inf.len > MAX_CMD_LEN) {
-        TLOGI("Invalid cmd info. len:%d\n", msg_inf.len);
+        TLOGI("Invalid cmd info. len:%zu\n", msg_inf.len);
         return -1;
     }
 
