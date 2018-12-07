@@ -23,6 +23,7 @@
 #include <uapi/err.h>
 
 #define TLOG_TAG "ipc-unittest-main"
+#include <trusty_unittest.h>
 
 #include <app/ipc_unittest/common.h>
 #include <app/ipc_unittest/uuids.h>
@@ -31,86 +32,10 @@
 #include <lk/trace.h>
 
 /*  */
-static unsigned int _tests_total = 0;  /* Number of conditions checked */
-static unsigned int _tests_failed = 0; /* Number of conditions failed  */
 static handle_t handle_base;           /* base of valid handle range */
 
 static const uuid_t srv_app_uuid = IPC_UNITTEST_SRV_APP_UUID;
-
-/*
- *   Begin and end test macro
- */
-#define TEST_BEGIN(name)      \
-    bool _all_ok = true;      \
-    const char* _test = name; \
-    TLOGI("%s:\n", _test);
-
-#define TEST_END                          \
-    {                                     \
-        if (_all_ok)                      \
-            TLOGI("%s: PASSED\n", _test); \
-        else                              \
-            TLOGI("%s: FAILED\n", _test); \
-    }
-
-/*
- * EXPECT_* macros to check test results.
- */
-#define EXPECT_EQ(expected, actual, msg)       \
-    {                                          \
-        __typeof__(actual) _e = expected;      \
-        __typeof__(actual) _a = actual;        \
-        _tests_total++;                        \
-        if (_e != _a) {                        \
-            TLOGI("%s: expected " #expected    \
-                  " (%d), "                    \
-                  "actual " #actual " (%d)\n", \
-                  msg, (int)_e, (int)_a);      \
-            _tests_failed++;                   \
-            _all_ok = false;                   \
-        }                                      \
-    }
-
-#define EXPECT_GT(expected, actual, msg)       \
-    {                                          \
-        __typeof__(actual) _e = expected;      \
-        __typeof__(actual) _a = actual;        \
-        _tests_total++;                        \
-        if (_e <= _a) {                        \
-            TLOGI("%s: expected " #expected    \
-                  " (%d), "                    \
-                  "actual " #actual " (%d)\n", \
-                  msg, (int)_e, (int)_a);      \
-            _tests_failed++;                   \
-            _all_ok = false;                   \
-        }                                      \
-    }
-
-#define EXPECT_GE_ZERO(actual, msg)            \
-    {                                          \
-        __typeof__(actual) _a = actual;        \
-        _tests_total++;                        \
-        if (_a < 0) {                          \
-            TLOGI("%s: expected >= 0 "         \
-                  "actual " #actual " (%d)\n", \
-                  msg, (int)_a);               \
-            _tests_failed++;                   \
-            _all_ok = false;                   \
-        }                                      \
-    }
-
-#define EXPECT_GT_ZERO(actual, msg)            \
-    {                                          \
-        __typeof__(actual) _a = actual;        \
-        _tests_total++;                        \
-        if (_a <= 0) {                         \
-            TLOGI("%s: expected > 0 "          \
-                  "actual " #actual " (%d)\n", \
-                  msg, (int)_a);               \
-            _tests_failed++;                   \
-            _all_ok = false;                   \
-        }                                      \
-    }
+static const uintptr_t COOKIE_BASE = 100;
 
 #define ABORT_IF(_cond, lbl) \
     {                        \
@@ -399,8 +324,6 @@ static void run_wait_on_port_test(void) {
 
     TEST_BEGIN(__func__);
 
-#define COOKIE_BASE 100
-
     /* create maximum number of ports */
     for (unsigned int i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
         sprintf(path, "%s.port.%s%d", SRV_PATH_BASE, "test", i);
@@ -518,8 +441,6 @@ static void run_connect_close_by_peer_test(const char* test) {
 
     TEST_BEGIN(__func__);
 
-#define COOKIE_BASE 100
-
     /*
      * open up to 16 connection to specified test port which would
      * close them all in a different way:
@@ -563,7 +484,7 @@ static void run_connect_close_by_peer_test(const char* test) {
         /* check if any channels are closed */
         while ((rc = wait_any(&event, 0)) == NO_ERROR) {
             EXPECT_EQ(IPC_HANDLE_POLL_HUP, event.event, test);
-            unsigned int idx = (unsigned int)event.cookie - COOKIE_BASE;
+            uintptr_t idx = (uintptr_t)event.cookie - COOKIE_BASE;
             EXPECT_EQ(chans[idx], event.handle, test);
             EXPECT_GT(countof(chans), idx, test);
             if (idx < countof(chans)) {
@@ -581,7 +502,7 @@ static void run_connect_close_by_peer_test(const char* test) {
         EXPECT_EQ(NO_ERROR, rc, test);
         EXPECT_EQ(IPC_HANDLE_POLL_HUP, event.event, test);
 
-        unsigned int idx = (unsigned int)event.cookie - COOKIE_BASE;
+        uintptr_t idx = (uintptr_t)event.cookie - COOKIE_BASE;
         EXPECT_GT(countof(chans), idx, test);
         EXPECT_EQ(chans[idx], event.handle, test);
         if (idx < countof(chans)) {
@@ -878,8 +799,6 @@ static void run_accept_test(void) {
     uuid_t zero_uuid = UUID_INITIAL_VALUE(zero_uuid);
 
     TEST_BEGIN(__func__);
-
-#define COOKIE_BASE 100
 
     /* create maximum number of ports */
     for (unsigned int i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
