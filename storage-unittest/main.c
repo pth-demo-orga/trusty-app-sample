@@ -66,23 +66,6 @@ void test_wrapper(const char* port, test_body test_proc) {
 
 #define RUN_TEST_P(port, tn) test_wrapper(port, test_##tn)
 
-#define ASSERT_ALL_OK()  \
-    if (!_all_ok) {      \
-        goto test_abort; \
-    }
-
-#define ASSERT_EQ(e, a)      \
-    do {                     \
-        EXPECT_EQ(e, a, ""); \
-        ASSERT_ALL_OK();     \
-    } while (0)
-
-#define ASSERT_NE(e, a)      \
-    do {                     \
-        EXPECT_NE(e, a, ""); \
-        ASSERT_ALL_OK();     \
-    } while (0)
-
 static inline bool is_32bit_aligned(size_t sz) {
     return ((sz & 0x3) == 0);
 }
