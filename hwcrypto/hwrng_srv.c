@@ -15,6 +15,7 @@
  */
 
 #include <assert.h>
+#include <inttypes.h>
 #include <lk/list.h>
 #include <lk/macros.h>
 #include <stdio.h>
@@ -65,7 +66,7 @@ static void _hexdump8(const void* ptr, size_t len) {
     size_t i;
 
     for (count = 0; count < len; count += 16) {
-        fprintf(stderr, "0x%08lx: ", address);
+        fprintf(stderr, "0x%08" PRIxPTR ": ", address);
         for (i = 0; i < MIN(len - count, 16); i++) {
             fprintf(stderr, "0x%02hhx ", *(const uint8_t*)(address + i));
         }

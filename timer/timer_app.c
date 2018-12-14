@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <inttypes.h>
 #include <lk/macros.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -53,7 +54,8 @@ static void check_timestamps(int64_t t1,
 
     _tests_total++;
     if (delta < delta_min || delta > delta_max) {
-        TLOGI("bad timestamp after %s: t1 %lld, t2 %lld, delta %lld, min %lld max %lld\n",
+        TLOGI("bad timestamp after %s: t1 %" PRId64 ", t2 %" PRId64
+              ", delta %" PRId64 ", min %" PRId64 " max %" PRId64 "\n",
               name, t1, t2, t2 - t1, delta_min, delta_max);
         _tests_failed++;
     }
