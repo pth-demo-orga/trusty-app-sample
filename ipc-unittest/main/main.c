@@ -29,10 +29,8 @@
 #include <app/ipc_unittest/uuids.h>
 #include <lib/unittest/unittest.h>
 
-#include <lk/trace.h>
-
 /*  */
-static handle_t handle_base;           /* base of valid handle range */
+static handle_t handle_base; /* base of valid handle range */
 
 static const uuid_t srv_app_uuid = IPC_UNITTEST_SRV_APP_UUID;
 static const uintptr_t COOKIE_BASE = 100;
@@ -373,12 +371,11 @@ static void run_wait_on_port_test(void) {
 static void run_connect_negative_test(void) {
     int rc;
     char path[MAX_PORT_PATH_LEN + 16];
-    uint32_t connect_timeout = 1000;  // 1 sec
 
     TEST_BEGIN(__func__);
 
     /* try to connect to port with an empty name */
-    rc = sync_connect("", connect_timeout);
+    rc = connect(path, IPC_CONNECT_WAIT_FOR_PORT);
     EXPECT_EQ(ERR_INVALID_ARGS, rc, "empty path");
 
     /* try to connect to non-existing port  */
@@ -396,7 +393,7 @@ static void run_connect_negative_test(void) {
     for (size_t i = len; i < sizeof(path); i++)
         path[i] = 'a';
     path[sizeof(path) - 1] = '\0';
-    rc = sync_connect(path, connect_timeout);
+    rc = connect(path, IPC_CONNECT_WAIT_FOR_PORT);
     EXPECT_EQ(ERR_INVALID_ARGS, rc, "long path");
 
     rc = close(rc);
@@ -418,7 +415,7 @@ static void run_connect_close_test(void) {
         /* do several iterations to make sure we are not
            not loosing handles */
         for (unsigned int i = 0; i < countof(chans); i++) {
-            rc = sync_connect(path, 1000);
+            rc = connect(path, IPC_CONNECT_WAIT_FOR_PORT);
             EXPECT_GT_ZERO(rc, "connect/close");
             chans[i] = (handle_t)rc;
         }
@@ -447,19 +444,7 @@ static void run_connect_close_by_peer_test(const char* test) {
      */
     sprintf(path, "%s.srv.%s", SRV_PATH_BASE, test);
     for (unsigned int i = 0; i < countof(chans); i++) {
-        /* open new connection */
-        unsigned int retry_cnt = 10;
-        while (retry_cnt) {
-            rc = sync_connect(path, 2000);
-            if (rc == ERR_NOT_FOUND) {
-                /* wait a bit and retry */
-                --retry_cnt;
-                trusty_nanosleep(0, 0, 100 * MSEC);
-            } else {
-                break;
-            }
-        }
-        EXPECT_GT_ZERO(retry_cnt, test);
+        rc = connect(path, IPC_CONNECT_WAIT_FOR_PORT);
 
         /*
          * depending on task scheduling connect might return real
@@ -698,7 +683,7 @@ static void run_connect_access_test(void) {
 
     /* open connection to NS only accessible service */
     sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "ns_only");
-    rc = sync_connect(path, 1000);
+    rc = connect(path, IPC_CONNECT_WAIT_FOR_PORT);
 
     /* It is expected to fail */
     EXPECT_EQ(ERR_ACCESS_DENIED, rc, "connect to ns_only");
@@ -708,7 +693,7 @@ static void run_connect_access_test(void) {
 
     /* open connection to TA only accessible service */
     sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "ta_only");
-    rc = sync_connect(path, 1000);
+    rc = connect(path, IPC_CONNECT_WAIT_FOR_PORT);
 
     /* it is expected to succeed */
     EXPECT_GT_ZERO(rc, "connect to ta_only");
@@ -773,7 +758,7 @@ static void run_accept_negative_test(void) {
 
     /* connect to datasink service */
     sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "datasink");
-    rc = sync_connect(path, 1000);
+    rc = connect(path, IPC_CONNECT_WAIT_FOR_PORT);
     EXPECT_GT_ZERO(rc, "connect to datasink");
     chan = (handle_t)rc;
 
@@ -813,7 +798,7 @@ static void run_accept_test(void) {
 
     /* poke connect service to initiate connections to us */
     sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "connect");
-    rc = sync_connect(path, 1000);
+    rc = connect(path, IPC_CONNECT_WAIT_FOR_PORT);
     if (rc >= 0)
         close((handle_t)rc);
 
@@ -844,7 +829,7 @@ static void run_accept_test(void) {
 
     /* poke connect service to initiate connections to us */
     sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "connect");
-    rc = sync_connect(path, 1000);
+    rc = connect(path, IPC_CONNECT_WAIT_FOR_PORT);
     if (rc >= 0)
         close((handle_t)rc);
 
@@ -933,7 +918,7 @@ static void run_get_msg_negative_test(void) {
 
     /* call get_msg on channel that do not have any pending messages */
     sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "datasink");
-    rc = sync_connect(path, 1000);
+    rc = connect(path, IPC_CONNECT_WAIT_FOR_PORT);
     EXPECT_GT_ZERO(rc, "connect to datasink");
     chan = (handle_t)rc;
 
@@ -997,7 +982,7 @@ static void run_put_msg_negative_test(void) {
 
     /* call put_msg on channel that do not have any pending messages */
     sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "datasink");
-    rc = sync_connect(path, 1000);
+    rc = connect(path, IPC_CONNECT_WAIT_FOR_PORT);
     EXPECT_GT_ZERO(rc, "connect to datasink");
     chan = (handle_t)rc;
 
@@ -1038,7 +1023,7 @@ static void run_send_msg_test(void) {
 
     /* open connection to datasink service */
     sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "datasink");
-    rc = sync_connect(path, 1000);
+    rc = connect(path, IPC_CONNECT_WAIT_FOR_PORT);
     EXPECT_GT_ZERO(rc, "connect to datasink");
 
     if (rc >= 0) {
@@ -1135,7 +1120,7 @@ static void run_send_msg_negative_test(void) {
 
     /* open connection to datasink service */
     sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "datasink");
-    rc = sync_connect(path, 1000);
+    rc = connect(path, IPC_CONNECT_WAIT_FOR_PORT);
     EXPECT_GT_ZERO(rc, "connect to datasink");
     chan = (handle_t)rc;
 
@@ -1254,7 +1239,7 @@ static void run_read_msg_negative_test(void) {
 
     /* open connection to echo service */
     sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "echo");
-    rc = sync_connect(path, 1000);
+    rc = connect(path, IPC_CONNECT_WAIT_FOR_PORT);
     EXPECT_GT_ZERO(rc, "connect to datasink");
     chan = (handle_t)rc;
 
@@ -1363,7 +1348,7 @@ static void run_end_to_end_msg_test(void) {
     memset(rx_buf, 0xaa, sizeof(rx_buf));
 
     sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "echo");
-    rc = sync_connect(path, 1000);
+    rc = connect(path, IPC_CONNECT_WAIT_FOR_PORT);
     EXPECT_GT_ZERO(rc, "connect to echo");
 
     if (rc >= 0) {
@@ -1714,13 +1699,13 @@ static void run_hset_add_chan_test(void) {
     /* prepare test buffer */
     fill_test_buf(buf0, sizeof(buf0), 0x55);
 
-    chan1 = sync_connect(SRV_PATH_BASE ".srv.echo", 1000);
+    chan1 = connect(SRV_PATH_BASE ".srv.echo", IPC_CONNECT_WAIT_FOR_PORT);
     EXPECT_GT_ZERO((int)chan1, "connect to echo chan1");
 
     rc = set_cookie(chan1, cookie1);
     EXPECT_EQ(0, rc, "cookie1");
 
-    chan2 = sync_connect(SRV_PATH_BASE ".srv.echo", 1000);
+    chan2 = connect(SRV_PATH_BASE ".srv.echo", IPC_CONNECT_WAIT_FOR_PORT);
     EXPECT_GT_ZERO((int)chan2, "connect to echo chan2");
 
     rc = set_cookie(chan2, cookie2);
@@ -1862,7 +1847,7 @@ static void run_hset_event_mask_test(void) {
     /* prepare test buffer */
     fill_test_buf(buf0, sizeof(buf0), 0x55);
 
-    chan1 = sync_connect(SRV_PATH_BASE ".srv.echo", 1000);
+    chan1 = connect(SRV_PATH_BASE ".srv.echo", IPC_CONNECT_WAIT_FOR_PORT);
     EXPECT_GT_ZERO((int)chan1, "connect to echo");
 
     rc = set_cookie(chan1, cookie1);
@@ -1951,12 +1936,12 @@ static void run_send_handle_test(void) {
 
     /* open connection to datasink service */
     sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "datasink");
-    rc = sync_connect(path, 1000);
+    rc = connect(path, IPC_CONNECT_WAIT_FOR_PORT);
     EXPECT_GT_ZERO(rc, "connect to datasink");
     ABORT_IF_NOT_OK(err_connect1);
     hchan1 = (handle_t)rc;
 
-    rc = sync_connect(path, 1000);
+    rc = connect(path, IPC_CONNECT_WAIT_FOR_PORT);
     EXPECT_GT_ZERO(rc, "connect to datasink");
     ABORT_IF_NOT_OK(err_connect2);
     hchan2 = (handle_t)rc;
@@ -1998,7 +1983,7 @@ static void run_send_handle_negative_test(void) {
 
     /* open connection to datasink service */
     sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "datasink");
-    rc = sync_connect(path, 1000);
+    rc = connect(path, IPC_CONNECT_WAIT_FOR_PORT);
     EXPECT_GT_ZERO(rc, "connect to datasink");
     ABORT_IF_NOT_OK(err_connect);
     hchan = (handle_t)rc;
@@ -2059,14 +2044,14 @@ static void run_recv_handle_test(void) {
 
     /* open connection to echo service */
     sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "echo");
-    rc = sync_connect(path, 1000);
+    rc = connect(path, IPC_CONNECT_WAIT_FOR_PORT);
     EXPECT_GT_ZERO(rc, "connect to echo");
     ABORT_IF_NOT_OK(err_connect1);
     hchan1 = (handle_t)rc;
 
     /* open second connection to echo service */
     sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "echo");
-    rc = sync_connect(path, 1000);
+    rc = connect(path, IPC_CONNECT_WAIT_FOR_PORT);
     EXPECT_GT_ZERO(rc, "connect to echo");
     ABORT_IF_NOT_OK(err_connect2);
     hchan2 = (handle_t)rc;
@@ -2183,7 +2168,7 @@ static void run_recv_handle_negative_test(void) {
 
     /* open connection to echo service */
     sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "echo");
-    rc = sync_connect(path, 1000);
+    rc = connect(path, IPC_CONNECT_WAIT_FOR_PORT);
     EXPECT_GT_ZERO(rc, "connect to echo");
     ABORT_IF_NOT_OK(err_connect1);
     hchan1 = (handle_t)rc;
@@ -2246,12 +2231,12 @@ static void run_send_handle_bulk_test(void) {
 
     /* open connection to datasink service */
     sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "datasink");
-    rc = sync_connect(path, 1000);
+    rc = connect(path, IPC_CONNECT_WAIT_FOR_PORT);
     EXPECT_GT_ZERO(rc, "connect to datasink");
     ABORT_IF_NOT_OK(err_connect1);
     hchan1 = (handle_t)rc;
 
-    rc = sync_connect(path, 1000);
+    rc = connect(path, IPC_CONNECT_WAIT_FOR_PORT);
     EXPECT_GT_ZERO(rc, "connect to datasink");
     ABORT_IF_NOT_OK(err_connect2);
     hchan2 = (handle_t)rc;
@@ -2283,9 +2268,9 @@ static void run_send_handle_bulk_test(void) {
     rc = close(hchan2);
     EXPECT_EQ(NO_ERROR, rc, "close chan2");
 
-    /* repeate the same while closing handle after sending it */
+    /* repeat the same while closing handle after sending it */
     for (unsigned int i = 0; (i < 10000) && _all_ok; i++) {
-        rc = sync_connect(path, 1000);
+        rc = connect(path, IPC_CONNECT_WAIT_FOR_PORT);
         EXPECT_GT_ZERO(rc, "connect to datasink");
         ABORT_IF_NOT_OK(err_connect2);
         hchan2 = (handle_t)rc;
@@ -2342,14 +2327,14 @@ static void run_echo_handle_bulk_test(void) {
 
     /* open connection to echo service */
     sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "echo");
-    rc = sync_connect(path, 1000);
+    rc = connect(path, IPC_CONNECT_WAIT_FOR_PORT);
     EXPECT_GT_ZERO(rc, "connect to echo");
     ABORT_IF_NOT_OK(err_connect1);
     hchan1 = (handle_t)rc;
 
     /* open second connection to echo service */
     sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "echo");
-    rc = sync_connect(path, 1000);
+    rc = connect(path, IPC_CONNECT_WAIT_FOR_PORT);
     EXPECT_GT_ZERO(rc, "connect to echo");
     ABORT_IF_NOT_OK(err_connect2);
     hchan2 = (handle_t)rc;
