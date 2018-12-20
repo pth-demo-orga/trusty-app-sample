@@ -27,6 +27,7 @@
 
 #include <app/ipc_unittest/common.h>
 #include <app/ipc_unittest/uuids.h>
+#include <lib/tipc/tipc.h>
 #include <lib/unittest/unittest.h>
 
 /*  */
@@ -2401,6 +2402,235 @@ err_connect1:
     TEST_END
 }
 
+/*
+ * TIPC wrapper libtrary tests
+ */
+static void run_tipc_connect_test(void) {
+    int rc;
+    handle_t h = INVALID_IPC_HANDLE;
+    char path[MAX_PORT_PATH_LEN];
+
+    TEST_BEGIN(__func__);
+
+    /* Make tipc_connect fail and check if handle is unchanged */
+    rc = tipc_connect(&h, NULL);
+    EXPECT_EQ(ERR_FAULT, rc, "failed tipc_connect");
+    EXPECT_EQ(INVALID_IPC_HANDLE, h, "failed tipc_connect")
+
+    rc = close(h);
+    EXPECT_EQ(ERR_BAD_HANDLE, rc, "close failed tipc_connect");
+
+    /* Normal case: should succeed */
+    sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "echo");
+    rc = tipc_connect(&h, path);
+    EXPECT_EQ(0, rc, "tipc_connect");
+    EXPECT_GT_ZERO(h, "tipc_connect");
+
+    rc = close(h);
+    EXPECT_EQ(0, rc, "close tipc_connect");
+
+    TEST_END;
+}
+
+static void run_tipc_send_recv_1_test(void) {
+    int rc;
+    uint8_t tx_buf[64];
+    uint8_t rx_buf[64];
+    char path[MAX_PORT_PATH_LEN];
+    handle_t h = INVALID_IPC_HANDLE;
+    struct uevent evt = UEVENT_INITIAL_VALUE(evt);
+
+    TEST_BEGIN(__func__);
+
+    /* open connection to echo service */
+    sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "echo");
+    rc = tipc_connect(&h, path);
+    EXPECT_EQ(0, rc, "tipc_connect");
+    EXPECT_GT_ZERO(h, "tipc_connect");
+
+    /* send/receive zero length message */
+    rc = tipc_send1(h, NULL, 0);
+    EXPECT_EQ(0, rc, "tipc_send_one");
+
+    rc = wait(h, &evt, -1);
+    EXPECT_EQ(0, rc, "wait for reply");
+
+    rc = tipc_recv1(h, 0, rx_buf, sizeof(rx_buf));
+    EXPECT_EQ(0, rc, "tipc_recv_one");
+
+    /* send/receive normal message: should succeed */
+    memset(tx_buf, 0x55, sizeof(tx_buf));
+    memset(rx_buf, 0xaa, sizeof(rx_buf));
+
+    rc = tipc_send1(h, tx_buf, sizeof(tx_buf) / 2);
+    EXPECT_EQ(sizeof(tx_buf) / 2, (size_t)rc, "tipc_send1");
+
+    rc = wait(h, &evt, -1);
+    EXPECT_EQ(0, rc, "wait for reply");
+
+    rc = tipc_recv1(h, 0, rx_buf, sizeof(rx_buf));
+    EXPECT_EQ(sizeof(tx_buf) / 2, (size_t)rc, "tipc_recv1");
+
+    rc = memcmp(tx_buf, rx_buf, sizeof(tx_buf) / 2);
+    EXPECT_EQ(0, rc, "memcmp");
+
+    /*
+     * send and then receive into small buffer: test should fail and
+     * message should be discarded
+     */
+    memset(tx_buf, 0x55, sizeof(tx_buf));
+    memset(rx_buf, 0xaa, sizeof(rx_buf));
+
+    rc = tipc_send1(h, tx_buf, sizeof(tx_buf));
+    EXPECT_EQ(sizeof(tx_buf), (size_t)rc, "tipc_send1");
+
+    rc = wait(h, &evt, -1);
+    EXPECT_EQ(0, rc, "wait for reply");
+
+    rc = tipc_recv1(h, 0, rx_buf, sizeof(rx_buf) / 2);
+    EXPECT_EQ(ERR_BAD_LEN, rc, "tipc_recv1");
+
+    /*
+     * send and then receive message shorter them minimum: should fail
+     */
+    memset(tx_buf, 0x55, sizeof(tx_buf));
+    memset(rx_buf, 0xaa, sizeof(rx_buf));
+
+    rc = tipc_send1(h, tx_buf, sizeof(tx_buf) / 2);
+    EXPECT_EQ(sizeof(tx_buf) / 2, (size_t)rc, "tipc_send1");
+
+    rc = wait(h, &evt, -1);
+    EXPECT_EQ(0, rc, "wait for reply");
+
+    rc = tipc_recv1(h, sizeof(rx_buf), rx_buf, sizeof(rx_buf));
+    EXPECT_EQ(ERR_BAD_LEN, rc, "tipc_recv1");
+
+    /* clean up */
+    rc = close(h);
+    EXPECT_EQ(0, rc, "close tipc_connect");
+
+    TEST_END;
+}
+
+static void run_tipc_send_recv_hdr_payload_test(void) {
+    int rc;
+    uint8_t tx_hdr[32];
+    uint8_t tx_buf[64];
+    uint8_t rx_hdr[32];
+    uint8_t rx_buf[64];
+    char path[MAX_PORT_PATH_LEN];
+    handle_t h = INVALID_IPC_HANDLE;
+    struct uevent evt = UEVENT_INITIAL_VALUE(evt);
+
+    TEST_BEGIN(__func__);
+
+    sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "echo");
+    rc = tipc_connect(&h, path);
+    EXPECT_EQ(0, rc, "tipc_connect");
+    EXPECT_GT_ZERO(h, "tipc_connect");
+
+    /* send/receive normal message: should succeed */
+    memset(tx_hdr, 0xaa, sizeof(tx_hdr));
+    memset(tx_buf, 0x55, sizeof(tx_buf));
+    memset(rx_hdr, 0x55, sizeof(rx_hdr));
+    memset(rx_buf, 0xaa, sizeof(rx_buf));
+
+    rc = tipc_send2(h, tx_hdr, sizeof(tx_hdr), tx_buf, sizeof(tx_buf) / 2);
+    EXPECT_EQ(sizeof(tx_hdr) + sizeof(tx_buf) / 2, (size_t)rc, "tipc_send_two");
+
+    rc = wait(h, &evt, -1);
+    EXPECT_EQ(0, rc, "wait for reply");
+
+    rc = tipc_recv_hdr_payload(h, rx_hdr, sizeof(rx_hdr), rx_buf,
+                               sizeof(rx_buf));
+    EXPECT_EQ(sizeof(tx_hdr) + sizeof(tx_buf) / 2, (size_t)rc,
+              "tipc_recv_hdr_payload");
+
+    rc = memcmp(tx_hdr, rx_hdr, sizeof(tx_hdr));
+    EXPECT_EQ(0, rc, "memcmp");
+
+    rc = memcmp(tx_buf, rx_buf, sizeof(tx_buf) / 2);
+    EXPECT_EQ(0, rc, "memcmp");
+
+    /* send/receive message with zero length header */
+    memset(tx_hdr, 0xaa, sizeof(tx_hdr));
+    memset(tx_buf, 0x55, sizeof(tx_buf));
+    memset(rx_hdr, 0xaa, sizeof(rx_hdr));
+    memset(rx_buf, 0xaa, sizeof(rx_buf));
+
+    rc = tipc_send2(h, NULL, 0, tx_buf, sizeof(tx_buf) / 2);
+    EXPECT_EQ(sizeof(tx_buf) / 2, (size_t)rc, "tipc_send_two");
+
+    rc = wait(h, &evt, -1);
+    EXPECT_EQ(0, rc, "wait for reply");
+
+    rc = tipc_recv_hdr_payload(h, NULL, 0, rx_buf, sizeof(rx_buf));
+    EXPECT_EQ(sizeof(tx_buf) / 2, (size_t)rc, "tipc_recv_hdr_payload");
+
+    rc = memcmp(tx_buf, rx_buf, sizeof(tx_buf) / 2);
+    EXPECT_EQ(0, rc, "memcmp");
+
+    /* send/receive message with zero length payload */
+    memset(tx_hdr, 0xaa, sizeof(tx_hdr));
+    memset(tx_buf, 0x55, sizeof(tx_buf));
+    memset(rx_hdr, 0xaa, sizeof(rx_hdr));
+    memset(rx_buf, 0xaa, sizeof(rx_buf));
+
+    rc = tipc_send2(h, tx_hdr, sizeof(tx_hdr), NULL, 0);
+    EXPECT_EQ(sizeof(tx_hdr), (size_t)rc, "tipc_send_two");
+
+    rc = wait(h, &evt, -1);
+    EXPECT_EQ(0, rc, "wait for reply");
+
+    rc = tipc_recv_hdr_payload(h, rx_hdr, sizeof(rx_hdr), rx_buf,
+                               sizeof(rx_buf));
+    EXPECT_EQ(sizeof(tx_hdr), (size_t)rc, "tipc_recv_hdr_payload");
+
+    rc = memcmp(tx_hdr, rx_hdr, sizeof(tx_hdr));
+    EXPECT_EQ(0, rc, "memcmp");
+
+    /*
+     * send/receive header into larger buffer: should fail as more data expected
+     */
+    memset(tx_hdr, 0xaa, sizeof(tx_hdr));
+    memset(tx_buf, 0x55, sizeof(tx_buf));
+    memset(rx_hdr, 0xaa, sizeof(rx_hdr));
+    memset(rx_buf, 0xaa, sizeof(rx_buf));
+
+    rc = tipc_send2(h, tx_hdr, sizeof(tx_hdr) / 2, NULL, 0);
+    EXPECT_EQ(sizeof(tx_hdr) / 2, (size_t)rc, "tipc_send_two");
+
+    rc = wait(h, &evt, -1);
+    EXPECT_EQ(0, rc, "wait for reply");
+
+    rc = tipc_recv_hdr_payload(h, rx_hdr, sizeof(rx_hdr), NULL, 0);
+    EXPECT_EQ(ERR_BAD_LEN, rc, "tipc_recv_hdr_payload");
+
+    /*
+     * send/receive message into short buffer: should fail as bigger buffer
+     * is expected
+     */
+    memset(tx_hdr, 0xaa, sizeof(tx_hdr));
+    memset(tx_buf, 0x55, sizeof(tx_buf));
+    memset(rx_hdr, 0xaa, sizeof(rx_hdr));
+    memset(rx_buf, 0xaa, sizeof(rx_buf));
+
+    rc = tipc_send2(h, tx_hdr, sizeof(tx_hdr), tx_buf, sizeof(tx_buf));
+    EXPECT_EQ(sizeof(tx_hdr) + sizeof(tx_buf), (size_t)rc, "tipc_send_two");
+
+    rc = wait(h, &evt, -1);
+    EXPECT_EQ(0, rc, "wait for reply");
+
+    rc = tipc_recv_hdr_payload(h, rx_hdr, sizeof(rx_hdr), rx_buf,
+                               sizeof(rx_buf) / 2);
+    EXPECT_EQ(ERR_BAD_LEN, rc, "tipc_recv_hdr_payload");
+
+    rc = close(h);
+    EXPECT_EQ(0, rc, "close tipc_connect");
+
+    TEST_END;
+}
+
 /****************************************************************************/
 
 /*
@@ -2461,6 +2691,11 @@ static void run_all_tests(void) {
 
     run_send_handle_bulk_test();
     run_echo_handle_bulk_test();
+
+    /* TIPC wrapper library tests */
+    run_tipc_connect_test();
+    run_tipc_send_recv_1_test();
+    run_tipc_send_recv_hdr_payload_test();
 
     TLOGI("Conditions checked: %d\n", _tests_total);
     TLOGI("Conditions failed:  %d\n", _tests_failed);

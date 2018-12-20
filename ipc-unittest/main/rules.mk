@@ -26,6 +26,7 @@ MODULE_SRCS += \
 
 MODULE_DEPS += \
 	trusty/user/base/lib/libc-trusty \
+	trusty/user/base/lib/tipc \
 	trusty/user/base/lib/unittest \
 
 include make/module.mk
