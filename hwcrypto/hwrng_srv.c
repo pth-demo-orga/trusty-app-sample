@@ -14,28 +14,27 @@
  * limitations under the License.
  */
 
+#define TLOG_TAG "hwrng_srv"
+
 #include <assert.h>
 #include <inttypes.h>
 #include <lk/list.h>
-#include <lk/macros.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <trusty_ipc.h>
 #include <uapi/err.h>
 
 #include <interface/hwrng/hwrng.h>
+#include <lib/tipc/tipc.h>
+#include <trusty_log.h>
 
-#include "common.h"
 #include "hwrng_srv_priv.h"
-
-#define TLOG_TAG "hwrng_srv"
 
 #define HWRNG_SRV_NAME HWRNG_PORT
 #define MAX_HWRNG_MSG_SIZE 4096
 
 struct hwrng_chan_ctx {
-    tipc_event_handler_t evt_handler;
+    struct tipc_event_handler evt_handler;
     struct list_node node;
     handle_t chan;
     size_t req_size;
@@ -47,7 +46,7 @@ static void hwrng_chan_handler(const uevent_t* ev, void* priv);
 
 static handle_t hwrng_port = INVALID_IPC_HANDLE;
 
-static tipc_event_handler_t hwrng_port_evt_handler = {
+static struct tipc_event_handler hwrng_port_evt_handler = {
         .proc = hwrng_port_handler,
 };
 
@@ -112,7 +111,7 @@ static bool hwrng_handle_req_queue(void) {
         hwrng_dev_get_rng_data(rng_data, len);
 
         /* send reply */
-        int rc = tipc_send_single_buf(ctx->chan, rng_data, len);
+        int rc = tipc_send1(ctx->chan, rng_data, len);
         if (rc < 0) {
             if (rc == ERR_NOT_ENOUGH_BUFFER) {
                 /* mark it as send_blocked */
@@ -155,8 +154,8 @@ static int hwrng_chan_handle_msg(struct hwrng_chan_ctx* ctx) {
     assert(ctx);
 
     /* read request */
-    rc = tipc_recv_single_buf(ctx->chan, &req, sizeof(req));
-    if (rc != sizeof(req)) {
+    rc = tipc_recv1(ctx->chan, sizeof(req), &req, sizeof(req));
+    if (rc < 0) {
         TLOGE("failed (%d) to receive msg for chan %d\n", rc, ctx->chan);
         return rc;
     }

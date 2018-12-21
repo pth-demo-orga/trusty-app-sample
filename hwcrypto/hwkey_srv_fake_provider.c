@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#define TLOG_TAG "hwkey_fake_srv"
+
 #include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -22,18 +24,17 @@
 #include <string.h>
 #include <uapi/err.h>
 
-#include <interface/hwkey/hwkey.h>
 #include <openssl/aes.h>
 #include <openssl/cipher.h>
 #include <openssl/digest.h>
 #include <openssl/err.h>
 #include <openssl/hkdf.h>
 
-#include "common.h"
+#include <interface/hwkey/hwkey.h>
+#include <trusty_log.h>
+
 #include "hwkey_srv_priv.h"
 #include "uuids.h"
-
-#define TLOG_TAG "hwkey_fake_srv"
 
 #pragma message "Compiling FAKE HWKEY provider"
 

@@ -33,9 +33,10 @@ MODULE_SRCS += $(LOCAL_DIR)/hwkey_srv_fake_provider.c
 endif
 
 MODULE_DEPS := \
-	trusty/user/base/lib/libc-trusty \
+	external/boringssl \
 	trusty/user/base/interface/hwrng \
 	trusty/user/base/interface/hwkey \
-	external/boringssl \
+	trusty/user/base/lib/libc-trusty \
+	trusty/user/base/lib/tipc \
 
 include make/module.mk

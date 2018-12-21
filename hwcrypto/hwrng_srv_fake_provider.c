@@ -14,15 +14,16 @@
  * limitations under the License.
  */
 
+#define TLOG_TAG "hwrng_fake_srv"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <uapi/err.h>
 
-#include "common.h"
-#include "hwrng_srv_priv.h"
+#include <trusty_log.h>
 
-#define TLOG_TAG "hwrng_fake_srv"
+#include "hwrng_srv_priv.h"
 
 #pragma message "Compiling FAKE HWRNG provider"
 

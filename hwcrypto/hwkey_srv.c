@@ -14,27 +14,26 @@
  * limitations under the License.
  */
 
+#define TLOG_TAG "hwkey_srv"
+
 #include <assert.h>
-#include <lk/compiler.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <trusty_ipc.h>
 #include <uapi/err.h>
 
 #include <interface/hwkey/hwkey.h>
+#include <lib/tipc/tipc.h>
+#include <trusty_log.h>
 
-#include "common.h"
 #include "hwkey_srv_priv.h"
 #include "uuids.h"
-
-#define TLOG_TAG "hwkey_srv"
 
 #define HWKEY_MAX_PAYLOAD_SIZE 2048
 
 struct hwkey_chan_ctx {
-    tipc_event_handler_t evt_handler;
+    struct tipc_event_handler evt_handler;
     handle_t chan;
     uuid_t uuid;
 };
@@ -42,7 +41,7 @@ struct hwkey_chan_ctx {
 static void hwkey_port_handler(const uevent_t* ev, void* priv);
 static void hwkey_chan_handler(const uevent_t* ev, void* priv);
 
-static tipc_event_handler_t hwkey_port_evt_handler = {
+static struct tipc_event_handler hwkey_port_evt_handler = {
         .proc = hwkey_port_handler,
 };
 
@@ -102,8 +101,8 @@ static int hwkey_send_rsp(struct hwkey_chan_ctx* ctx,
                           uint8_t* rsp_data,
                           size_t rsp_data_len) {
     rsp_hdr->cmd |= HWKEY_RESP_BIT;
-    return tipc_send_two_segments(ctx->chan, rsp_hdr, sizeof(*rsp_hdr),
-                                  rsp_data, rsp_data_len);
+    return tipc_send2(ctx->chan, rsp_hdr, sizeof(*rsp_hdr), rsp_data,
+                      rsp_data_len);
 }
 
 static uint32_t _handle_slots(struct hwkey_chan_ctx* ctx,
@@ -202,8 +201,8 @@ static int hwkey_chan_handle_msg(struct hwkey_chan_ctx* ctx) {
     size_t req_data_len;
     struct hwkey_msg hdr;
 
-    rc = tipc_recv_two_segments(ctx->chan, &hdr, sizeof(hdr), req_data,
-                                sizeof(req_data) - 1);
+    rc = tipc_recv_hdr_payload(ctx->chan, &hdr, sizeof(hdr), req_data,
+                               sizeof(req_data) - 1);
     if (rc < 0) {
         TLOGE("failed (%d) to recv msg from chan %d\n", rc, ctx->chan);
         return rc;
