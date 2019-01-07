@@ -16,6 +16,7 @@
 #pragma once
 
 #include <lk/compiler.h>
+#include <stdint.h>
 
 __BEGIN_CDECLS
 
