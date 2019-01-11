@@ -43,7 +43,10 @@ static const uintptr_t COOKIE_BASE = 100;
         }                    \
     }
 
-#define ABORT_IF_NOT_OK(lbl) ABORT_IF((!_all_ok), lbl)
+#define ABORT_IF_NOT_OK(lbl) ABORT_IF((HasFailure()), lbl)
+
+#define EXPECT_GT_ZERO(val, args...) EXPECT_GT(val, 0, ##args)
+#define EXPECT_GE_ZERO(val, args...) EXPECT_GE(val, 0, ##args)
 
 /****************************************************************************/
 
@@ -92,12 +95,10 @@ int sync_connect(const char* path, unsigned int timeout) {
 /*
  *  wait on handle negative test
  */
-static void run_wait_negative_test(void) {
+TEST(ipc, wait_negative) {
     int rc;
     uevent_t event;
     uint32_t timeout = 1000;  // 1 sec
-
-    TEST_BEGIN(__func__);
 
     /* waiting on invalid handle. */
     rc = wait(INVALID_IPC_HANDLE, &event, timeout);
@@ -127,17 +128,13 @@ static void run_wait_negative_test(void) {
         rc = wait(handle_base + i, &event, timeout);
         EXPECT_EQ(ERR_NOT_FOUND, rc, "wait on invalid handle");
     }
-
-    TEST_END
 }
 
 /*
  *  Close handle unittest
  */
-static void run_close_handle_negative_test(void) {
+TEST(ipc, close_handle_negative) {
     int rc;
-
-    TEST_BEGIN(__func__);
 
     /* closing an invalid (negative value) handle. */
     rc = close(INVALID_IPC_HANDLE);
@@ -167,17 +164,13 @@ static void run_close_handle_negative_test(void) {
         rc = close(handle_base + i);
         EXPECT_EQ(ERR_NOT_FOUND, rc, "closing invalid handle");
     }
-
-    TEST_END
 }
 
 /*
  *  Set cookie negative unittest
  */
-static void run_set_cookie_negative_test(void) {
+TEST(ipc, set_cookie_negative) {
     int rc;
-
-    TEST_BEGIN(__func__);
 
     /* set cookie for invalid (negative value) handle. */
     rc = set_cookie(INVALID_IPC_HANDLE, (void*)0x1BEEF);
@@ -207,8 +200,6 @@ static void run_set_cookie_negative_test(void) {
         rc = set_cookie(handle_base + i, (void*)0x3BEEF);
         EXPECT_EQ(ERR_NOT_FOUND, rc, "set cookie for invalid handle");
     }
-
-    TEST_END
 }
 
 /****************************************************************************/
@@ -216,11 +207,9 @@ static void run_set_cookie_negative_test(void) {
 /*
  *  Port create unittest
  */
-static void run_port_create_negative_test(void) {
+TEST(ipc, port_create_negative) {
     int rc;
     char path[MAX_PORT_PATH_LEN + 16];
-
-    TEST_BEGIN(__func__);
 
     /* create port with empty path */
     path[0] = '\0';
@@ -256,17 +245,13 @@ static void run_port_create_negative_test(void) {
     EXPECT_EQ(ERR_INVALID_ARGS, rc, "path is too long");
     rc = close(rc);
     EXPECT_EQ(ERR_BAD_HANDLE, rc, "close port");
-
-    TEST_END
 }
 
-static void run_port_create_test(void) {
+TEST(ipc, port_create) {
     int rc;
     unsigned int i;
     char path[MAX_PORT_PATH_LEN];
     handle_t ports[MAX_USER_HANDLES];
-
-    TEST_BEGIN(__func__);
 
     /* create maximum number of ports */
     for (i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES - 1; i++) {
@@ -308,20 +293,16 @@ static void run_port_create_test(void) {
 
         ports[i] = INVALID_IPC_HANDLE;
     }
-
-    TEST_END
 }
 
 /*
  *
  */
-static void run_wait_on_port_test(void) {
+TEST(ipc, wait_on_port) {
     int rc;
     uevent_t event;
     char path[MAX_PORT_PATH_LEN];
     handle_t ports[MAX_USER_HANDLES];
-
-    TEST_BEGIN(__func__);
 
     /* create maximum number of ports */
     for (unsigned int i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
@@ -360,8 +341,6 @@ static void run_wait_on_port_test(void) {
         EXPECT_EQ(NO_ERROR, rc, "closing closed port");
         ports[i] = INVALID_IPC_HANDLE;
     }
-
-    TEST_END
 }
 
 /****************************************************************************/
@@ -369,11 +348,9 @@ static void run_wait_on_port_test(void) {
 /*
  *  Connect unittests
  */
-static void run_connect_negative_test(void) {
+TEST(ipc, connect_negative) {
     int rc;
     char path[MAX_PORT_PATH_LEN + 16] = "";
-
-    TEST_BEGIN(__func__);
 
     /* try to connect to port with an empty name */
     rc = connect(path, IPC_CONNECT_WAIT_FOR_PORT);
@@ -399,16 +376,12 @@ static void run_connect_negative_test(void) {
 
     rc = close(rc);
     EXPECT_EQ(ERR_BAD_HANDLE, rc, "close channel");
-
-    TEST_END
 }
 
-static void run_connect_close_test(void) {
+TEST(ipc, connect_close) {
     int rc;
     char path[MAX_PORT_PATH_LEN];
     handle_t chans[16];
-
-    TEST_BEGIN(__func__);
 
     sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "datasink");
 
@@ -426,8 +399,6 @@ static void run_connect_close_test(void) {
             EXPECT_EQ(NO_ERROR, rc, "connect/close");
         }
     }
-
-    TEST_END
 }
 
 static void run_connect_close_by_peer_test(const char* test) {
@@ -436,8 +407,6 @@ static void run_connect_close_by_peer_test(const char* test) {
     uevent_t event;
     handle_t chans[16];
     unsigned int chan_cnt = 0;
-
-    TEST_BEGIN(__func__);
 
     /*
      * open up to 16 connection to specified test port which would
@@ -459,23 +428,23 @@ static void run_connect_close_by_peer_test(const char* test) {
 
             /* attach cookie for returned channel */
             rc = set_cookie((handle_t)rc, (void*)(COOKIE_BASE + i));
-            EXPECT_EQ(NO_ERROR, rc, test);
+            EXPECT_EQ(NO_ERROR, rc, "%s", test);
 
             chan_cnt++;
         } else {
             /* could be already closed channel */
-            EXPECT_EQ(ERR_CHANNEL_CLOSED, rc, test);
+            EXPECT_EQ(ERR_CHANNEL_CLOSED, rc, "%s", test);
         }
 
         /* check if any channels are closed */
         while ((rc = wait_any(&event, 0)) == NO_ERROR) {
-            EXPECT_EQ(IPC_HANDLE_POLL_HUP, event.event, test);
+            EXPECT_EQ(IPC_HANDLE_POLL_HUP, event.event, "%s", test);
             uintptr_t idx = (uintptr_t)event.cookie - COOKIE_BASE;
-            EXPECT_EQ(chans[idx], event.handle, test);
-            EXPECT_GT(countof(chans), idx, test);
+            EXPECT_EQ(chans[idx], event.handle, "%s", test);
+            EXPECT_GT(countof(chans), idx, "%s", test);
             if (idx < countof(chans)) {
                 rc = close(chans[idx]);
-                EXPECT_EQ(NO_ERROR, rc, test);
+                EXPECT_EQ(NO_ERROR, rc, "%s", test);
                 chans[idx] = INVALID_IPC_HANDLE;
             }
             chan_cnt--;
@@ -485,33 +454,41 @@ static void run_connect_close_by_peer_test(const char* test) {
     /* wait until all channels are closed */
     while (chan_cnt) {
         rc = wait_any(&event, 10000);
-        EXPECT_EQ(NO_ERROR, rc, test);
-        EXPECT_EQ(IPC_HANDLE_POLL_HUP, event.event, test);
+        EXPECT_EQ(NO_ERROR, rc, "%s", test);
+        EXPECT_EQ(IPC_HANDLE_POLL_HUP, event.event, "%s", test);
 
         uintptr_t idx = (uintptr_t)event.cookie - COOKIE_BASE;
-        EXPECT_GT(countof(chans), idx, test);
-        EXPECT_EQ(chans[idx], event.handle, test);
+        EXPECT_GT(countof(chans), idx, "%s", test);
+        EXPECT_EQ(chans[idx], event.handle, "%s", test);
         if (idx < countof(chans)) {
             rc = close(chans[idx]);
-            EXPECT_EQ(NO_ERROR, rc, test);
+            EXPECT_EQ(NO_ERROR, rc, "%s", test);
             chans[idx] = INVALID_IPC_HANDLE;
         }
         chan_cnt--;
     }
 
-    EXPECT_EQ(0, chan_cnt, test);
-
-    TEST_END
+    EXPECT_EQ(0, chan_cnt, "%s", test);
 }
 
-static void run_async_connect_test(void) {
+TEST(ipc, connect_close_by_peer_1) {
+    run_connect_close_by_peer_test("closer1");
+}
+
+TEST(ipc, connect_close_by_peer_2) {
+    run_connect_close_by_peer_test("closer2");
+}
+
+TEST(ipc, connect_close_by_peer_3) {
+    run_connect_close_by_peer_test("closer3");
+}
+
+TEST(ipc, async_connect) {
     int rc;
     handle_t chan;
     uevent_t event;
     uuid_t peer_uuid = UUID_INITIAL_VALUE(peer_uuid);
     char path[MAX_PORT_PATH_LEN];
-
-    TEST_BEGIN(__func__);
 
     sprintf(path, "%s.main.%s", SRV_PATH_BASE, "async");
 
@@ -590,18 +567,14 @@ static void run_async_connect_test(void) {
         }
         close(chan);
     }
-
-    TEST_END
 }
 
-static void run_connect_selfie_test(void) {
+TEST(ipc, connect_selfie) {
     int rc, rc1;
     uuid_t peer_uuid = UUID_INITIAL_VALUE(peer_uuid);
     uuid_t zero_uuid = UUID_INITIAL_VALUE(zero_uuid);
     char path[MAX_PORT_PATH_LEN];
     uint32_t connect_timeout = 1000;  // 1 sec
-
-    TEST_BEGIN(__func__);
 
     /* Try to connect to port that we register ourself.
        It is not very usefull scenario, just to make sure that
@@ -672,15 +645,11 @@ static void run_connect_selfie_test(void) {
         rc = close(test_port);
         EXPECT_EQ(NO_ERROR, rc, "close selfie");
     }
-
-    TEST_END
 }
 
-static void run_connect_access_test(void) {
+TEST(ipc, connect_access) {
     int rc;
     char path[MAX_PORT_PATH_LEN];
-
-    TEST_BEGIN(__func__);
 
     /* open connection to NS only accessible service */
     sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "ns_only");
@@ -701,8 +670,6 @@ static void run_connect_access_test(void) {
 
     if (rc >= 0)
         close((handle_t)rc);
-
-    TEST_END
 }
 
 /****************************************************************************/
@@ -710,14 +677,12 @@ static void run_connect_access_test(void) {
 /*
  *  Accept negative test
  */
-static void run_accept_negative_test(void) {
+TEST(ipc, accept_negative) {
     int rc, rc1;
     char path[MAX_PORT_PATH_LEN];
     handle_t chan;
     uuid_t peer_uuid = UUID_INITIAL_VALUE(peer_uuid);
     uuid_t zero_uuid = UUID_INITIAL_VALUE(zero_uuid);
-
-    TEST_BEGIN(__func__);
 
     /* accept on invalid (negative value) handle */
     rc = accept(INVALID_IPC_HANDLE, &peer_uuid);
@@ -772,19 +737,15 @@ static void run_accept_negative_test(void) {
 
     rc = close(chan);
     EXPECT_EQ(NO_ERROR, rc, "close channnel")
-
-    TEST_END
 }
 
-static void run_accept_test(void) {
+TEST(ipc, accept) {
     int rc, rc1;
     uevent_t event;
     char path[MAX_PORT_PATH_LEN];
     handle_t ports[MAX_USER_HANDLES];
     uuid_t peer_uuid = UUID_INITIAL_VALUE(peer_uuid);
     uuid_t zero_uuid = UUID_INITIAL_VALUE(zero_uuid);
-
-    TEST_BEGIN(__func__);
 
     /* create maximum number of ports */
     for (unsigned int i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
@@ -862,20 +823,16 @@ static void run_accept_test(void) {
         EXPECT_EQ(NO_ERROR, rc, "close port");
         ports[i] = INVALID_IPC_HANDLE;
     }
-
-    TEST_END
 }
 
 /****************************************************************************/
 
-static void run_get_msg_negative_test(void) {
+TEST(ipc, get_msg_negative) {
     int rc;
     ipc_msg_info_t inf;
     handle_t port;
     handle_t chan;
     char path[MAX_PORT_PATH_LEN];
-
-    TEST_BEGIN(__func__);
 
     /* get_msg on invalid (negative value) handle. */
     rc = get_msg(INVALID_IPC_HANDLE, &inf);
@@ -928,17 +885,13 @@ static void run_get_msg_negative_test(void) {
 
     rc = close(chan);
     EXPECT_EQ(NO_ERROR, rc, "close channnel");
-
-    TEST_END
 }
 
-static void run_put_msg_negative_test(void) {
+TEST(ipc, put_msg_negative) {
     int rc;
     handle_t port;
     handle_t chan;
     char path[MAX_PORT_PATH_LEN];
-
-    TEST_BEGIN(__func__);
 
     /* put_msg on invalid (negative value) handle */
     rc = put_msg(INVALID_IPC_HANDLE, 0);
@@ -991,14 +944,12 @@ static void run_put_msg_negative_test(void) {
     EXPECT_EQ(ERR_INVALID_ARGS, rc, "put_msg on empty channel");
     rc = close(chan);
     EXPECT_EQ(NO_ERROR, rc, "close channel");
-
-    TEST_END
 }
 
 /*
  *  Send 10000 messages to datasink service
  */
-static void run_send_msg_test(void) {
+TEST(ipc, send_msg) {
     int rc;
     handle_t chan;
     char path[MAX_PORT_PATH_LEN];
@@ -1006,8 +957,6 @@ static void run_send_msg_test(void) {
     uint8_t buf1[64];
     iovec_t iov[2];
     ipc_msg_t msg;
-
-    TEST_BEGIN(__func__);
 
     /* prepare test buffer */
     fill_test_buf(buf0, sizeof(buf0), 0x55);
@@ -1041,7 +990,7 @@ static void run_send_msg_test(void) {
             } else {
                 EXPECT_EQ(64, rc, "send_msg bulk")
             }
-            if (!_all_ok) {
+            if (HasFailure()) {
                 TLOGI("%s: abort (rc = %d) test\n", __func__, rc);
                 break;
             }
@@ -1049,11 +998,9 @@ static void run_send_msg_test(void) {
         rc = close(chan);
         EXPECT_EQ(NO_ERROR, rc, "close channel");
     }
-
-    TEST_END
 }
 
-static void run_send_msg_negative_test(void) {
+TEST(ipc, send_msg_negative) {
     int rc;
     handle_t port;
     handle_t chan;
@@ -1061,8 +1008,6 @@ static void run_send_msg_negative_test(void) {
     uint8_t buf[64];
     iovec_t iov[2];
     ipc_msg_t msg;
-
-    TEST_BEGIN(__func__);
 
     /* init msg to empty message */
     memset(&msg, 0, sizeof(msg));
@@ -1163,11 +1108,9 @@ static void run_send_msg_negative_test(void) {
 
     rc = close(chan);
     EXPECT_EQ(NO_ERROR, rc, "close channel");
-
-    TEST_END
 }
 
-static void run_read_msg_negative_test(void) {
+TEST(ipc, read_msg_negative) {
     int rc;
     handle_t port;
     handle_t chan;
@@ -1180,8 +1123,6 @@ static void run_read_msg_negative_test(void) {
     iovec_t tx_iov;
     ipc_msg_t rx_msg;
     iovec_t rx_iov[2];
-
-    TEST_BEGIN(__func__);
 
     /* init msg to empty message */
     memset(&rx_msg, 0, sizeof(rx_msg));
@@ -1312,11 +1253,9 @@ static void run_read_msg_negative_test(void) {
 
     rc = close(chan);
     EXPECT_EQ(NO_ERROR, rc, "close channel");
-
-    TEST_END
 }
 
-static void run_end_to_end_msg_test(void) {
+TEST(ipc, end_to_end_msg) {
     int rc;
     handle_t chan;
     uevent_t uevt;
@@ -1328,8 +1267,6 @@ static void run_end_to_end_msg_test(void) {
     iovec_t tx_iov;
     ipc_msg_t rx_msg;
     iovec_t rx_iov;
-
-    TEST_BEGIN(__func__);
 
     tx_iov.base = tx_buf;
     tx_iov.len = sizeof(tx_buf);
@@ -1426,7 +1363,7 @@ static void run_end_to_end_msg_test(void) {
                 rx_cnt--;
             }
 
-            if (!_all_ok)
+            if (HasFailure())
                 break;
         }
 
@@ -1437,17 +1374,13 @@ static void run_end_to_end_msg_test(void) {
         rc = close(chan);
         EXPECT_EQ(NO_ERROR, rc, "close channel");
     }
-
-    TEST_END
 }
 
 /****************************************************************************/
 
-static void run_hset_create_test(void) {
+TEST(ipc, hset_create) {
     handle_t hset1;
     handle_t hset2;
-
-    TEST_BEGIN(__func__);
 
     hset1 = handle_set_create();
     EXPECT_GE_ZERO((int)hset1, "create handle set1");
@@ -1457,16 +1390,12 @@ static void run_hset_create_test(void) {
 
     close(hset1);
     close(hset2);
-
-    TEST_END
 }
 
-static void run_hset_add_mod_del_test(void) {
+TEST(ipc, hset_add_mod_del) {
     int rc;
     handle_t hset1;
     handle_t hset2;
-
-    TEST_BEGIN(__func__);
 
     hset1 = handle_set_create();
     EXPECT_GE_ZERO((int)hset1, "create handle set1");
@@ -1497,15 +1426,11 @@ static void run_hset_add_mod_del_test(void) {
 abort_test:
     close(hset1);
     close(hset2);
-
-    TEST_END
 }
 
-static void run_hset_add_self_test(void) {
+TEST(ipc, hset_add_self) {
     int rc;
     handle_t hset1;
-
-    TEST_BEGIN(__func__);
 
     hset1 = handle_set_create();
     EXPECT_GE_ZERO((int)hset1, "create handle set1");
@@ -1524,17 +1449,13 @@ static void run_hset_add_self_test(void) {
 
 abort_test:
     close(hset1);
-
-    TEST_END
 }
 
-static void run_hset_add_loop_test(void) {
+TEST(ipc, hset_add_loop) {
     int rc;
     handle_t hset1;
     handle_t hset2;
     handle_t hset3;
-
-    TEST_BEGIN(__func__);
 
     hset1 = handle_set_create();
     EXPECT_GE_ZERO((int)hset1, "create handle set1");
@@ -1571,16 +1492,12 @@ abort_test:
     close(hset2);
     close(hset1);
     close(hset3);
-
-    TEST_END
 }
 
-static void run_hset_add_duplicate_test(void) {
+TEST(ipc, hset_add_duplicate) {
     int rc;
     handle_t hset1;
     handle_t hset2;
-
-    TEST_BEGIN(__func__);
 
     hset1 = handle_set_create();
     EXPECT_GE_ZERO((int)hset1, "create handle set1");
@@ -1607,16 +1524,12 @@ static void run_hset_add_duplicate_test(void) {
 abort_test:
     close(hset1);
     close(hset2);
-
-    TEST_END
 }
 
-static void run_hset_wait_on_empty_set_test(void) {
+TEST(ipc, hset_wait_on_empty_set) {
     int rc;
     uevent_t evt;
     handle_t hset1;
-
-    TEST_BEGIN(__func__);
 
     hset1 = handle_set_create();
     EXPECT_GE_ZERO((int)hset1, "create hset");
@@ -1633,16 +1546,13 @@ static void run_hset_wait_on_empty_set_test(void) {
 
     close(hset1);
 
-abort_test:
-    TEST_END
+abort_test:;
 }
 
-static void run_hset_wait_on_non_empty_set_test(void) {
+TEST(ipc, hset_wait_on_non_empty_set) {
     int rc;
     handle_t hset1;
     handle_t hset2;
-
-    TEST_BEGIN(__func__);
 
     hset1 = handle_set_create();
     EXPECT_GE_ZERO((int)hset1, "create handle set1");
@@ -1673,11 +1583,9 @@ static void run_hset_wait_on_non_empty_set_test(void) {
 abort_test:
     close(hset1);
     close(hset2);
-
-    TEST_END
 }
 
-static void run_hset_add_chan_test(void) {
+TEST(ipc, hset_add_chan) {
     int rc;
     uevent_t evt;
     handle_t hset1;
@@ -1694,8 +1602,6 @@ static void run_hset_add_chan_test(void) {
     uint8_t buf0[64];
     iovec_t iov;
     ipc_msg_t msg;
-
-    TEST_BEGIN(__func__);
 
     /* prepare test buffer */
     fill_test_buf(buf0, sizeof(buf0), 0x55);
@@ -1828,11 +1734,9 @@ abort_test:
     close(chan2);
     close(hset1);
     close(hset2);
-
-    TEST_END
 }
 
-static void run_hset_event_mask_test(void) {
+TEST(ipc, hset_event_mask) {
     int rc;
     uevent_t evt;
     handle_t hset1;
@@ -1842,8 +1746,6 @@ static void run_hset_event_mask_test(void) {
     uint8_t buf0[64];
     iovec_t iov;
     ipc_msg_t msg;
-
-    TEST_BEGIN(__func__);
 
     /* prepare test buffer */
     fill_test_buf(buf0, sizeof(buf0), 0x55);
@@ -1916,12 +1818,11 @@ static void run_hset_event_mask_test(void) {
 abort_test:
     close(chan1);
     close(hset1);
-    TEST_END
 }
 
 /****************************************************************************/
 
-static void run_send_handle_test(void) {
+TEST(ipc, send_handle) {
     int rc;
     iovec_t iov;
     ipc_msg_t msg;
@@ -1929,8 +1830,6 @@ static void run_send_handle_test(void) {
     handle_t hchan2;
     uint8_t buf0[64];
     char path[MAX_PORT_PATH_LEN];
-
-    TEST_BEGIN(__func__);
 
     /* prepare test buffer */
     fill_test_buf(buf0, sizeof(buf0), 0x55);
@@ -1969,18 +1868,15 @@ static void run_send_handle_test(void) {
 err_connect2:
     rc = close(hchan1);
     EXPECT_EQ(NO_ERROR, rc, "close chan1");
-err_connect1:
-    TEST_END
+err_connect1:;
 }
 
-static void run_send_handle_negative_test(void) {
+TEST(ipc, send_handle_negative) {
     int rc;
     ipc_msg_t msg;
     handle_t hchan;
     handle_t hsend[10];
     char path[MAX_PORT_PATH_LEN];
-
-    TEST_BEGIN(__func__);
 
     /* open connection to datasink service */
     sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "datasink");
@@ -2022,11 +1918,10 @@ static void run_send_handle_negative_test(void) {
 
     rc = close(hchan);
     EXPECT_EQ(NO_ERROR, rc, "close chan");
-err_connect:
-    TEST_END
+err_connect:;
 }
 
-static void run_recv_handle_test(void) {
+TEST(ipc, recv_handle) {
     int rc;
     handle_t hchan1;
     handle_t hchan2;
@@ -2037,8 +1932,6 @@ static void run_recv_handle_test(void) {
     uevent_t evt;
     ipc_msg_info_t inf;
     char path[MAX_PORT_PATH_LEN];
-
-    TEST_BEGIN(__func__);
 
     /* prepare test buffer */
     fill_test_buf(buf0, sizeof(buf0), 0x55);
@@ -2153,19 +2046,16 @@ static void run_recv_handle_test(void) {
 err_connect2:
     close(hchan1);
     EXPECT_EQ(NO_ERROR, rc, "close chan1");
-err_connect1:
-    TEST_END
+err_connect1:;
 }
 
-static void run_recv_handle_negative_test(void) {
+TEST(ipc, recv_handle_negative) {
     int rc;
     handle_t hchan1;
     ipc_msg_t msg;
     uevent_t evt;
     ipc_msg_info_t inf;
     char path[MAX_PORT_PATH_LEN];
-
-    TEST_BEGIN(__func__);
 
     /* open connection to echo service */
     sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "echo");
@@ -2212,11 +2102,10 @@ static void run_recv_handle_negative_test(void) {
 
     rc = close(hchan1);
     EXPECT_EQ(NO_ERROR, rc, "close chan1");
-err_connect1:
-    TEST_END
+err_connect1:;
 }
 
-static void run_send_handle_bulk_test(void) {
+TEST(ipc, send_handle_bulk) {
     int rc;
     iovec_t iov;
     ipc_msg_t msg;
@@ -2224,8 +2113,6 @@ static void run_send_handle_bulk_test(void) {
     handle_t hchan2;
     uint8_t buf0[64];
     char path[MAX_PORT_PATH_LEN];
-
-    TEST_BEGIN(__func__);
 
     /* prepare test buffer */
     fill_test_buf(buf0, sizeof(buf0), 0x55);
@@ -2250,8 +2137,8 @@ static void run_send_handle_bulk_test(void) {
     msg.handles = &hchan2;
     msg.num_handles = 1;
 
-    for (unsigned int i = 0; (i < 10000) && _all_ok; i++) {
-        while (_all_ok) {
+    for (unsigned int i = 0; (i < 10000) && !HasFailure(); i++) {
+        while (!HasFailure()) {
             rc = send_msg(hchan1, &msg);
             if (rc == ERR_NOT_ENOUGH_BUFFER) { /* wait for room */
                 uevent_t uevt;
@@ -2270,7 +2157,7 @@ static void run_send_handle_bulk_test(void) {
     EXPECT_EQ(NO_ERROR, rc, "close chan2");
 
     /* repeat the same while closing handle after sending it */
-    for (unsigned int i = 0; (i < 10000) && _all_ok; i++) {
+    for (unsigned int i = 0; (i < 10000) && !HasFailure(); i++) {
         rc = connect(path, IPC_CONNECT_WAIT_FOR_PORT);
         EXPECT_GT_ZERO(rc, "connect to datasink");
         ABORT_IF_NOT_OK(err_connect2);
@@ -2284,7 +2171,7 @@ static void run_send_handle_bulk_test(void) {
         msg.handles = &hchan2;
         msg.num_handles = 1;
 
-        while (_all_ok) {
+        while (!HasFailure()) {
             rc = send_msg(hchan1, &msg);
             if (rc == ERR_NOT_ENOUGH_BUFFER) { /* wait for room */
                 uevent_t uevt;
@@ -2305,11 +2192,10 @@ static void run_send_handle_bulk_test(void) {
 err_connect2:
     rc = close(hchan1);
     EXPECT_EQ(NO_ERROR, rc, "close chan1");
-err_connect1:
-    TEST_END
+err_connect1:;
 }
 
-static void run_echo_handle_bulk_test(void) {
+TEST(ipc, echo_handle_bulk) {
     int rc;
     handle_t hchan1;
     handle_t hchan2;
@@ -2320,8 +2206,6 @@ static void run_echo_handle_bulk_test(void) {
     uevent_t evt;
     ipc_msg_info_t inf;
     char path[MAX_PORT_PATH_LEN];
-
-    TEST_BEGIN(__func__);
 
     /* prepare test buffer */
     fill_test_buf(buf0, sizeof(buf0), 0x55);
@@ -2341,7 +2225,7 @@ static void run_echo_handle_bulk_test(void) {
     hchan2 = (handle_t)rc;
 
     /* send the same handle 10000 times */
-    for (unsigned int i = 0; (i < 10000) && _all_ok; i++) {
+    for (unsigned int i = 0; (i < 10000) && !HasFailure(); i++) {
         /* send message with handle */
         iov.base = buf0;
         iov.len = sizeof(buf0);
@@ -2350,7 +2234,7 @@ static void run_echo_handle_bulk_test(void) {
         msg.handles = &hchan2;
         msg.num_handles = 1;
 
-        while (_all_ok) {
+        while (!HasFailure()) {
             rc = send_msg(hchan1, &msg);
             EXPECT_EQ(64, rc, "send_handle");
             if (rc == ERR_NOT_ENOUGH_BUFFER) { /* wait for room */
@@ -2398,19 +2282,16 @@ static void run_echo_handle_bulk_test(void) {
 err_connect2:
     rc = close(hchan1);
     EXPECT_EQ(NO_ERROR, rc, "close chan1");
-err_connect1:
-    TEST_END
+err_connect1:;
 }
 
 /*
  * TIPC wrapper libtrary tests
  */
-static void run_tipc_connect_test(void) {
+TEST(ipc, tipc_connect) {
     int rc;
     handle_t h = INVALID_IPC_HANDLE;
     char path[MAX_PORT_PATH_LEN];
-
-    TEST_BEGIN(__func__);
 
     /* Make tipc_connect fail and check if handle is unchanged */
     rc = tipc_connect(&h, NULL);
@@ -2428,19 +2309,15 @@ static void run_tipc_connect_test(void) {
 
     rc = close(h);
     EXPECT_EQ(0, rc, "close tipc_connect");
-
-    TEST_END;
 }
 
-static void run_tipc_send_recv_1_test(void) {
+TEST(ipc, tipc_send_recv_1) {
     int rc;
     uint8_t tx_buf[64];
     uint8_t rx_buf[64];
     char path[MAX_PORT_PATH_LEN];
     handle_t h = INVALID_IPC_HANDLE;
     struct uevent evt = UEVENT_INITIAL_VALUE(evt);
-
-    TEST_BEGIN(__func__);
 
     /* open connection to echo service */
     sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "echo");
@@ -2508,11 +2385,9 @@ static void run_tipc_send_recv_1_test(void) {
     /* clean up */
     rc = close(h);
     EXPECT_EQ(0, rc, "close tipc_connect");
-
-    TEST_END;
 }
 
-static void run_tipc_send_recv_hdr_payload_test(void) {
+TEST(ipc, tipc_send_recv_hdr_payload) {
     int rc;
     uint8_t tx_hdr[32];
     uint8_t tx_buf[64];
@@ -2521,8 +2396,6 @@ static void run_tipc_send_recv_hdr_payload_test(void) {
     char path[MAX_PORT_PATH_LEN];
     handle_t h = INVALID_IPC_HANDLE;
     struct uevent evt = UEVENT_INITIAL_VALUE(evt);
-
-    TEST_BEGIN(__func__);
 
     sprintf(path, "%s.srv.%s", SRV_PATH_BASE, "echo");
     rc = tipc_connect(&h, path);
@@ -2627,83 +2500,9 @@ static void run_tipc_send_recv_hdr_payload_test(void) {
 
     rc = close(h);
     EXPECT_EQ(0, rc, "close tipc_connect");
-
-    TEST_END;
 }
 
 /****************************************************************************/
-
-/*
- *
- */
-static void run_all_tests(void) {
-    TLOGI("Run all unittest\n");
-
-    /* reset test state */
-    _tests_total = 0;
-    _tests_failed = 0;
-
-    /* handle sets: part 1 */
-    run_hset_create_test();
-    run_hset_add_mod_del_test();
-    run_hset_add_self_test();
-    run_hset_add_loop_test();
-    run_hset_add_duplicate_test();
-    run_hset_wait_on_empty_set_test();
-    run_hset_wait_on_non_empty_set_test();
-
-    /* positive tests */
-    run_port_create_test();
-    run_wait_on_port_test();
-    run_async_connect_test();
-    run_connect_close_test();
-    run_accept_test();
-    run_send_msg_test();
-    run_end_to_end_msg_test();
-
-    run_connect_close_by_peer_test("closer1");
-    run_connect_close_by_peer_test("closer2");
-    run_connect_close_by_peer_test("closer3");
-    run_connect_selfie_test();
-    run_connect_access_test();
-
-    /* negative tests */
-    run_wait_negative_test();
-    run_close_handle_negative_test();
-    run_set_cookie_negative_test();
-    run_port_create_negative_test();
-    run_connect_negative_test();
-    run_accept_negative_test();
-    run_get_msg_negative_test();
-    run_put_msg_negative_test();
-    run_send_msg_negative_test();
-    run_read_msg_negative_test();
-
-    /* handle sets: part 2 */
-    run_hset_add_chan_test();
-    run_hset_event_mask_test();
-
-    /* send handle */
-    run_send_handle_test();
-    run_send_handle_negative_test();
-    run_recv_handle_test();
-    run_recv_handle_negative_test();
-
-    run_send_handle_bulk_test();
-    run_echo_handle_bulk_test();
-
-    /* TIPC wrapper library tests */
-    run_tipc_connect_test();
-    run_tipc_send_recv_1_test();
-    run_tipc_send_recv_hdr_payload_test();
-
-    TLOGI("Conditions checked: %d\n", _tests_total);
-    TLOGI("Conditions failed:  %d\n", _tests_failed);
-    if (_tests_failed == 0)
-        TLOGI("All tests PASSED\n");
-    else
-        TLOGI("Some tests FAILED\n");
-}
 
 static void kernel_wait_any_bug_workaround(void) {
     int ret;
@@ -2729,8 +2528,7 @@ static bool run_test(struct unittest* test) {
 
     kernel_wait_any_bug_workaround();
 
-    run_all_tests();
-    return _tests_failed == 0;
+    return RUN_ALL_TESTS();
 }
 
 /*
