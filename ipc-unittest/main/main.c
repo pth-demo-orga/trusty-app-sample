@@ -371,7 +371,7 @@ static void run_wait_on_port_test(void) {
  */
 static void run_connect_negative_test(void) {
     int rc;
-    char path[MAX_PORT_PATH_LEN + 16];
+    char path[MAX_PORT_PATH_LEN + 16] = "";
 
     TEST_BEGIN(__func__);
 
