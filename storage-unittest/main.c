@@ -34,37 +34,49 @@
 
 typedef void (*test_body)(storage_session_t ss, storage_session_t ss_aux);
 
-void test_wrapper(const char* port, test_body test_proc) {
-    storage_session_t ss = STORAGE_INVALID_SESSION;
-    storage_session_t ss_aux = STORAGE_INVALID_SESSION;
+static const char* storage_test_client_port;
 
-    int rc = storage_open_session(&ss, port);
+typedef struct {
+    storage_session_t ss;
+    storage_session_t ss_aux;
+} StorageTest_t;
+
+void StorageTest_SetUp(StorageTest_t* state) {
+    state->ss = STORAGE_INVALID_SESSION;
+    state->ss_aux = STORAGE_INVALID_SESSION;
+
+    int rc = storage_open_session(&state->ss, storage_test_client_port);
     if (rc < 0) {
         TLOGE("failed (%d) to open session\n", rc);
         return;
     }
 
 #ifndef STORAGE_FAKE
-    rc = storage_open_session(&ss_aux, port);
+    rc = storage_open_session(&state->ss_aux, storage_test_client_port);
     if (rc < 0) {
         TLOGE("failed (%d) to open session\n", rc);
-        storage_close_session(ss);
+        storage_close_session(state->ss);
         return;
     }
 #endif
+};
 
-    test_proc(ss, ss_aux);
-    storage_close_session(ss);
+void StorageTest_TearDown(StorageTest_t* state) {
+    storage_close_session(state->ss);
 
 #ifndef STORAGE_FAKE
-    storage_close_session(ss_aux);
+    storage_close_session(state->ss_aux);
 #endif
 }
 
-#define TEST_P(name) \
-    static void test_##name(storage_session_t ss, storage_session_t ss_aux)
+#undef TEST_F
+#define TEST_F(suite_name, test_name)                                   \
+    TEST_F_CUSTOM_ARGS(suite_name, test_name, (state.ss, state.ss_aux), \
+                       (storage_session_t ss, storage_session_t ss_aux))
 
-#define RUN_TEST_P(port, tn) test_wrapper(port, test_##tn)
+TEST_FIXTURE_ALIAS(StorageInitTest, StorageTest)
+TEST_FIXTURE_ALIAS(StorageCheckTest, StorageTest)
+TEST_FIXTURE_ALIAS(StorageCleanTest, StorageTest)
 
 static inline bool is_32bit_aligned(size_t sz) {
     return ((sz & 0x3) == 0);
@@ -259,31 +271,26 @@ static int ReadPatternEOF(file_handle_t handle,
     return bytes_read;
 }
 
-TEST_P(CreateDelete) {
+TEST_F(StorageTest, CreateDelete) {
     int rc;
     file_handle_t handle;
     const char* fname = "test_create_delete_file";
 
-    TEST_BEGIN(__func__);
-
     // make sure test file does not exist (expect success or ERR_NOT_FOUND)
     rc = storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
     rc = (rc == ERR_NOT_FOUND) ? 0 : rc;
-    EXPECT_EQ(0, rc, "delete test file");
-    ASSERT_ALL_OK();
+    ASSERT_EQ(0, rc, "delete test file");
 
     // one more time (expect ERR_NOT_FOUND)
     rc = storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
-    EXPECT_EQ(ERR_NOT_FOUND, rc, "delete again");
-    ASSERT_ALL_OK();
+    ASSERT_EQ(ERR_NOT_FOUND, rc, "delete again");
 
     // create file (expect 0)
     rc = storage_open_file(
             ss, &handle, fname,
             STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE,
             STORAGE_OP_COMPLETE);
-    EXPECT_EQ(0, rc, "create test file");
-    ASSERT_ALL_OK();
+    ASSERT_EQ(0, rc, "create test file");
 
     // try to create it again while it is still opened (expect
     // ERR_ALREADY_EXISTS)
@@ -291,8 +298,7 @@ TEST_P(CreateDelete) {
             ss, &handle, fname,
             STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE,
             STORAGE_OP_COMPLETE);
-    EXPECT_EQ(ERR_ALREADY_EXISTS, rc, "create again");
-    ASSERT_ALL_OK();
+    ASSERT_EQ(ERR_ALREADY_EXISTS, rc, "create again");
 
     // close it
     storage_close_file(handle);
@@ -302,57 +308,49 @@ TEST_P(CreateDelete) {
             ss, &handle, fname,
             STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE,
             STORAGE_OP_COMPLETE);
-    EXPECT_EQ(ERR_ALREADY_EXISTS, rc, "create again");
-    ASSERT_ALL_OK();
+    ASSERT_EQ(ERR_ALREADY_EXISTS, rc, "create again");
 
     // delete file (expect 0)
     rc = storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
-    EXPECT_EQ(0, rc, "delete test file");
-    ASSERT_ALL_OK();
+    ASSERT_EQ(0, rc, "delete test file");
 
     // one more time (expect ERR_NOT_FOUND)
     rc = storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
-    EXPECT_EQ(ERR_NOT_FOUND, rc, "delete again");
-    ASSERT_ALL_OK();
+    ASSERT_EQ(ERR_NOT_FOUND, rc, "delete again");
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
 #ifndef STORAGE_FAKE
-TEST_P(CreateMoveDelete) {
+// Moving file and opening directory is not supported in fake secure
+// storage implementation.
+
+TEST_F(StorageTest, CreateMoveDelete) {
     int rc;
     file_handle_t handle;
     const char* fname1 = "test_create_move_delete_1_file";
     const char* fname2 = "test_create_move_delete_2_file";
 
-    TEST_BEGIN(__func__);
-
     // make sure test file does not exist (expect success or ERR_NOT_FOUND)
     rc = storage_delete_file(ss, fname1, STORAGE_OP_COMPLETE);
     rc = (rc == ERR_NOT_FOUND) ? 0 : rc;
-    EXPECT_EQ(0, rc, "delete test file1");
-    ASSERT_ALL_OK();
+    ASSERT_EQ(0, rc, "delete test file1");
     rc = storage_delete_file(ss, fname2, STORAGE_OP_COMPLETE);
     rc = (rc == ERR_NOT_FOUND) ? 0 : rc;
-    EXPECT_EQ(0, rc, "delete test file2");
-    ASSERT_ALL_OK();
+    ASSERT_EQ(0, rc, "delete test file2");
 
     // one more time (expect ERR_NOT_FOUND)
     rc = storage_delete_file(ss, fname1, STORAGE_OP_COMPLETE);
-    EXPECT_EQ(ERR_NOT_FOUND, rc, "delete 1 again");
-    ASSERT_ALL_OK();
+    ASSERT_EQ(ERR_NOT_FOUND, rc, "delete 1 again");
     rc = storage_delete_file(ss, fname2, STORAGE_OP_COMPLETE);
-    EXPECT_EQ(ERR_NOT_FOUND, rc, "delete 2 again");
-    ASSERT_ALL_OK();
+    ASSERT_EQ(ERR_NOT_FOUND, rc, "delete 2 again");
 
     // create file (expect 0)
     rc = storage_open_file(
             ss, &handle, fname1,
             STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE,
             STORAGE_OP_COMPLETE);
-    EXPECT_EQ(0, rc, "create test file");
-    ASSERT_ALL_OK();
+    ASSERT_EQ(0, rc, "create test file");
 
     // move file
     rc = storage_move_file(ss, handle, fname1, fname2,
@@ -360,8 +358,7 @@ TEST_P(CreateMoveDelete) {
                                    STORAGE_FILE_MOVE_CREATE_EXCLUSIVE |
                                    STORAGE_FILE_MOVE_OPEN_FILE,
                            STORAGE_OP_COMPLETE);
-    EXPECT_EQ(0, rc, "move test file");
-    ASSERT_ALL_OK();
+    ASSERT_EQ(0, rc, "move test file");
 
     // try to create it again while it is still opened (expect
     // ERR_ALREADY_EXISTS)
@@ -369,8 +366,7 @@ TEST_P(CreateMoveDelete) {
             ss, &handle, fname2,
             STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE,
             STORAGE_OP_COMPLETE);
-    EXPECT_EQ(ERR_ALREADY_EXISTS, rc, "create again");
-    ASSERT_ALL_OK();
+    ASSERT_EQ(ERR_ALREADY_EXISTS, rc, "create again");
 
     // close it
     storage_close_file(handle);
@@ -380,16 +376,14 @@ TEST_P(CreateMoveDelete) {
             ss, &handle, fname2,
             STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE,
             STORAGE_OP_COMPLETE);
-    EXPECT_EQ(ERR_ALREADY_EXISTS, rc, "create again");
-    ASSERT_ALL_OK();
+    ASSERT_EQ(ERR_ALREADY_EXISTS, rc, "create again");
 
     // create file1 (expect 0)
     rc = storage_open_file(
             ss, &handle, fname1,
             STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE,
             STORAGE_OP_COMPLETE);
-    EXPECT_EQ(0, rc, "create test file");
-    ASSERT_ALL_OK();
+    ASSERT_EQ(0, rc, "create test file");
 
     // move file
     rc = storage_move_file(ss, handle, fname1, fname2,
@@ -397,29 +391,25 @@ TEST_P(CreateMoveDelete) {
                                    STORAGE_FILE_MOVE_CREATE_EXCLUSIVE |
                                    STORAGE_FILE_MOVE_OPEN_FILE,
                            STORAGE_OP_COMPLETE);
-    EXPECT_EQ(ERR_ALREADY_EXISTS, rc, "move test file");
-    ASSERT_ALL_OK();
+    ASSERT_EQ(ERR_ALREADY_EXISTS, rc, "move test file");
 
     // close it
     storage_close_file(handle);
 
     // delete file (expect 0)
     rc = storage_delete_file(ss, fname2, STORAGE_OP_COMPLETE);
-    EXPECT_EQ(0, rc, "delete test file");
-    ASSERT_ALL_OK();
+    ASSERT_EQ(0, rc, "delete test file");
 
     // one more time (expect ERR_NOT_FOUND)
     rc = storage_delete_file(ss, fname2, STORAGE_OP_COMPLETE);
-    EXPECT_EQ(ERR_NOT_FOUND, rc, "delete again");
-    ASSERT_ALL_OK();
+    ASSERT_EQ(ERR_NOT_FOUND, rc, "delete again");
 
 test_abort:
     storage_delete_file(ss, fname1, STORAGE_OP_COMPLETE);
     storage_delete_file(ss, fname2, STORAGE_OP_COMPLETE);
-    TEST_END;
 }
 
-TEST_P(FileList) {
+TEST_F(StorageTest, FileList) {
     int rc;
     file_handle_t handle;
     struct storage_open_dir_state* dir;
@@ -430,36 +420,30 @@ TEST_P(FileList) {
     int i;
     int file_count = 100;
 
-    TEST_BEGIN(__func__);
-
     // make sure test file does not exist (expect success or ERR_NOT_FOUND)
     for (i = 0; i < file_count; i++) {
         snprintf(file_name, sizeof(file_name), fname_pat, i);
         rc = storage_delete_file(ss, file_name, STORAGE_OP_COMPLETE);
         rc = (rc == ERR_NOT_FOUND) ? 0 : rc;
-        EXPECT_EQ(0, rc, "delete test file1");
-        ASSERT_ALL_OK();
+        ASSERT_EQ(0, rc, "delete test file1");
     }
 
     // one more time (expect ERR_NOT_FOUND)
     for (i = 0; i < file_count; i++) {
         snprintf(file_name, sizeof(file_name), fname_pat, i);
         rc = storage_delete_file(ss, file_name, STORAGE_OP_COMPLETE);
-        EXPECT_EQ(ERR_NOT_FOUND, rc, "delete 1 again");
-        ASSERT_ALL_OK();
+        ASSERT_EQ(ERR_NOT_FOUND, rc, "delete 1 again");
     }
 
     // test empty dir
     rc = storage_open_dir(ss, "", &dir);
-    EXPECT_EQ(0, rc, "open_dir");
-    ASSERT_ALL_OK();
+    ASSERT_EQ(0, rc, "open_dir");
 
     rc = storage_read_dir(ss, dir, &read_dir_flags, file_name_dir,
                           sizeof(file_name_dir));
-    EXPECT_EQ(0, rc, "read_dir");
-    EXPECT_EQ(STORAGE_FILE_LIST_END,
+    ASSERT_EQ(0, rc, "read_dir");
+    ASSERT_EQ(STORAGE_FILE_LIST_END,
               read_dir_flags & STORAGE_FILE_LIST_STATE_MASK, "dir flags");
-    ASSERT_ALL_OK();
 
     storage_close_dir(ss, dir);
 
@@ -469,8 +453,7 @@ TEST_P(FileList) {
             ss, &handle, file_name,
             STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE,
             STORAGE_OP_COMPLETE);
-    EXPECT_EQ(0, rc, "create test file 1");
-    ASSERT_ALL_OK();
+    ASSERT_EQ(0, rc, "create test file 1");
 
     // close it
     storage_close_file(handle);
@@ -481,8 +464,7 @@ TEST_P(FileList) {
                 ss, &handle, file_name,
                 STORAGE_FILE_OPEN_CREATE | STORAGE_FILE_OPEN_CREATE_EXCLUSIVE,
                 0);
-        EXPECT_EQ(0, rc, "create test file 2");
-        ASSERT_ALL_OK();
+        ASSERT_EQ(0, rc, "create test file 2");
 
         // close it
         storage_close_file(handle);
@@ -490,56 +472,48 @@ TEST_P(FileList) {
 
     // test read_dir fname1 comitted, fname2 added
     rc = storage_open_dir(ss, "", &dir);
-    EXPECT_EQ(0, rc, "open_dir");
-    ASSERT_ALL_OK();
+    ASSERT_EQ(0, rc, "open_dir");
 
     snprintf(file_name, sizeof(file_name), fname_pat, 0);
     rc = storage_read_dir(ss, dir, &read_dir_flags, file_name_dir,
                           sizeof(file_name_dir));
-    EXPECT_EQ(0, rc, "read_dir");
-    EXPECT_EQ(STORAGE_FILE_LIST_COMMITTED,
+    ASSERT_EQ(0, rc, "read_dir");
+    ASSERT_EQ(STORAGE_FILE_LIST_COMMITTED,
               read_dir_flags & STORAGE_FILE_LIST_STATE_MASK, "dir flags");
-    EXPECT_EQ(0, strcmp(file_name, file_name_dir), "file name");
-    ASSERT_ALL_OK();
+    ASSERT_EQ(0, strcmp(file_name, file_name_dir), "file name");
 
     for (i = 1; i < file_count; i++) {
         rc = storage_read_dir(ss, dir, &read_dir_flags, file_name_dir,
                               sizeof(file_name_dir));
-        EXPECT_EQ(0, rc, "read_dir");
-        EXPECT_EQ(STORAGE_FILE_LIST_ADDED,
+        ASSERT_EQ(0, rc, "read_dir");
+        ASSERT_EQ(STORAGE_FILE_LIST_ADDED,
                   read_dir_flags & STORAGE_FILE_LIST_STATE_MASK, "dir flags");
-        EXPECT_NE(0, strcmp(file_name, file_name_dir), "file name");
-        ASSERT_ALL_OK();
+        ASSERT_NE(0, strcmp(file_name, file_name_dir), "file name");
     }
 
     rc = storage_read_dir(ss, dir, &read_dir_flags, file_name_dir,
                           sizeof(file_name_dir));
-    EXPECT_EQ(0, rc, "read_dir");
-    EXPECT_EQ(STORAGE_FILE_LIST_END,
+    ASSERT_EQ(0, rc, "read_dir");
+    ASSERT_EQ(STORAGE_FILE_LIST_END,
               read_dir_flags & STORAGE_FILE_LIST_STATE_MASK, "end dir flag");
-    ASSERT_ALL_OK();
 
     storage_close_dir(ss, dir);
 
     rc = storage_end_transaction(ss, true);
-    EXPECT_EQ(0, rc, "commit");
-    ASSERT_ALL_OK();
+    ASSERT_EQ(0, rc, "commit");
 
 test_abort:
     for (i = 0; i < file_count; i++) {
         snprintf(file_name, sizeof(file_name), fname_pat, i);
         rc = storage_delete_file(ss, file_name, STORAGE_OP_COMPLETE);
     }
-    TEST_END;
 }
 #endif
 
-TEST_P(DeleteOpened) {
+TEST_F(StorageTest, DeleteOpened) {
     int rc;
     file_handle_t handle;
     const char* fname = "delete_opened_test_file";
-
-    TEST_BEGIN(__func__);
 
     // make sure test file does not exist (expect success or ERR_NOT_FOUND)
     rc = storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
@@ -572,16 +546,13 @@ TEST_P(DeleteOpened) {
     rc = storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
     ASSERT_EQ(ERR_NOT_FOUND, rc);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(OpenNoCreate) {
+TEST_F(StorageTest, OpenNoCreate) {
     int rc;
     file_handle_t handle;
     const char* fname = "test_open_no_create_file";
-
-    TEST_BEGIN(__func__);
 
     // make sure test file does not exist (expect success or ERR_NOT_FOUND)
     rc = storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
@@ -611,16 +582,13 @@ TEST_P(OpenNoCreate) {
     rc = storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(OpenOrCreate) {
+TEST_F(StorageTest, OpenOrCreate) {
     int rc;
     file_handle_t handle;
     const char* fname = "test_open_create_file";
-
-    TEST_BEGIN(__func__);
 
     // make sure test file does not exist (expect success or ERR_NOT_FOUND)
     rc = storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
@@ -643,17 +611,14 @@ TEST_P(OpenOrCreate) {
     rc = storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
     ASSERT_EQ(0, rc);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(OpenCreateDeleteCharset) {
+TEST_F(StorageTest, OpenCreateDeleteCharset) {
     int rc;
     file_handle_t handle;
     const char* fname =
             "ABCDEFGHIJKLMNOPQRSTUVWXYZ-abcdefghijklmnopqrstuvwxyz_01234.56789";
-
-    TEST_BEGIN(__func__);
 
     // open/create file (expect 0)
     rc = storage_open_file(ss, &handle, fname, STORAGE_FILE_OPEN_CREATE,
@@ -674,17 +639,14 @@ TEST_P(OpenCreateDeleteCharset) {
     rc = storage_open_file(ss, &handle, fname, 0, 0);
     ASSERT_EQ(ERR_NOT_FOUND, rc);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(WriteReadSequential) {
+TEST_F(StorageTest, WriteReadSequential) {
     int rc;
     size_t blk = 2048;
     file_handle_t handle;
     const char* fname = "test_write_read_sequential";
-
-    TEST_BEGIN(__func__);
 
     // make sure test file does not exist (expect success or ERR_NOT_FOUND)
     rc = storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
@@ -720,18 +682,15 @@ TEST_P(WriteReadSequential) {
     storage_close_file(handle);
     storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(OpenTruncate) {
+TEST_F(StorageTest, OpenTruncate) {
     int rc;
     uint32_t val;
     size_t blk = 2048;
     file_handle_t handle;
     const char* fname = "test_open_truncate";
-
-    TEST_BEGIN(__func__);
 
     // make sure test file does not exist (expect success or ERR_NOT_FOUND)
     rc = storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
@@ -768,18 +727,15 @@ TEST_P(OpenTruncate) {
     storage_close_file(handle);
     storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(OpenSame) {
+TEST_F(StorageTest, OpenSame) {
     int rc;
     file_handle_t handle1;
     file_handle_t handle2;
     file_handle_t handle3;
     const char* fname = "test_open_same_file";
-
-    TEST_BEGIN(__func__);
 
     // open/create file (expect 0)
     rc = storage_open_file(ss, &handle1, fname, STORAGE_FILE_OPEN_CREATE,
@@ -806,17 +762,14 @@ TEST_P(OpenSame) {
     // close file
     storage_close_file(handle1);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(OpenMany) {
+TEST_F(StorageTest, OpenMany) {
     int rc;
     file_handle_t handles[10];
     char filename[10];
     const char* fname_fmt = "mf%d";
-
-    TEST_BEGIN(__func__);
 
     // open or create a bunch of files (expect 0)
     for (uint32_t i = 0; i < countof(handles); ++i) {
@@ -860,18 +813,15 @@ TEST_P(OpenMany) {
         ASSERT_EQ(0, rc);
     }
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(ReadAtEOF) {
+TEST_F(StorageTest, ReadAtEOF) {
     int rc;
     uint32_t val;
     size_t blk = 2048;
     file_handle_t handle;
     const char* fname = "test_read_eof";
-
-    TEST_BEGIN(__func__);
 
     // open/create/truncate file
     rc = storage_open_file(
@@ -911,18 +861,15 @@ TEST_P(ReadAtEOF) {
     storage_close_file(handle);
     storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(GetFileSize) {
+TEST_F(StorageTest, GetFileSize) {
     int rc;
     size_t blk = 2048;
     storage_off_t size;
     file_handle_t handle;
     const char* fname = "test_get_file_size";
-
-    TEST_BEGIN(__func__);
 
     // open/create/truncate file.
     rc = storage_open_file(
@@ -959,18 +906,15 @@ TEST_P(GetFileSize) {
     storage_close_file(handle);
     storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(SetFileSize) {
+TEST_F(StorageTest, SetFileSize) {
     int rc;
     size_t blk = 2048;
     storage_off_t size;
     file_handle_t handle;
     const char* fname = "test_set_file_size";
-
-    TEST_BEGIN(__func__);
 
     // open/create/truncate file.
     rc = storage_open_file(
@@ -1035,18 +979,15 @@ TEST_P(SetFileSize) {
     storage_close_file(handle);
     storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(WriteReadAtOffset) {
+TEST_F(StorageTest, WriteReadAtOffset) {
     int rc;
     file_handle_t handle;
     size_t blk = 2048;
     size_t blk_cnt = 32;
     const char* fname = "test_write_at_offset";
-
-    TEST_BEGIN(__func__);
 
     // create/truncate file.
     rc = storage_open_file(
@@ -1107,18 +1048,15 @@ TEST_P(WriteReadAtOffset) {
     storage_close_file(handle);
     storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(WriteReadAtOffsetSparse) {
+TEST_F(StorageTest, WriteReadAtOffsetSparse) {
     int rc;
     file_handle_t handle;
     size_t blk = 2048;
     size_t blk_cnt = 32;
     const char* fname = "test_write_at_offset";
-
-    TEST_BEGIN(__func__);
 
     // create/truncate file.
     rc = storage_open_file(
@@ -1224,18 +1162,15 @@ TEST_P(WriteReadAtOffsetSparse) {
     storage_close_file(handle);
     storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(CreatePersistent32K) {
+TEST_F(StorageInitTest, CreatePersistent32K) {
     int rc;
     file_handle_t handle;
     size_t blk = 2048;
     size_t file_size = 32768;
     const char* fname = "test_persistent_32K_file";
-
-    TEST_BEGIN(__func__);
 
     // create/truncate file.
     rc = storage_open_file(
@@ -1251,17 +1186,14 @@ TEST_P(CreatePersistent32K) {
     // close but do not delete file
     storage_close_file(handle);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(ReadPersistent32k) {
+TEST_F(StorageCheckTest, ReadPersistent32k) {
     int rc;
     file_handle_t handle;
     size_t exp_len = 32 * 1024;
     const char* fname = "test_persistent_32K_file";
-
-    TEST_BEGIN(__func__);
 
     // create/truncate file.
     rc = storage_open_file(ss, &handle, fname, 0, 0);
@@ -1279,31 +1211,25 @@ TEST_P(ReadPersistent32k) {
     // close but do not delete file
     storage_close_file(handle);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(CleanUpPersistent32K) {
+TEST_F(StorageCleanTest, CleanUpPersistent32K) {
     int rc;
     const char* fname = "test_persistent_32K_file";
-
-    TEST_BEGIN(__func__);
 
     rc = storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
     rc = (rc == ERR_NOT_FOUND) ? 0 : rc;
     ASSERT_EQ(0, rc);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(WriteReadLong) {
+TEST_F(StorageTest, WriteReadLong) {
     int rc;
     file_handle_t handle;
     size_t wc = 10000;
     const char* fname = "test_write_read_long";
-
-    TEST_BEGIN(__func__);
 
     uint32_t* test_buf_ = malloc(wc * sizeof(uint32_t));
     ASSERT_NE(NULL, test_buf_);
@@ -1332,20 +1258,17 @@ TEST_P(WriteReadLong) {
 test_abort:
     if (test_buf_)
         free(test_buf_);
-    TEST_END;
 }
 
 // Negative tests
 
-TEST_P(OpenInvalidFileName) {
+TEST_F(StorageTest, OpenInvalidFileName) {
     int rc;
     file_handle_t handle;
     const char* fname1 = "";
     const char* fname2 = "ffff$ffff";
     const char* fname3 = "ffff\\ffff";
     char max_name[STORAGE_MAX_NAME_LENGTH_BYTES + 1];
-
-    TEST_BEGIN(__func__);
 
     rc = storage_open_file(
             ss, &handle, fname1,
@@ -1385,16 +1308,13 @@ TEST_P(OpenInvalidFileName) {
     storage_close_file(handle);
     storage_delete_file(ss, max_name, STORAGE_OP_COMPLETE);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(BadFileHandle) {
+TEST_F(StorageTest, BadFileHandle) {
     int rc;
     file_handle_t handle;
     const char* fname = "test_invalid_file_handle";
-
-    TEST_BEGIN(__func__);
 
     rc = storage_open_file(
             ss, &handle, fname,
@@ -1426,18 +1346,15 @@ TEST_P(BadFileHandle) {
     storage_close_file(handle);
     storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(ClosedFileHandle) {
+TEST_F(StorageTest, ClosedFileHandle) {
     int rc;
     file_handle_t handle1;
     file_handle_t handle2;
     const char* fname1 = "test_invalid_file_handle1";
     const char* fname2 = "test_invalid_file_handle2";
-
-    TEST_BEGIN(__func__);
 
     rc = storage_open_file(
             ss, &handle1, fname1,
@@ -1480,15 +1397,12 @@ TEST_P(ClosedFileHandle) {
     storage_delete_file(ss, fname1, STORAGE_OP_COMPLETE);
     storage_delete_file(ss, fname2, STORAGE_OP_COMPLETE);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
 #ifndef STORAGE_FAKE
-TEST_P(TransactDiscardInactive) {
+TEST_F(StorageTest, TransactDiscardInactive) {
     int rc;
-
-    TEST_BEGIN(__func__);
 
     // discard current transaction (there should not be any)
     rc = storage_end_transaction(ss, false);
@@ -1498,14 +1412,11 @@ TEST_P(TransactDiscardInactive) {
     rc = storage_end_transaction(ss, false);
     ASSERT_EQ(0, rc);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(TransactCommitInactive) {
+TEST_F(StorageTest, TransactCommitInactive) {
     int rc;
-
-    TEST_BEGIN(__func__);
 
     // try to commit current transaction
     rc = storage_end_transaction(ss, true);
@@ -1515,19 +1426,16 @@ TEST_P(TransactCommitInactive) {
     rc = storage_end_transaction(ss, true);
     ASSERT_EQ(0, rc);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(TransactDiscardWrite) {
+TEST_F(StorageTest, TransactDiscardWrite) {
     int rc;
     file_handle_t handle;
     size_t blk = 2048;
     size_t exp_len = 32 * 1024;
     storage_off_t fsize = (storage_off_t)(-1);
     const char* fname = "test_transact_discard_write";
-
-    TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
     rc = storage_open_file(
@@ -1563,19 +1471,16 @@ TEST_P(TransactDiscardWrite) {
     storage_close_file(handle);
     storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(TransactDiscardWriteAppend) {
+TEST_F(StorageTest, TransactDiscardWriteAppend) {
     int rc;
     file_handle_t handle;
     size_t blk = 2048;
     size_t exp_len = 32 * 1024;
     storage_off_t fsize = (storage_off_t)(-1);
     const char* fname = "test_transact_write_append";
-
-    TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
     rc = storage_open_file(
@@ -1614,18 +1519,15 @@ TEST_P(TransactDiscardWriteAppend) {
     storage_close_file(handle);
     storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(TransactDiscardWriteRead) {
+TEST_F(StorageTest, TransactDiscardWriteRead) {
     int rc;
     file_handle_t handle;
     size_t blk = 2048;
     storage_off_t fsize = (storage_off_t)(-1);
     const char* fname = "test_transact_discard_write_read";
-
-    TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
     rc = storage_open_file(
@@ -1669,11 +1571,10 @@ TEST_P(TransactDiscardWriteRead) {
     storage_close_file(handle);
     storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(TransactDiscardWriteMany) {
+TEST_F(StorageTest, TransactDiscardWriteMany) {
     int rc;
     file_handle_t handle1;
     file_handle_t handle2;
@@ -1683,8 +1584,6 @@ TEST_P(TransactDiscardWriteMany) {
     storage_off_t fsize = (storage_off_t)(-1);
     const char* fname1 = "test_transact_discard_write_file1";
     const char* fname2 = "test_transact_discard_write_file2";
-
-    TEST_BEGIN(__func__);
 
     // open create truncate (with commit)
     rc = storage_open_file(
@@ -1745,19 +1644,16 @@ TEST_P(TransactDiscardWriteMany) {
     storage_close_file(handle2);
     storage_delete_file(ss, fname2, STORAGE_OP_COMPLETE);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(TransactDiscardTruncate) {
+TEST_F(StorageTest, TransactDiscardTruncate) {
     int rc;
     file_handle_t handle;
     size_t blk = 2048;
     size_t exp_len = 32 * 1024;
     storage_off_t fsize = (storage_off_t)(-1);
     const char* fname = "test_transact_discard_truncate";
-
-    TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
     rc = storage_open_file(
@@ -1800,19 +1696,16 @@ TEST_P(TransactDiscardTruncate) {
     storage_close_file(handle);
     storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(TransactDiscardSetSize) {
+TEST_F(StorageTest, TransactDiscardSetSize) {
     int rc;
     file_handle_t handle;
     size_t blk = 2048;
     size_t exp_len = 32 * 1024;
     storage_off_t fsize = (storage_off_t)(-1);
     const char* fname = "test_transact_discard_set_size";
-
-    TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
     rc = storage_open_file(
@@ -1861,19 +1754,16 @@ TEST_P(TransactDiscardSetSize) {
     storage_close_file(handle);
     storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(TransactDiscardDelete) {
+TEST_F(StorageTest, TransactDiscardDelete) {
     int rc;
     file_handle_t handle;
     size_t blk = 2048;
     size_t exp_len = 32 * 1024;
     storage_off_t fsize = (storage_off_t)(-1);
     const char* fname = "test_transact_discard_delete";
-
-    TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
     rc = storage_open_file(
@@ -1914,16 +1804,13 @@ TEST_P(TransactDiscardDelete) {
     storage_close_file(handle);
     storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(TransactDiscardCreate) {
+TEST_F(StorageTest, TransactDiscardCreate) {
     int rc;
     file_handle_t handle;
     const char* fname = "test_transact_discard_create_excl";
-
-    TEST_BEGIN(__func__);
 
     // delete test file just in case
     storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
@@ -1955,11 +1842,10 @@ TEST_P(TransactDiscardCreate) {
     // cleanup
     storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(TransactCommitWrites) {
+TEST_F(StorageTest, TransactCommitWrites) {
     int rc;
     file_handle_t handle;
     file_handle_t handle_aux;
@@ -1967,8 +1853,6 @@ TEST_P(TransactCommitWrites) {
     size_t exp_len = 32 * 1024;
     storage_off_t fsize = (storage_off_t)(-1);
     const char* fname = "test_transact_commit_writes";
-
-    TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
     rc = storage_open_file(
@@ -2034,19 +1918,16 @@ TEST_P(TransactCommitWrites) {
     storage_close_file(handle_aux);
     storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(TransactCommitWrites2) {
+TEST_F(StorageTest, TransactCommitWrites2) {
     int rc;
     file_handle_t handle;
     file_handle_t handle_aux;
     size_t blk = 2048;
     storage_off_t fsize = (storage_off_t)(-1);
     const char* fname = "test_transact_commit_writes2";
-
-    TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
     rc = storage_open_file(
@@ -2141,11 +2022,10 @@ TEST_P(TransactCommitWrites2) {
     storage_close_file(handle_aux);
     storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(TransactCommitSetSize) {
+TEST_F(StorageTest, TransactCommitSetSize) {
     int rc;
     file_handle_t handle;
     file_handle_t handle_aux;
@@ -2153,8 +2033,6 @@ TEST_P(TransactCommitSetSize) {
     size_t exp_len = 32 * 1024;
     storage_off_t fsize = (storage_off_t)(-1);
     const char* fname = "test_transact_commit_set_size";
-
-    TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
     rc = storage_open_file(
@@ -2266,19 +2144,16 @@ TEST_P(TransactCommitSetSize) {
     storage_close_file(handle_aux);
     storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(TransactCommitDelete) {
+TEST_F(StorageTest, TransactCommitDelete) {
     int rc;
     file_handle_t handle;
     file_handle_t handle_aux;
     size_t blk = 2048;
     size_t exp_len = 32 * 1024;
     const char* fname = "test_transact_commit_delete";
-
-    TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
     rc = storage_open_file(
@@ -2324,11 +2199,10 @@ TEST_P(TransactCommitDelete) {
     rc = storage_open_file(ss_aux, &handle_aux, fname, 0, 0);
     ASSERT_EQ(ERR_NOT_FOUND, rc);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(TransactCommitTruncate) {
+TEST_F(StorageTest, TransactCommitTruncate) {
     int rc;
     file_handle_t handle;
     file_handle_t handle_aux;
@@ -2336,8 +2210,6 @@ TEST_P(TransactCommitTruncate) {
     size_t exp_len = 32 * 1024;
     storage_off_t fsize = (storage_off_t)(-1);
     const char* fname = "test_transact_commit_truncate";
-
-    TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
     rc = storage_open_file(
@@ -2406,18 +2278,15 @@ TEST_P(TransactCommitTruncate) {
     storage_close_file(handle_aux);
     storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(TransactCommitCreate) {
+TEST_F(StorageTest, TransactCommitCreate) {
     int rc;
     file_handle_t handle;
     file_handle_t handle_aux;
     storage_off_t fsize = (storage_off_t)(-1);
     const char* fname = "test_transact_commit_create";
-
-    TEST_BEGIN(__func__);
 
     // delete test file just in case
     storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
@@ -2461,11 +2330,10 @@ TEST_P(TransactCommitCreate) {
     storage_close_file(handle_aux);
     storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(TransactCommitCreateMany) {
+TEST_F(StorageTest, TransactCommitCreateMany) {
     int rc;
     file_handle_t handle1;
     file_handle_t handle2;
@@ -2474,8 +2342,6 @@ TEST_P(TransactCommitCreateMany) {
     storage_off_t fsize = (storage_off_t)(-1);
     const char* fname1 = "test_transact_commit_create1";
     const char* fname2 = "test_transact_commit_create2";
-
-    TEST_BEGIN(__func__);
 
     // delete test file just in case
     storage_delete_file(ss, fname1, STORAGE_OP_COMPLETE);
@@ -2538,11 +2404,10 @@ TEST_P(TransactCommitCreateMany) {
     storage_close_file(handle2_aux);
     storage_delete_file(ss, fname2, STORAGE_OP_COMPLETE);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(TransactCommitWriteMany) {
+TEST_F(StorageTest, TransactCommitWriteMany) {
     int rc;
     file_handle_t handle1;
     file_handle_t handle2;
@@ -2554,8 +2419,6 @@ TEST_P(TransactCommitWriteMany) {
     storage_off_t fsize = (storage_off_t)(-1);
     const char* fname1 = "test_transact_commit_write_file1";
     const char* fname2 = "test_transact_commit_write_file2";
-
-    TEST_BEGIN(__func__);
 
     // open create truncate (with commit)
     rc = storage_open_file(
@@ -2655,11 +2518,10 @@ TEST_P(TransactCommitWriteMany) {
     storage_close_file(handle2_aux);
     storage_delete_file(ss, fname2, STORAGE_OP_COMPLETE);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(TransactCommitDeleteCreate) {
+TEST_F(StorageTest, TransactCommitDeleteCreate) {
     int rc;
     file_handle_t handle;
     file_handle_t handle_aux;
@@ -2667,8 +2529,6 @@ TEST_P(TransactCommitDeleteCreate) {
     size_t exp_len = 32 * 1024;
     storage_off_t fsize = (storage_off_t)(-1);
     const char* fname = "test_transact_delete_create";
-
-    TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
     rc = storage_open_file(
@@ -2748,17 +2608,14 @@ TEST_P(TransactCommitDeleteCreate) {
     storage_close_file(handle_aux);
     storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(TransactRewriteExistingTruncate) {
+TEST_F(StorageTest, TransactRewriteExistingTruncate) {
     int rc;
     file_handle_t handle;
     size_t blk = 2048;
     const char* fname = "test_transact_rewrite_existing_truncate";
-
-    TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
     rc = storage_open_file(
@@ -2803,17 +2660,14 @@ TEST_P(TransactRewriteExistingTruncate) {
     // cleanup
     storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(TransactRewriteExistingSetSize) {
+TEST_F(StorageTest, TransactRewriteExistingSetSize) {
     int rc;
     file_handle_t handle;
     size_t blk = 2048;
     const char* fname = "test_transact_rewrite_existing_set_size";
-
-    TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
     rc = storage_open_file(
@@ -2864,11 +2718,10 @@ TEST_P(TransactRewriteExistingSetSize) {
     // cleanup
     storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 
-TEST_P(TransactResumeAfterNonFatalError) {
+TEST_F(StorageTest, TransactResumeAfterNonFatalError) {
     int rc;
     file_handle_t handle;
     file_handle_t handle1;
@@ -2876,8 +2729,6 @@ TEST_P(TransactResumeAfterNonFatalError) {
     size_t exp_len = 32 * 1024;
     storage_off_t fsize = (storage_off_t)(-1);
     const char* fname = "test_transact_resume_writes";
-
-    TEST_BEGIN(__func__);
 
     // open create truncate file (with commit)
     rc = storage_open_file(
@@ -2927,21 +2778,16 @@ TEST_P(TransactResumeAfterNonFatalError) {
     storage_close_file(handle);
     storage_delete_file(ss, fname, STORAGE_OP_COMPLETE);
 
-test_abort:
-    TEST_END;
+test_abort:;
 }
 #endif
 
-enum run_mode {
-    RUN_MODE_INIT = 1U << 0,
-    RUN_MODE_CHECK = 1U << 1,
-    RUN_MODE_CLEAN = 1U << 2,
-    RUN_MODE_FULL = 1U << 3,
-    RUN_MODE_ALL =
-            RUN_MODE_INIT | RUN_MODE_CHECK | RUN_MODE_CLEAN | RUN_MODE_FULL,
-};
+#define RUN_MODE_ALL NULL
+#define RUN_MODE_INIT "StorageInitTest"
+#define RUN_MODE_CHECK "StorageCheckTest"
+#define RUN_MODE_CLEAN "StorageCleanTest"
 
-void run_all_tests(const char* port, enum run_mode mode) {
+static bool run_all_tests(const char* port, const char* suite) {
     int rc;
     storage_session_t session;
 
@@ -2959,88 +2805,18 @@ void run_all_tests(const char* port, enum run_mode mode) {
     } while (rc < 0);
     storage_close_session(session);
 
-    TLOGI("SS-unittest: %s: begins\n", port);
+    storage_test_client_port = port;
 
-    if (mode & RUN_MODE_FULL) {
-        RUN_TEST_P(port, CreateDelete);
-#ifndef STORAGE_FAKE
-        // Moving file and opening directory is not supported in fake secure
-        // storage implementation.
-        RUN_TEST_P(port, CreateMoveDelete);
-        RUN_TEST_P(port, FileList);
-#endif
-        RUN_TEST_P(port, DeleteOpened);
-        RUN_TEST_P(port, OpenNoCreate);
-        RUN_TEST_P(port, OpenOrCreate);
-        RUN_TEST_P(port, OpenCreateDeleteCharset);
-        RUN_TEST_P(port, WriteReadSequential);
-        RUN_TEST_P(port, OpenTruncate);
-        RUN_TEST_P(port, OpenSame);
-        RUN_TEST_P(port, OpenMany);
-        RUN_TEST_P(port, ReadAtEOF);
-        RUN_TEST_P(port, GetFileSize);
-        RUN_TEST_P(port, SetFileSize);
-        RUN_TEST_P(port, WriteReadAtOffset);
-        RUN_TEST_P(port, WriteReadAtOffsetSparse);
-        RUN_TEST_P(port, WriteReadLong);
-        RUN_TEST_P(port, OpenInvalidFileName);
-        RUN_TEST_P(port, BadFileHandle);
-        RUN_TEST_P(port, ClosedFileHandle);
-
-#ifndef STORAGE_FAKE
-        // Transaction tests
-        RUN_TEST_P(port, TransactDiscardInactive);
-        RUN_TEST_P(port, TransactCommitInactive);
-        RUN_TEST_P(port, TransactDiscardWrite);
-        RUN_TEST_P(port, TransactDiscardWriteAppend);
-        RUN_TEST_P(port, TransactDiscardWriteRead);
-        RUN_TEST_P(port, TransactDiscardWriteMany);
-        RUN_TEST_P(port, TransactDiscardTruncate);
-        RUN_TEST_P(port, TransactDiscardSetSize);
-        RUN_TEST_P(port, TransactDiscardDelete);
-        RUN_TEST_P(port, TransactDiscardCreate);
-
-        RUN_TEST_P(port, TransactCommitWrites);
-        RUN_TEST_P(port, TransactCommitWrites2);
-        RUN_TEST_P(port, TransactCommitSetSize);
-        RUN_TEST_P(port, TransactCommitDelete);
-        RUN_TEST_P(port, TransactCommitTruncate);
-        RUN_TEST_P(port, TransactCommitCreate);
-        RUN_TEST_P(port, TransactCommitCreateMany);
-        RUN_TEST_P(port, TransactCommitWriteMany);
-        RUN_TEST_P(port, TransactCommitDeleteCreate);
-        RUN_TEST_P(port, TransactRewriteExistingTruncate);
-        RUN_TEST_P(port, TransactRewriteExistingSetSize);
-        RUN_TEST_P(port, TransactResumeAfterNonFatalError);
-#endif
-    }
-    if (mode & RUN_MODE_INIT) {
-        RUN_TEST_P(port, CreatePersistent32K);
-    }
-    if (mode & RUN_MODE_CHECK) {
-        RUN_TEST_P(port, ReadPersistent32k);
-    }
-    if (mode & RUN_MODE_CLEAN) {
-        RUN_TEST_P(port, CleanUpPersistent32K);
-    }
-
-    TLOGI("SS-unittest: %s: ends\n", port);
+    return RUN_ALL_SUITE_TESTS(suite);
 }
 
 #ifdef STORAGE_FAKE
 
 int main(void) {
-    TLOGI("SS-unittest: running all\n");
-    run_all_tests(STORAGE_CLIENT_TD_PORT, RUN_MODE_ALL);
+    bool passed = run_all_tests(STORAGE_CLIENT_TD_PORT, RUN_MODE_ALL);
     //  run_all_tests(STORAGE_CLIENT_TDEA_PORT, RUN_MODE_ALL);
     //  run_all_tests(STORAGE_CLIENT_TP_PORT, RUN_MODE_ALL);
-    TLOGI("SS-unittest: complete!");
-    TLOGI("PASSED: %u, FAILED: %u\n", _tests_total - _tests_failed,
-          _tests_failed);
-    if (_tests_failed > 0) {
-        return -1;
-    }
-    return 0;
+    return passed ? 0 : 1;
 }
 
 #else
@@ -3048,15 +2824,13 @@ int main(void) {
 struct storage_unittest {
     struct unittest unittest;
     const char* port;
-    enum run_mode run_mode;
+    const char* run_mode;
 };
 
 static bool run_test(struct unittest* test) {
     struct storage_unittest* storage_test =
             containerof(test, struct storage_unittest, unittest);
-    _tests_failed = 0;
-    run_all_tests(storage_test->port, storage_test->run_mode);
-    return _tests_failed == 0;
+    return run_all_tests(storage_test->port, storage_test->run_mode);
 }
 
 #define PORT_BASE "com.android.storage-unittest."
