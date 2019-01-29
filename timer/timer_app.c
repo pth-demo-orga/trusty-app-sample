@@ -52,47 +52,52 @@ static void check_timestamps(int64_t t1,
     trusty_gettime(0, &t2);
     delta = t2 - t1;
 
-    _tests_total++;
-    if (delta < delta_min || delta > delta_max) {
-        TLOGI("bad timestamp after %s: t1 %" PRId64 ", t2 %" PRId64
+    EXPECT_EQ(false, (delta < delta_min || delta > delta_max),
+              "bad timestamp after %s: t1 %" PRId64 ", t2 %" PRId64
               ", delta %" PRId64 ", min %" PRId64 " max %" PRId64 "\n",
               name, t1, t2, t2 - t1, delta_min, delta_max);
-        _tests_failed++;
-    }
+}
+
+TEST(TimerTest, BusyLoop) {
+    int i;
+    int64_t ts = 0;
+
+    trusty_gettime(0, &ts);
+    for (i = 0; i < TIMER_TEST_NOP_LOOP_COUNT; i++)
+        nop();
+    check_timestamps(ts, TIMER_TEST_NOP_LOOP_COUNT / 100,
+                     TIMER_TEST_NOP_LOOP_COUNT * 10000ULL, "nop loop");
+}
+
+TEST(TimerTest, NanoSleepOneMilliSecond) {
+    int i;
+    int64_t ts = 0;
+
+    trusty_gettime(0, &ts);
+    for (i = 0; i < TIMER_TEST_MS_SLEEP_LOOP_COUNT; i++)
+        trusty_nanosleep(0, 0, ONE_MS);
+    check_timestamps(ts, TIMER_TEST_MS_SLEEP_LOOP_COUNT * ONE_MS,
+                     TIMER_TEST_MS_SLEEP_LOOP_COUNT * ONE_MS * 10, "ms loop");
+}
+
+TEST(TimerTest, NanoSleepTenSeconds) {
+    int64_t ts = 0;
+
+    trusty_gettime(0, &ts);
+    trusty_nanosleep(0, 0, 10ULL * ONE_S);
+    check_timestamps(ts, ONE_S * 10, ONE_S * 11, "10s sleep");
 }
 
 static bool timer_test(struct unittest* test) {
     struct timer_unittest* timer_test =
             containerof(test, struct timer_unittest, unittest);
-    int i;
-    int64_t ts = 0;
-
-    _tests_total = 0;
-    _tests_failed = 0;
+    bool passed;
 
     do {
-        TLOGI("Hello world from timer app 1\n");
-        trusty_gettime(0, &ts);
-        for (i = 0; i < TIMER_TEST_NOP_LOOP_COUNT; i++)
-            nop();
-        check_timestamps(ts, TIMER_TEST_NOP_LOOP_COUNT / 100,
-                         TIMER_TEST_NOP_LOOP_COUNT * 10000ULL, "nop loop");
-
-        TLOGI("Hello world from timer app 2\n");
-        trusty_gettime(0, &ts);
-        for (i = 0; i < TIMER_TEST_MS_SLEEP_LOOP_COUNT; i++)
-            trusty_nanosleep(0, 0, ONE_MS);
-        check_timestamps(ts, TIMER_TEST_MS_SLEEP_LOOP_COUNT * ONE_MS,
-                         TIMER_TEST_MS_SLEEP_LOOP_COUNT * ONE_MS * 10,
-                         "ms loop");
-
-        TLOGI("Hello world from timer app 3\n");
-        trusty_gettime(0, &ts);
-        trusty_nanosleep(0, 0, 10ULL * ONE_S);
-        check_timestamps(ts, ONE_S * 10, ONE_S * 11, "10s sleep");
+        passed = RUN_ALL_TESTS();
     } while (timer_test->loop);
 
-    return _tests_failed == 0;
+    return passed;
 }
 
 #define PORT_BASE "com.android.timer-unittest"
