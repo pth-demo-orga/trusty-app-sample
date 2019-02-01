@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 The Android Open Source Project
+ * Copyright (C) 2019 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,32 +14,19 @@
  * limitations under the License.
  */
 
-#ifndef APP_MGMT_H
-#define APP_MGMT_H
-
+#include <stddef.h>
 #include <stdio.h>
-#include <trusty_ipc.h>
-#include <trusty_log.h>
+#include <trusty_app_manifest.h>
 
-#define BOOT_START_PORT "com.android.trusty.appmgmt.bootstartsrv"
-#define NEVER_START_PORT "com.android.trusty.appmgmt.neverstartsrv"
+trusty_app_manifest_t TRUSTY_APP_MANIFEST_ATTRS trusty_app_manifest = {
+        /* UUID :{ea6a73b9-b071-4d31-88f3-2fa92918c8d5} */
+        {0xea6a73b9,
+         0xb071,
+         0x4d31,
+         {0x88, 0xf3, 0x2f, 0xa9, 0x29, 0x18, 0xc8, 0xd5}},
 
-#define MAX_CMD_LEN 1
-
-enum {
-    CMD_NOP = 0,
-    CMD_CLOSE_PORT = 1,
-    CMD_EXIT = 2,
-    CMD_DELAYED_EXIT = 3,
+        /* optional configuration options here */
+        {
+                TRUSTY_APP_CONFIG_MIN_HEAP_SIZE(4096),
+        },
 };
-
-enum {
-    RSP_OK = 0,
-    RSP_CMD_FAILED = 1,
-    RSP_INVALID_CMD = 2,
-};
-
-int send_rsp(handle_t channel, uint8_t rsp);
-int recv_cmd(handle_t channel, uint8_t* cmd);
-
-#endif
