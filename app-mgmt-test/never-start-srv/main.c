@@ -29,7 +29,6 @@ int main(void) {
     handle_t phandle;
     handle_t chandle;
     uevent_t uevt;
-    uuid_t peer_uuid;
 
     TLOGE("ERROR: Starting server that should never start\n");
 
@@ -48,12 +47,6 @@ int main(void) {
     }
 
     chandle = (handle_t)rc;
-
-    rc = accept(chandle, &peer_uuid);
-    if (rc < 0) {
-        TLOGI("Accept failed(%d) handle:%d\n", rc, chandle);
-        return rc;
-    }
 
     rc = close(chandle);
     if (rc < 0) {

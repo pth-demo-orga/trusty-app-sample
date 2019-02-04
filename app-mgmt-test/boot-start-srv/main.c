@@ -29,7 +29,6 @@ int main(void) {
     handle_t phandle;
     handle_t chandle;
     uevent_t uevt;
-    uuid_t peer_uuid;
 
     rc = port_create(BOOT_START_PORT, 1, 1, IPC_PORT_ALLOW_TA_CONNECT);
     if (rc < 0) {
@@ -47,12 +46,6 @@ int main(void) {
         }
 
         chandle = (handle_t)rc;
-
-        rc = accept(chandle, &peer_uuid);
-        if (rc < 0) {
-            TLOGI("Accept failed(%d) handle:%d\n", rc, chandle);
-            return rc;
-        }
 
         rc = close(chandle);
         if (rc < 0) {
