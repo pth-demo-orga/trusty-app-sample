@@ -26,8 +26,11 @@
 #define PORT_BASE "com.android.appmgmt-unittest.appmngr"
 
 TEST(AppMgrBoot, BootStartNegative) {
+    int rc;
     /* Check never-start-srv is not running */
-    EXPECT_LT(connect(NEVER_START_PORT, IPC_CONNECT_ASYNC), 0);
+    rc = connect(NEVER_START_PORT, IPC_CONNECT_ASYNC);
+    EXPECT_LT(rc, 0);
+    close(rc);
 }
 
 TEST(AppMgrBoot, BootStartPositive) {
