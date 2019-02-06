@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-#include "app_mgmt_srv2.h"
-
+#include <app_mgmt_test.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <trusty_app_manifest.h>
@@ -37,4 +36,4 @@ trusty_app_manifest_t TRUSTY_APP_MANIFEST_ATTRS trusty_app_manifest = {
 };
 
 /* Start the application on connection to START_PORT */
-TRUSTY_APP_START_PORT(START_PORT, IPC_PORT_ALLOW_NS_CONNECT);
+TRUSTY_APP_START_PORT(START_PORT, IPC_PORT_ALLOW_TA_CONNECT);

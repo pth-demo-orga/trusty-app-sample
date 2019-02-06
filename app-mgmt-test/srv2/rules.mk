@@ -18,15 +18,15 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 MODULE := $(LOCAL_DIR)
 
 MODULE_INCLUDES += \
-	$(LOCAL_DIR)/../include
+	$(LOCAL_DIR)/../include \
 
 MODULE_SRCS += \
 	$(LOCAL_DIR)/app_mgmt_srv2.c \
-	$(LOCAL_DIR)/manifest.c
+	$(LOCAL_DIR)/manifest.c \
 
 MODULE_DEPS += \
 	trusty/user/base/lib/libc-trusty \
-	trusty/user/app/sample/app-mgmt-test/common \
+	trusty/user/base/lib/tipc \
 
 
 include make/module.mk

@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-#include "app_mgmt_srv2.h"
-
 #include <app_mgmt_test.h>
+#include <assert.h>
+#include <lib/tipc/tipc.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -26,35 +26,36 @@
 #include <trusty_ipc.h>
 #include <uapi/err.h>
 
-#define TLOG_TAG "app-mgmt-test-srv2"
-#define CTRL_PORT "com.android.trusty.appmgmt.srv2"
+#define TLOG_TAG "port-start-srv"
 
-static handle_t ctrl_port;
-static handle_t start_port;
-static handle_t channel;
-
-static bool handle_cmd(uint8_t cmd) {
+/* Handles a cmd from the client and returns true if the server should exit */
+static bool handle_cmd(uint8_t cmd, handle_t channel, handle_t* start_port) {
     int rc;
     bool done = false;
-    bool delay = false;
     uint8_t rsp = RSP_OK;
 
     switch (cmd) {
     case CMD_NOP:
         break;
     case CMD_CLOSE_PORT:
-        rc = close(start_port);
+        rc = close(*start_port);
         if (rc != NO_ERROR) {
             TLOGI("port close failed: %d\n", rc);
             rsp = RSP_CMD_FAILED;
             done = true;
         }
         break;
-    case CMD_EXIT:
-        done = true;
+    case CMD_OPEN_PORT:
+        rc = port_create(START_PORT, 1, MAX_CMD_LEN, IPC_PORT_ALLOW_TA_CONNECT);
+        if (rc < 0) {
+            TLOGI("failed (%d) to create port: %s\n", rc, START_PORT);
+            rsp = RSP_CMD_FAILED;
+            done = true;
+        } else {
+            *start_port = (handle_t)rc;
+        }
         break;
-    case CMD_DELAYED_EXIT:
-        delay = true;
+    case CMD_EXIT:
         done = true;
         break;
     default:
@@ -63,116 +64,157 @@ static bool handle_cmd(uint8_t cmd) {
         done = true;
     }
 
-    rc = send_rsp(channel, rsp);
+    rc = tipc_send1(channel, &rsp, sizeof(rsp));
     if (rc < 0) {
         TLOGI("Failed to send response: %d \n", rc);
-        return true;
-    } else if (delay) {
-        trusty_nanosleep(0, 0, 1000000);
+        done = true;
     }
 
     return done;
+}
+
+/* Creates port_name and adds it to hset */
+static int prepare_port(const char* port_name, handle_t hset) {
+    int rc;
+    uevent_t uevt;
+    handle_t port;
+
+    assert(port_name);
+    assert(hset);
+
+    rc = port_create(port_name, 1, MAX_CMD_LEN, IPC_PORT_ALLOW_TA_CONNECT);
+    if (rc < 0) {
+        TLOGI("failed (%d) to create port: %s\n", rc, port_name);
+        return rc;
+    }
+
+    port = (handle_t)rc;
+
+    uevt.handle = port;
+    uevt.event = ~0;
+    uevt.cookie = NULL;
+
+    rc = handle_set_ctrl(hset, HSET_ADD, &uevt);
+    if (rc < 0) {
+        TLOGI("failed (%d) to add port %s to handle set \n", rc, port_name);
+        close(port);
+        return rc;
+    }
+
+    return port;
 }
 
 int main(void) {
     int rc;
     uint8_t cmd;
     bool done = false;
-    handle_t handle_set;
+    handle_t ctrl_port;
+    handle_t start_port;
+    handle_t shutdown_port;
+    handle_t channel;
+    handle_t port_hset;
+    handle_t mixed_hset;
     uevent_t uevt;
     uuid_t peer_uuid;
 
     rc = handle_set_create();
     if (rc < 0) {
-        TLOGI("failed (%d) to create handle set \n", rc);
+        TLOGI("failed (%d) to create port handle set \n", rc);
         return rc;
     }
+    port_hset = (handle_t)rc;
 
-    handle_set = (handle_t)rc;
-
-    rc = port_create(START_PORT, 1, 1024, IPC_PORT_ALLOW_NS_CONNECT);
+    rc = prepare_port(START_PORT, port_hset);
     if (rc < 0) {
-        TLOGI("failed (%d) to create start port\n", rc);
-        return rc;
+        TLOGI("failed(%d) to prepare START_PORT\n", rc);
+        goto err_prep_start;
     }
-
     start_port = (handle_t)rc;
 
-    uevt.handle = start_port;
-    uevt.event = ~0;
-    uevt.cookie = NULL;
-
-    rc = handle_set_ctrl(handle_set, HSET_ADD, &uevt);
+    rc = prepare_port(CTRL_PORT, port_hset);
     if (rc < 0) {
-        TLOGI("failed (%d) to add start port to handle set \n", rc);
-        return rc;
+        TLOGI("failed(%d) to prepare CTRL_PORT\n", rc);
+        goto err_prep_ctrl;
     }
-
-    rc = port_create(CTRL_PORT, 1, 1024, IPC_PORT_ALLOW_NS_CONNECT);
-    if (rc < 0) {
-        TLOGI("failed (%d) to create ctrl port\n", rc);
-        return rc;
-    }
-
     ctrl_port = (handle_t)rc;
 
-    uevt.handle = ctrl_port;
+    rc = handle_set_create();
+    if (rc < 0) {
+        TLOGI("failed (%d) to create mixed handle set \n", rc);
+        goto err_hset_create;
+    }
+    mixed_hset = (handle_t)rc;
+
+    rc = prepare_port(SHUTDOWN_PORT, mixed_hset);
+    if (rc < 0) {
+        TLOGI("failed(%d) to prepare CTRL_PORT\n", rc);
+        goto err_prep_shutdown;
+    }
+    shutdown_port = (handle_t)rc;
+
+    rc = wait(port_hset, &uevt, -1);
+    if (rc != NO_ERROR || !(uevt.event & IPC_HANDLE_POLL_READY)) {
+        TLOGI("Port wait failed: %d(%d)\n", rc, uevt.event);
+        goto err_port_wait;
+    }
+
+    rc = accept(uevt.handle, &peer_uuid);
+    if (rc < 0) {
+        TLOGI("Accept failed %d\n", rc);
+        goto err_accept;
+    }
+    channel = (handle_t)rc;
+
+    uevt.handle = channel;
     uevt.event = ~0;
     uevt.cookie = NULL;
 
-    rc = handle_set_ctrl(handle_set, HSET_ADD, &uevt);
+    rc = handle_set_ctrl(mixed_hset, HSET_ADD, &uevt);
     if (rc < 0) {
-        TLOGI("failed (%d) to add control port to handle set \n", rc);
-        return rc;
+        TLOGI("failed (%d) to add channel to mixed handle set \n", rc);
+        goto err_hset_ctrl;
     }
 
     while (!done) {
-        rc = wait(handle_set, &uevt, -1);
-        if (rc != NO_ERROR || !(uevt.event & IPC_HANDLE_POLL_READY)) {
-            TLOGI("Port wait failed: %d(%d)\n", rc, uevt.event);
-            return rc;
-        }
-
-        rc = accept(uevt.handle, &peer_uuid);
+        rc = wait(mixed_hset, &uevt, -1);
         if (rc < 0) {
-            TLOGI("Accept failed %d\n", rc);
-            return rc;
+            TLOGI("Channel wait failed: %d\n", uevt.event);
+            goto err_channel_wait;
         }
 
-        channel = (handle_t)rc;
+        if (uevt.handle == shutdown_port)
+            break;
 
-        rc = wait(channel, &uevt, -1);
-        if (rc < 0 || !(uevt.event & IPC_HANDLE_POLL_MSG)) {
-            TLOGI("Channel wait failed: %d(%d)\n", rc, uevt.event);
-            return rc;
+        if (!(uevt.event & IPC_HANDLE_POLL_MSG)) {
+            TLOGI("Received unexpected event %d\n", uevt.event);
+            goto err_evt;
         }
 
-        rc = recv_cmd(channel, &cmd);
+        rc = tipc_recv1(channel, sizeof(cmd), &cmd, sizeof(cmd));
         if (rc < 0) {
             TLOGI("recv_cmd failed: %d\n", rc);
-            return rc;
+            goto err_recv;
         }
 
-        done = handle_cmd(cmd);
-
-        rc = close(channel);
-        if (rc != NO_ERROR) {
-            TLOGI("channel close failed: %d\n", rc);
-            return rc;
-        }
+        done = handle_cmd(cmd, channel, &start_port);
     }
 
-    rc = close(ctrl_port);
-    if (rc != NO_ERROR) {
-        TLOGI("port close failed: %d\n", rc);
-        return rc;
-    }
+err_recv:
+err_evt:
+err_channel_wait:
+err_hset_ctrl:
+    close(channel);
+err_accept:
+err_port_wait:
+    close(shutdown_port);
+err_prep_shutdown:
+    close(mixed_hset);
+err_hset_create:
+    close(ctrl_port);
+err_prep_ctrl:
+    close(start_port);
+err_prep_start:
+    close(port_hset);
 
-    rc = close(handle_set);
-    if (rc != NO_ERROR) {
-        TLOGI("handle set close failed: %d\n", rc);
-        return rc;
-    }
-
-    return 0;
+    return rc;
 }

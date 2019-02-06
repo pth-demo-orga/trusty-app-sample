@@ -23,6 +23,10 @@
 
 #define BOOT_START_PORT "com.android.trusty.appmgmt.bootstartsrv"
 #define NEVER_START_PORT "com.android.trusty.appmgmt.neverstartsrv"
+#define RESTART_PORT "com.android.trusty.appmgmt.restartsrv"
+#define START_PORT "com.android.trusty.appmgmt.portstartsrv"
+#define CTRL_PORT "com.android.trusty.appmgmt.portstartsrv.ctrl"
+#define SHUTDOWN_PORT "com.android.trusty.appmgmt.portstartsrv.shutdown"
 
 #define MAX_CMD_LEN 1
 
@@ -30,7 +34,7 @@ enum {
     CMD_NOP = 0,
     CMD_CLOSE_PORT = 1,
     CMD_EXIT = 2,
-    CMD_DELAYED_EXIT = 3,
+    CMD_OPEN_PORT = 3,
 };
 
 enum {
@@ -38,8 +42,5 @@ enum {
     RSP_CMD_FAILED = 1,
     RSP_INVALID_CMD = 2,
 };
-
-int send_rsp(handle_t channel, uint8_t rsp);
-int recv_cmd(handle_t channel, uint8_t* cmd);
 
 #endif
