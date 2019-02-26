@@ -955,17 +955,17 @@ TEST(ipc, send_msg) {
     char path[MAX_PORT_PATH_LEN];
     uint8_t buf0[64];
     uint8_t buf1[64];
-    iovec_t iov[2];
+    struct iovec iov[2];
     ipc_msg_t msg;
 
     /* prepare test buffer */
     fill_test_buf(buf0, sizeof(buf0), 0x55);
     fill_test_buf(buf1, sizeof(buf1), 0x44);
 
-    iov[0].base = buf0;
-    iov[0].len = sizeof(buf0);
-    iov[1].base = buf1;
-    iov[1].len = sizeof(buf1);
+    iov[0].iov_base = buf0;
+    iov[0].iov_len = sizeof(buf0);
+    iov[1].iov_base = buf1;
+    iov[1].iov_len = sizeof(buf1);
     msg.num_handles = 0;
     msg.handles = NULL;
     msg.num_iov = 2;
@@ -1006,7 +1006,7 @@ TEST(ipc, send_msg_negative) {
     handle_t chan;
     char path[MAX_PORT_PATH_LEN];
     uint8_t buf[64];
-    iovec_t iov[2];
+    struct iovec iov[2];
     ipc_msg_t msg;
 
     /* init msg to empty message */
@@ -1087,20 +1087,20 @@ TEST(ipc, send_msg_negative) {
     EXPECT_EQ(ERR_FAULT, rc, "sending bad iovec array");
 
     /*  send msg with iovec with bad base ptr */
-    iov[0].len = sizeof(buf) / 2;
-    iov[0].base = NULL;
-    iov[1].len = sizeof(buf) / 2;
-    iov[1].base = NULL;
+    iov[0].iov_len = sizeof(buf) / 2;
+    iov[0].iov_base = NULL;
+    iov[1].iov_len = sizeof(buf) / 2;
+    iov[1].iov_base = NULL;
     msg.num_iov = 2;
     msg.iov = iov;
     rc = send_msg(chan, &msg);
     EXPECT_EQ(ERR_FAULT, rc, "sending bad iovec");
 
     /*  send msg with iovec with bad base ptr */
-    iov[0].len = sizeof(buf) / 2;
-    iov[0].base = buf;
-    iov[1].len = sizeof(buf) / 2;
-    iov[1].base = NULL;
+    iov[0].iov_len = sizeof(buf) / 2;
+    iov[0].iov_base = buf;
+    iov[1].iov_len = sizeof(buf) / 2;
+    iov[1].iov_base = NULL;
     msg.num_iov = 2;
     msg.iov = iov;
     rc = send_msg(chan, &msg);
@@ -1120,9 +1120,9 @@ TEST(ipc, read_msg_negative) {
     uint8_t rx_buf[64];
     ipc_msg_info_t inf;
     ipc_msg_t tx_msg;
-    iovec_t tx_iov;
+    struct iovec tx_iov;
     ipc_msg_t rx_msg;
-    iovec_t rx_iov[2];
+    struct iovec rx_iov[2];
 
     /* init msg to empty message */
     memset(&rx_msg, 0, sizeof(rx_msg));
@@ -1198,8 +1198,8 @@ TEST(ipc, read_msg_negative) {
 
     /* send a message to echo service */
     memset(tx_buf, 0x55, sizeof(tx_buf));
-    tx_iov.base = tx_buf;
-    tx_iov.len = sizeof(tx_buf);
+    tx_iov.iov_base = tx_buf;
+    tx_iov.iov_len = sizeof(tx_buf);
     tx_msg.num_iov = 1;
     tx_msg.iov = &tx_iov;
     tx_msg.num_handles = 0;
@@ -1219,8 +1219,8 @@ TEST(ipc, read_msg_negative) {
 
     /* now we have valid message with valid id */
 
-    rx_iov[0].len = sizeof(rx_buf) / 2;
-    rx_iov[1].len = sizeof(rx_buf) / 2;
+    rx_iov[0].iov_len = sizeof(rx_buf) / 2;
+    rx_iov[1].iov_len = sizeof(rx_buf) / 2;
 
     /* read message with invalid iovec array */
     rx_msg.iov = NULL;
@@ -1229,19 +1229,19 @@ TEST(ipc, read_msg_negative) {
     EXPECT_EQ(ERR_FAULT, rc, "read with invalid iovec array");
 
     /* read with invalid iovec entry */
-    rx_iov[0].base = NULL;
-    rx_iov[1].base = NULL;
+    rx_iov[0].iov_base = NULL;
+    rx_iov[1].iov_base = NULL;
     rx_msg.iov = rx_iov;
     rc = read_msg(chan, inf.id, 0, &rx_msg);
     EXPECT_EQ(ERR_FAULT, rc, "read with invalid iovec");
 
-    rx_iov[0].base = rx_buf;
-    rx_iov[1].base = NULL;
+    rx_iov[0].iov_base = rx_buf;
+    rx_iov[1].iov_base = NULL;
     rc = read_msg(chan, inf.id, 0, &rx_msg);
     EXPECT_EQ(ERR_FAULT, rc, "read with invalid iovec");
 
-    rx_iov[0].base = rx_buf;
-    rx_iov[1].base = rx_buf + sizeof(rx_buf) / 2;
+    rx_iov[0].iov_base = rx_buf;
+    rx_iov[1].iov_base = rx_buf + sizeof(rx_buf) / 2;
 
     /* read with invalid offset with valid iovec array */
     rc = read_msg(chan, inf.id, inf.len + 1, &rx_msg);
@@ -1264,19 +1264,19 @@ TEST(ipc, end_to_end_msg) {
     uint8_t rx_buf[64];
     ipc_msg_info_t inf;
     ipc_msg_t tx_msg;
-    iovec_t tx_iov;
+    struct iovec tx_iov;
     ipc_msg_t rx_msg;
-    iovec_t rx_iov;
+    struct iovec rx_iov;
 
-    tx_iov.base = tx_buf;
-    tx_iov.len = sizeof(tx_buf);
+    tx_iov.iov_base = tx_buf;
+    tx_iov.iov_len = sizeof(tx_buf);
     tx_msg.num_iov = 1;
     tx_msg.iov = &tx_iov;
     tx_msg.num_handles = 0;
     tx_msg.handles = NULL;
 
-    rx_iov.base = rx_buf;
-    rx_iov.len = sizeof(rx_buf);
+    rx_iov.iov_base = rx_buf;
+    rx_iov.iov_len = sizeof(rx_buf);
     rx_msg.num_iov = 1;
     rx_msg.iov = &rx_iov;
     rx_msg.num_handles = 0;
@@ -1600,7 +1600,7 @@ TEST(ipc, hset_add_chan) {
     void* cookie22 = (void*)"cookie22";
     void* cookiehs2 = (void*)"cookiehs2";
     uint8_t buf0[64];
-    iovec_t iov;
+    struct iovec iov;
     ipc_msg_t msg;
 
     /* prepare test buffer */
@@ -1619,8 +1619,8 @@ TEST(ipc, hset_add_chan) {
     EXPECT_EQ(0, rc, "cookie2");
 
     /* send message over chan1 and chan2 */
-    iov.base = buf0;
-    iov.len = sizeof(buf0);
+    iov.iov_base = buf0;
+    iov.iov_len = sizeof(buf0);
     msg.num_handles = 0;
     msg.handles = NULL;
     msg.num_iov = 1;
@@ -1744,7 +1744,7 @@ TEST(ipc, hset_event_mask) {
     void* cookie1 = (void*)"cookie1";
     void* cookie11 = (void*)"cookie11";
     uint8_t buf0[64];
-    iovec_t iov;
+    struct iovec iov;
     ipc_msg_t msg;
 
     /* prepare test buffer */
@@ -1757,8 +1757,8 @@ TEST(ipc, hset_event_mask) {
     EXPECT_EQ(0, rc, "cookie1");
 
     /* send message over chan1 and chan2 */
-    iov.base = buf0;
-    iov.len = sizeof(buf0);
+    iov.iov_base = buf0;
+    iov.iov_len = sizeof(buf0);
     msg.num_handles = 0;
     msg.handles = NULL;
     msg.num_iov = 1;
@@ -1824,7 +1824,7 @@ abort_test:
 
 TEST(ipc, send_handle) {
     int rc;
-    iovec_t iov;
+    struct iovec iov;
     ipc_msg_t msg;
     handle_t hchan1;
     handle_t hchan2;
@@ -1847,8 +1847,8 @@ TEST(ipc, send_handle) {
     hchan2 = (handle_t)rc;
 
     /* send hchan2 handle over hchan1 connection */
-    iov.base = buf0;
-    iov.len = sizeof(buf0);
+    iov.iov_base = buf0;
+    iov.iov_len = sizeof(buf0);
     msg.iov = &iov;
     msg.num_iov = 1;
     msg.handles = &hchan2;
@@ -1927,7 +1927,7 @@ TEST(ipc, recv_handle) {
     handle_t hchan2;
     handle_t hrecv[2];
     uint8_t buf0[64];
-    iovec_t iov;
+    struct iovec iov;
     ipc_msg_t msg;
     uevent_t evt;
     ipc_msg_info_t inf;
@@ -1951,8 +1951,8 @@ TEST(ipc, recv_handle) {
     hchan2 = (handle_t)rc;
 
     /* send message with handle */
-    iov.base = buf0;
-    iov.len = sizeof(buf0);
+    iov.iov_base = buf0;
+    iov.iov_len = sizeof(buf0);
     msg.iov = &iov;
     msg.num_iov = 1;
     msg.handles = &hchan2;
@@ -2107,7 +2107,7 @@ err_connect1:;
 
 TEST(ipc, send_handle_bulk) {
     int rc;
-    iovec_t iov;
+    struct iovec iov;
     ipc_msg_t msg;
     handle_t hchan1;
     handle_t hchan2;
@@ -2130,8 +2130,8 @@ TEST(ipc, send_handle_bulk) {
     hchan2 = (handle_t)rc;
 
     /* send hchan2 handle over hchan1 connection */
-    iov.base = buf0;
-    iov.len = sizeof(buf0);
+    iov.iov_base = buf0;
+    iov.iov_len = sizeof(buf0);
     msg.iov = &iov;
     msg.num_iov = 1;
     msg.handles = &hchan2;
@@ -2164,8 +2164,8 @@ TEST(ipc, send_handle_bulk) {
         hchan2 = (handle_t)rc;
 
         /* send hchan2 handle over hchan1 connection */
-        iov.base = buf0;
-        iov.len = sizeof(buf0);
+        iov.iov_base = buf0;
+        iov.iov_len = sizeof(buf0);
         msg.iov = &iov;
         msg.num_iov = 1;
         msg.handles = &hchan2;
@@ -2201,7 +2201,7 @@ TEST(ipc, echo_handle_bulk) {
     handle_t hchan2;
     handle_t hrecv;
     uint8_t buf0[64];
-    iovec_t iov;
+    struct iovec iov;
     ipc_msg_t msg;
     uevent_t evt;
     ipc_msg_info_t inf;
@@ -2227,8 +2227,8 @@ TEST(ipc, echo_handle_bulk) {
     /* send the same handle 10000 times */
     for (unsigned int i = 0; (i < 10000) && !HasFailure(); i++) {
         /* send message with handle */
-        iov.base = buf0;
-        iov.len = sizeof(buf0);
+        iov.iov_base = buf0;
+        iov.iov_len = sizeof(buf0);
         msg.iov = &iov;
         msg.num_iov = 1;
         msg.handles = &hchan2;

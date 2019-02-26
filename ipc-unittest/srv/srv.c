@@ -580,7 +580,7 @@ static uint8_t echo_msg_buf[MAX_PORT_BUF_SIZE];
 
 static int _echo_handle_msg(const uevent_t* ev, int delay) {
     int rc;
-    iovec_t iov;
+    struct iovec iov;
     ipc_msg_t msg;
     handle_t handles[8];
     echo_chan_state_t* st = containerof(ev->cookie, echo_chan_state_t, handler);
@@ -605,8 +605,8 @@ static int _echo_handle_msg(const uevent_t* ev, int delay) {
     /* handle all messages in queue */
     while (st->msg_cnt) {
         /* init message structure */
-        iov.base = echo_msg_buf;
-        iov.len = sizeof(echo_msg_buf);
+        iov.iov_base = echo_msg_buf;
+        iov.iov_len = sizeof(echo_msg_buf);
         msg.num_iov = 1;
         msg.iov = &iov;
         msg.handles = handles;
@@ -620,7 +620,7 @@ static int _echo_handle_msg(const uevent_t* ev, int delay) {
         }
 
         /* update number of bytes received */
-        iov.len = (size_t)rc;
+        iov.iov_len = (size_t)rc;
 
         /* optionally sleep a bit an send it back */
         if (delay) {
@@ -744,7 +744,7 @@ static void echo_handle_port(const uevent_t* ev) {
  */
 static void uuid_handle_port(const uevent_t* ev) {
     ipc_msg_t msg;
-    iovec_t iov;
+    struct iovec iov;
     uuid_t peer_uuid;
 
     if (handle_port_errors(ev))
@@ -762,8 +762,8 @@ static void uuid_handle_port(const uevent_t* ev) {
         chan = (handle_t)rc;
 
         /* send interface uuid */
-        iov.base = &peer_uuid;
-        iov.len = sizeof(peer_uuid);
+        iov.iov_base = &peer_uuid;
+        iov.iov_len = sizeof(peer_uuid);
         msg.num_iov = 1;
         msg.iov = &iov;
         msg.num_handles = 0;
