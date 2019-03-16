@@ -17,7 +17,7 @@
 
 #include <lk/compiler.h>
 #include <sys/types.h>
-#include <trusty_uuid.h>
+#include <uapi/trusty_uuid.h>
 
 struct hwkey_keyslot {
     const char* key_id;
