@@ -215,4 +215,28 @@ TEST_F(libc, malloc_oom) {
 test_abort:;
 }
 
+/*
+ * Grab the frame pointer in a simple, non-inlined function.
+ * Note this isn't a static function. We're trying to game the optimizer and
+ * ensure it doesn't change the calling convention.
+ */
+__attribute__((__noinline__)) uintptr_t frame_ptr() {
+    return (uintptr_t)__builtin_frame_address(0);
+}
+
+TEST_F(libc, stack_alignment) {
+    /*
+     * On all the platforms we support, the frame pointer should be aligned to 2
+     * times pointer size. This includes x86_64 because the stack pointer is
+     * implicitly re-aligned after function entry before it becomes the frame
+     * pointer.
+     * Note that this test passing does not guarentee correctness, but it can
+     * catch badness.
+     */
+    const uintptr_t alignment_mask = sizeof(void*) * 2 - 1;
+    ASSERT_EQ(0, frame_ptr() & alignment_mask);
+
+test_abort:;
+}
+
 PORT_TEST(libc, "com.android.libctest");
