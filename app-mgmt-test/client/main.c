@@ -304,11 +304,8 @@ test_abort:
 }
 
 /* Regular ports should not start an app on connection */
-TEST_F(AppMgrPortStart, PortStartNegative) {
+TEST(AppMgrPortStartNegative, PortStartNegative) {
     int rc;
-
-    /* Shutdown port-start-srv */
-    send_exit(_state, MAIN_CHAN);
 
     /* A connection to CTRL_PORT should not start port-start-srv */
     rc = connect(CTRL_PORT, IPC_CONNECT_ASYNC);
