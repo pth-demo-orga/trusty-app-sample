@@ -132,7 +132,8 @@ TEST_F(libc, time) {
     delta = end - begin;
 
     ASSERT_LT(1 * MSEC, delta);
-    ASSERT_LT(delta, 100 * MSEC);
+    /* We've observed 200 ms sleeps in the emulator, so be generous. */
+    ASSERT_LT(delta, 1000 * MSEC);
 
 test_abort:;
 }
