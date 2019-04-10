@@ -1,0 +1,50 @@
+# Copyright (C) 2019 The Android Open Source Project
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This file lists userspace tests
+
+[
+    # userspace tests that don't use storage
+    porttest("com.android.libctest"),
+    porttest("com.android.timer-unittest"),
+    porttest("com.android.ipc-unittest.ctrl"),
+    porttest("com.android.appmgmt-unittest.appmngr"),
+    porttest("com.android.appmgmt-unittest.syscalls"),
+    porttest("com.android.appmgmt-unittest.syscalls.aux"),
+
+    # userspace tests using storage available at early boot
+    needs(
+        [
+            porttest("com.android.storage-unittest.tp.init"),
+            porttest("com.android.storage-unittest.tp.check"),
+            porttest("com.android.storage-unittest.tp.clean"),
+            porttest("com.android.storage-unittest.tp"),
+            porttest("com.android.storage-unittest.tdea.init"),
+            porttest("com.android.storage-unittest.tdea.check"),
+            porttest("com.android.storage-unittest.tdea.clean"),
+            porttest("com.android.storage-unittest.tdea"),
+        ],
+        storage_boot=True,
+    ),
+
+    # Storage tests which require a nonsecure file
+    # These need Android or a similar resource to run, simple RPMB
+    # in testrunner is insufficient.
+    needs(
+        [
+            porttest("com.android.storage-unittest.td"),
+        ],
+        storage_full=True,
+    ),
+]
