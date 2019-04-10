@@ -400,7 +400,7 @@ static void connect_handle_port(const uevent_t* ev) {
         for (unsigned int i = FIRST_FREE_HANDLE; i < MAX_USER_HANDLES; i++) {
             sprintf(path, "%s.port.accept%d", SRV_PATH_BASE, i);
             rc = sync_connect(path, 1000);
-            close(rc);
+            close((handle_t)rc);
         }
     }
 }

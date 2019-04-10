@@ -243,7 +243,7 @@ TEST(ipc, port_create_negative) {
     path[sizeof(path) - 1] = '\0';
     rc = port_create(path, 2, MAX_PORT_BUF_SIZE, 0);
     EXPECT_EQ(ERR_INVALID_ARGS, rc, "path is too long");
-    rc = close(rc);
+    rc = close((handle_t)rc);
     EXPECT_EQ(ERR_BAD_HANDLE, rc, "close port");
 }
 
@@ -374,7 +374,7 @@ TEST(ipc, connect_negative) {
     rc = connect(path, IPC_CONNECT_WAIT_FOR_PORT);
     EXPECT_EQ(ERR_INVALID_ARGS, rc, "long path");
 
-    rc = close(rc);
+    rc = close((handle_t)rc);
     EXPECT_EQ(ERR_BAD_HANDLE, rc, "close channel");
 }
 
@@ -812,7 +812,7 @@ TEST(ipc, accept) {
         rc1 = memcmp(&peer_uuid, &srv_app_uuid, sizeof(srv_app_uuid));
         EXPECT_EQ(0, rc1, "accept test")
 
-        rc = close(rc);
+        rc = close((handle_t)rc);
         EXPECT_EQ(NO_ERROR, rc, "accept test");
     }
 

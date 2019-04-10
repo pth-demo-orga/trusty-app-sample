@@ -74,7 +74,7 @@ static bool port_start_srv_running(void) {
 
     trusty_nanosleep(0, 0, WAIT_FOR_APP_SLEEP_NS);
     rc = connect(CTRL_PORT, IPC_CONNECT_ASYNC);
-    close(rc);
+    close((handle_t)rc);
     return rc >= 0;
 }
 
@@ -241,7 +241,7 @@ TEST(AppMgrBoot, BootStartNegative) {
     /* never-start-srv should not be running */
     rc = connect(NEVER_START_PORT, IPC_CONNECT_ASYNC);
     EXPECT_LT(rc, 0);
-    close(rc);
+    close((handle_t)rc);
 }
 
 /* Apps without deferred should start at boot */
@@ -251,7 +251,7 @@ TEST(AppMgrBoot, BootStartPositive) {
     /* boot-start-srv should be running from boot */
     rc = connect(BOOT_START_PORT, IPC_CONNECT_ASYNC);
     EXPECT_GE(rc, 0);
-    close(rc);
+    close((handle_t)rc);
 }
 
 /* Apps with automatic restart should restart after exiting */
@@ -300,7 +300,7 @@ TEST(AppMgrRestart, AppRestartNegativePortStartPositive) {
     ASSERT_EQ(false, port_start_srv_running());
 
 test_abort:
-    close(rc);
+    close((handle_t)rc);
 }
 
 /* Regular ports should not start an app on connection */
@@ -310,7 +310,7 @@ TEST(AppMgrPortStartNegative, PortStartNegative) {
     /* A connection to CTRL_PORT should not start port-start-srv */
     rc = connect(CTRL_PORT, IPC_CONNECT_ASYNC);
     EXPECT_LT(rc, 0);
-    close(rc);
+    close((handle_t)rc);
 }
 
 /* Start ports with closed pending connections should not start an app */
