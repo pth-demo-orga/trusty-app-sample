@@ -91,7 +91,7 @@ static int prepare_port(const char* port_name, handle_t hset) {
     port = (handle_t)rc;
 
     uevt.handle = port;
-    uevt.event = ~0;
+    uevt.event = ~0U;
     uevt.cookie = NULL;
 
     rc = handle_set_ctrl(hset, HSET_ADD, &uevt);
@@ -166,7 +166,7 @@ int main(void) {
     channel = (handle_t)rc;
 
     uevt.handle = channel;
-    uevt.event = ~0;
+    uevt.event = ~0U;
     uevt.cookie = NULL;
 
     rc = handle_set_ctrl(mixed_hset, HSET_ADD, &uevt);

@@ -1407,7 +1407,7 @@ TEST(ipc, hset_add_mod_del) {
 
     uevent_t evt = {
             .handle = hset2,
-            .event = ~0,
+            .event = ~0U,
             .cookie = NULL,
     };
 
@@ -1439,7 +1439,7 @@ TEST(ipc, hset_add_self) {
 
     uevent_t evt = {
             .handle = hset1,
-            .event = ~0,
+            .event = ~0U,
             .cookie = NULL,
     };
 
@@ -1470,7 +1470,7 @@ TEST(ipc, hset_add_loop) {
 
     uevent_t evt = {
             .handle = hset2,
-            .event = ~0,
+            .event = ~0U,
             .cookie = NULL,
     };
 
@@ -1509,7 +1509,7 @@ TEST(ipc, hset_add_duplicate) {
 
     uevent_t evt = {
             .handle = hset2,
-            .event = ~0,
+            .event = ~0U,
             .cookie = NULL,
     };
 
@@ -1564,7 +1564,7 @@ TEST(ipc, hset_wait_on_non_empty_set) {
 
     uevent_t evt = {
             .handle = hset2,
-            .event = ~0,
+            .event = ~0U,
             .cookie = NULL,
     };
 
@@ -1642,35 +1642,35 @@ TEST(ipc, hset_add_chan) {
 
     /* chan1 to hset2 */
     evt.handle = chan1;
-    evt.event = ~0;
+    evt.event = ~0U;
     evt.cookie = cookie12;
     rc = handle_set_ctrl(hset2, HSET_ADD, &evt);
     EXPECT_EQ(0, rc, "add hset2 to hset1");
 
     /* chan2 to hset2 */
     evt.handle = chan2;
-    evt.event = ~0;
+    evt.event = ~0U;
     evt.cookie = cookie22;
     rc = handle_set_ctrl(hset2, HSET_ADD, &evt);
     EXPECT_EQ(0, rc, "add hset2 to hset1");
 
     /* add hset2 to hset1 */
     evt.handle = hset2;
-    evt.event = ~0;
+    evt.event = ~0U;
     evt.cookie = cookiehs2;
     rc = handle_set_ctrl(hset1, HSET_ADD, &evt);
     EXPECT_EQ(0, rc, "add hset2 to hset1");
 
     /* chan1 to hset1 */
     evt.handle = chan1;
-    evt.event = ~0;
+    evt.event = ~0U;
     evt.cookie = cookie11;
     rc = handle_set_ctrl(hset1, HSET_ADD, &evt);
     EXPECT_EQ(0, rc, "add hset2 to hset1");
 
     /* chan2 to hset1 */
     evt.handle = chan2;
-    evt.event = ~0;
+    evt.event = ~0U;
     evt.cookie = cookie21;
     rc = handle_set_ctrl(hset1, HSET_ADD, &evt);
     EXPECT_EQ(0, rc, "add hset2 to hset1");
@@ -1774,7 +1774,7 @@ TEST(ipc, hset_event_mask) {
 
     /* chan1 to hset1 */
     evt.handle = chan1;
-    evt.event = ~0;
+    evt.event = ~0U;
     evt.cookie = cookie11;
     rc = handle_set_ctrl(hset1, HSET_ADD, &evt);
     EXPECT_EQ(0, rc, "add chan1 to hset1");
@@ -1804,7 +1804,7 @@ TEST(ipc, hset_event_mask) {
 
     /* unmask off chan1 in hset1 */
     evt.handle = chan1;
-    evt.event = ~0;
+    evt.event = ~0U;
     evt.cookie = cookie11;
     rc = handle_set_ctrl(hset1, HSET_MOD, &evt);
     EXPECT_EQ(0, rc, "mod chan1 in hset1");
