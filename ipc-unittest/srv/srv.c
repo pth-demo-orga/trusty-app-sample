@@ -835,7 +835,7 @@ int main(void) {
         event.handle = INVALID_IPC_HANDLE;
         event.event = 0;
         event.cookie = NULL;
-        rc = wait_any(&event, -1);
+        rc = wait_any(&event, INFINITE_TIME);
         if (rc < 0) {
             TLOGI("wait_any failed (%d)", rc);
             continue;

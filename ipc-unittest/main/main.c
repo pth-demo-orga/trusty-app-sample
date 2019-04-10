@@ -605,7 +605,7 @@ TEST(ipc, connect_selfie) {
         uevent_t event;
         unsigned int exp_event = IPC_HANDLE_POLL_READY;
 
-        int rc = wait_any(&event, -1);
+        int rc = wait_any(&event, INFINITE_TIME);
         EXPECT_EQ(NO_ERROR, rc, "wait on port");
         EXPECT_EQ(test_port, event.handle, "wait on port");
         EXPECT_EQ(exp_event, event.event, "wait on port");
@@ -2329,7 +2329,7 @@ TEST(ipc, tipc_send_recv_1) {
     rc = tipc_send1(h, NULL, 0);
     EXPECT_EQ(0, rc, "tipc_send_one");
 
-    rc = wait(h, &evt, -1);
+    rc = wait(h, &evt, INFINITE_TIME);
     EXPECT_EQ(0, rc, "wait for reply");
 
     rc = tipc_recv1(h, 0, rx_buf, sizeof(rx_buf));
@@ -2342,7 +2342,7 @@ TEST(ipc, tipc_send_recv_1) {
     rc = tipc_send1(h, tx_buf, sizeof(tx_buf) / 2);
     EXPECT_EQ(sizeof(tx_buf) / 2, (size_t)rc, "tipc_send1");
 
-    rc = wait(h, &evt, -1);
+    rc = wait(h, &evt, INFINITE_TIME);
     EXPECT_EQ(0, rc, "wait for reply");
 
     rc = tipc_recv1(h, 0, rx_buf, sizeof(rx_buf));
@@ -2361,7 +2361,7 @@ TEST(ipc, tipc_send_recv_1) {
     rc = tipc_send1(h, tx_buf, sizeof(tx_buf));
     EXPECT_EQ(sizeof(tx_buf), (size_t)rc, "tipc_send1");
 
-    rc = wait(h, &evt, -1);
+    rc = wait(h, &evt, INFINITE_TIME);
     EXPECT_EQ(0, rc, "wait for reply");
 
     rc = tipc_recv1(h, 0, rx_buf, sizeof(rx_buf) / 2);
@@ -2376,7 +2376,7 @@ TEST(ipc, tipc_send_recv_1) {
     rc = tipc_send1(h, tx_buf, sizeof(tx_buf) / 2);
     EXPECT_EQ(sizeof(tx_buf) / 2, (size_t)rc, "tipc_send1");
 
-    rc = wait(h, &evt, -1);
+    rc = wait(h, &evt, INFINITE_TIME);
     EXPECT_EQ(0, rc, "wait for reply");
 
     rc = tipc_recv1(h, sizeof(rx_buf), rx_buf, sizeof(rx_buf));
@@ -2411,7 +2411,7 @@ TEST(ipc, tipc_send_recv_hdr_payload) {
     rc = tipc_send2(h, tx_hdr, sizeof(tx_hdr), tx_buf, sizeof(tx_buf) / 2);
     EXPECT_EQ(sizeof(tx_hdr) + sizeof(tx_buf) / 2, (size_t)rc, "tipc_send_two");
 
-    rc = wait(h, &evt, -1);
+    rc = wait(h, &evt, INFINITE_TIME);
     EXPECT_EQ(0, rc, "wait for reply");
 
     rc = tipc_recv_hdr_payload(h, rx_hdr, sizeof(rx_hdr), rx_buf,
@@ -2434,7 +2434,7 @@ TEST(ipc, tipc_send_recv_hdr_payload) {
     rc = tipc_send2(h, NULL, 0, tx_buf, sizeof(tx_buf) / 2);
     EXPECT_EQ(sizeof(tx_buf) / 2, (size_t)rc, "tipc_send_two");
 
-    rc = wait(h, &evt, -1);
+    rc = wait(h, &evt, INFINITE_TIME);
     EXPECT_EQ(0, rc, "wait for reply");
 
     rc = tipc_recv_hdr_payload(h, NULL, 0, rx_buf, sizeof(rx_buf));
@@ -2452,7 +2452,7 @@ TEST(ipc, tipc_send_recv_hdr_payload) {
     rc = tipc_send2(h, tx_hdr, sizeof(tx_hdr), NULL, 0);
     EXPECT_EQ(sizeof(tx_hdr), (size_t)rc, "tipc_send_two");
 
-    rc = wait(h, &evt, -1);
+    rc = wait(h, &evt, INFINITE_TIME);
     EXPECT_EQ(0, rc, "wait for reply");
 
     rc = tipc_recv_hdr_payload(h, rx_hdr, sizeof(rx_hdr), rx_buf,
@@ -2473,7 +2473,7 @@ TEST(ipc, tipc_send_recv_hdr_payload) {
     rc = tipc_send2(h, tx_hdr, sizeof(tx_hdr) / 2, NULL, 0);
     EXPECT_EQ(sizeof(tx_hdr) / 2, (size_t)rc, "tipc_send_two");
 
-    rc = wait(h, &evt, -1);
+    rc = wait(h, &evt, INFINITE_TIME);
     EXPECT_EQ(0, rc, "wait for reply");
 
     rc = tipc_recv_hdr_payload(h, rx_hdr, sizeof(rx_hdr), NULL, 0);
@@ -2491,7 +2491,7 @@ TEST(ipc, tipc_send_recv_hdr_payload) {
     rc = tipc_send2(h, tx_hdr, sizeof(tx_hdr), tx_buf, sizeof(tx_buf));
     EXPECT_EQ(sizeof(tx_hdr) + sizeof(tx_buf), (size_t)rc, "tipc_send_two");
 
-    rc = wait(h, &evt, -1);
+    rc = wait(h, &evt, INFINITE_TIME);
     EXPECT_EQ(0, rc, "wait for reply");
 
     rc = tipc_recv_hdr_payload(h, rx_hdr, sizeof(rx_hdr), rx_buf,

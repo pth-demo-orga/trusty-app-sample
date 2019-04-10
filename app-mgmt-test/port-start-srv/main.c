@@ -152,7 +152,7 @@ int main(void) {
     }
     shutdown_port = (handle_t)rc;
 
-    rc = wait(port_hset, &uevt, -1);
+    rc = wait(port_hset, &uevt, INFINITE_TIME);
     if (rc != NO_ERROR || !(uevt.event & IPC_HANDLE_POLL_READY)) {
         TLOGI("Port wait failed: %d(%d)\n", rc, uevt.event);
         goto err_port_wait;
@@ -176,7 +176,7 @@ int main(void) {
     }
 
     while (!done) {
-        rc = wait(mixed_hset, &uevt, -1);
+        rc = wait(mixed_hset, &uevt, INFINITE_TIME);
         if (rc < 0) {
             TLOGI("Channel wait failed: %d\n", uevt.event);
             goto err_channel_wait;

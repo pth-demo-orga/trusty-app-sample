@@ -38,7 +38,7 @@ int main(void) {
 
     restart_port = (handle_t)rc;
 
-    rc = wait(restart_port, &uevt, -1);
+    rc = wait(restart_port, &uevt, INFINITE_TIME);
     if (rc != NO_ERROR || !(uevt.event & IPC_HANDLE_POLL_READY)) {
         TLOGI("Port wait failed: %d(%d)\n", rc, uevt.event);
         return rc;

@@ -39,7 +39,7 @@ int main(void) {
     phandle = (handle_t)rc;
 
     while (true) {
-        rc = wait(phandle, &uevt, -1);
+        rc = wait(phandle, &uevt, INFINITE_TIME);
         if (rc != NO_ERROR || !(uevt.event & IPC_HANDLE_POLL_READY)) {
             TLOGI("Port wait failed(%d) event:%d handle:%d\n", rc, uevt.event,
                   phandle);
