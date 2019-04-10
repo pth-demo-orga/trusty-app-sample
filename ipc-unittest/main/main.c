@@ -57,7 +57,7 @@ static void fill_test_buf(uint8_t* buf, size_t cnt, uint8_t seed) {
     if (!buf || !cnt)
         return;
 
-    while (cnt--) {
+    for (; cnt > 0; cnt--) {
         *buf++ = seed++;
     }
 }

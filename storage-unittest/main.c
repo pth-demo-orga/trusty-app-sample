@@ -93,7 +93,7 @@ static bool is_valid_offset(storage_off_t off) {
 static void fill_pattern32(uint32_t* buf, size_t len, storage_off_t off) {
     size_t cnt = len / sizeof(uint32_t);
     uint32_t pattern = (uint32_t)(off / sizeof(uint32_t));
-    while (cnt--) {
+    for (; cnt > 0; cnt--) {
         *buf++ = pattern++;
     }
 }
@@ -103,7 +103,7 @@ static bool check_pattern32(const uint32_t* buf,
                             storage_off_t off) {
     size_t cnt = len / sizeof(uint32_t);
     uint32_t pattern = (uint32_t)(off / sizeof(uint32_t));
-    while (cnt--) {
+    for (; cnt > 0; cnt--) {
         if (*buf != pattern)
             return false;
         buf++;
@@ -114,7 +114,7 @@ static bool check_pattern32(const uint32_t* buf,
 
 static bool check_value32(const uint32_t* buf, size_t len, uint32_t val) {
     size_t cnt = len / sizeof(uint32_t);
-    while (cnt--) {
+    for (; cnt > 0; cnt--) {
         if (*buf != val)
             return false;
         buf++;
