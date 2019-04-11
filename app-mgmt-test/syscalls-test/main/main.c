@@ -17,7 +17,6 @@
 #include <app_mgmt_test.h>
 #include <lib/tipc/tipc.h>
 #include <lib/unittest/unittest.h>
-#include <shared/lk/macros.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/mman.h>
