@@ -41,7 +41,7 @@ int main(void) {
 
     port = (handle_t)rc;
 
-    rc = wait(port, &uevt, -1);
+    rc = wait(port, &uevt, INFINITE_TIME);
     if (rc != NO_ERROR || !(uevt.event & IPC_HANDLE_POLL_READY)) {
         TLOGI("Port wait failed: %d(%d)\n", rc, uevt.event);
         goto err_port_wait;
@@ -54,7 +54,7 @@ int main(void) {
     }
 
     chan = (handle_t)rc;
-    rc = wait(chan, &uevt, -1);
+    rc = wait(chan, &uevt, INFINITE_TIME);
     if (rc < 0 || !(uevt.event & IPC_HANDLE_POLL_MSG)) {
         TLOGI("Channel wait failed: %d(%d)\n", rc, uevt.event);
         goto err_chan_wait;
