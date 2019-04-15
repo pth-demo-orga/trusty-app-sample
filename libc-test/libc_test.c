@@ -112,6 +112,12 @@ TEST_F(libc, strcmp_test) {
     ASSERT_GT(0, strcmp("bar", "barbar"));
     ASSERT_LT(0, strcmp("barbar", "bar"));
 
+    char negative[2] = {-127, 0};
+    char positive[2] = {0, 0};
+    // strcmp must treat characters as unsigned
+    ASSERT_LT(0, strcmp(negative, positive));
+    ASSERT_LT(0, strncmp(negative, positive, 1));
+
 test_abort:;
 }
 
