@@ -280,4 +280,30 @@ TEST_F(libc, stack_alignment) {
 test_abort:;
 }
 
+#if __ARM_NEON__ || __ARM_NEON
+
+#include <arm_neon.h>
+
+/*
+ * NOTE this is a fairly weak test that checks if a neon instruction can be
+ * executed. This will help detect cases where the build flags do not match the
+ * actual system the code is running on.
+ */
+TEST_F(libc, basic_neon) {
+    int8x16_t block1 = vdupq_n_u8(0x55);
+    int8x16_t block2 = vdupq_n_u8(0x33);
+    int8x16_t expected;
+    int8x16_t result;
+
+    /* memset just to be sure. */
+    memset(&expected, 0x66, sizeof(int8x16_t));
+
+    result = veorq_s8(block1, block2);
+    ASSERT_EQ(0, memcmp(&expected, &result, sizeof(int8x16_t)));
+
+test_abort:;
+}
+
+#endif
+
 PORT_TEST(libc, "com.android.libctest");
