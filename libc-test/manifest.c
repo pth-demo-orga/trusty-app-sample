@@ -26,6 +26,6 @@ trusty_app_manifest_t TRUSTY_APP_MANIFEST_ATTRS trusty_app_manifest = {
         {
                 TRUSTY_APP_CONFIG_MIN_STACK_SIZE(1 * 4096),
                 /* four pages for heap */
-                TRUSTY_APP_CONFIG_MIN_HEAP_SIZE(4 * 4096),
+                TRUSTY_APP_CONFIG_MIN_HEAP_SIZE(5 * 4096),
         },
 };
