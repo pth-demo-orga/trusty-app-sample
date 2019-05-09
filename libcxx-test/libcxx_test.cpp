@@ -52,4 +52,23 @@ TEST_F(libcxx, new_and_delete) {
 test_abort:;
 }
 
+/*
+ * Inspecting the generated code, it appears this variable can be optimized out
+ * if it is not declared volatile.
+ */
+volatile bool did_init;
+
+class GlobalSetter {
+public:
+    GlobalSetter() { did_init = true; }
+};
+
+GlobalSetter setter;
+
+TEST_F(libcxx, global_constructor) {
+    /* Did a global constructor run? */
+    ASSERT_EQ(true, did_init);
+test_abort:;
+}
+
 PORT_TEST(libcxx, "com.android.libcxxtest");
