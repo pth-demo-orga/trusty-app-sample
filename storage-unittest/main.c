@@ -2796,11 +2796,10 @@ static bool run_all_tests(const char* port, const char* suite) {
         rc = storage_open_session(&session, port);
         if (rc < 0) {
             TLOGE("failed (%d) to connect to storage server - retrying\n", rc);
-        }
-
 #ifndef STORAGE_FAKE
-        trusty_nanosleep(0, 0, 1000000);
+            trusty_nanosleep(0, 0, 1000000);
 #endif
+        }
 
     } while (rc < 0);
     storage_close_session(session);
