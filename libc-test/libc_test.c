@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <endian.h>
 #include <errno.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -45,6 +46,17 @@ TEST_F_TEARDOWN(libc) {
     /* errno should have been checked and cleared if the test sets errno. */
     CHECK_ERRNO(0);
 
+test_abort:;
+}
+
+/*
+ * Smoke test to make sure the endian functions are defined.
+ * Musl may or may not expose them, depending on the feature test macros.
+ */
+TEST_F(libc, endian) {
+    const uint32_t test_data = 0x12345678;
+    /* TODO test le32, etc, once they are provided. */
+    ASSERT_EQ(test_data, be32toh(htobe32(test_data)));
 test_abort:;
 }
 
