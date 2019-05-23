@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <trusty/string.h>
 
 #include <trusty_unittest.h>
 
@@ -288,6 +289,33 @@ TEST_F(libc, stack_alignment) {
      */
     const uintptr_t alignment_mask = sizeof(void*) * 2 - 1;
     ASSERT_EQ(0, frame_ptr() & alignment_mask);
+
+test_abort:;
+}
+
+#define SCNPRINTF_TEST_BUF_LEN 8
+TEST_F(libc, scnprintf) {
+    char buf[SCNPRINTF_TEST_BUF_LEN];
+    const size_t buf_size = SCNPRINTF_TEST_BUF_LEN - 2;
+
+    buf[0] = 0xfe;
+    /* We should always return 0 in the case of a zero size */
+    EXPECT_EQ(0, scnprintf(buf, 0, "foo"));
+    /* We should have written nothing to the buffer */
+    EXPECT_EQ(buf[0], 0xfe);
+
+    buf[buf_size] = 0xff;
+    /* If we would overflow, we should return chars printed */
+    EXPECT_EQ(buf_size - 1, scnprintf(buf, buf_size, "aaaaaaa"));
+    /* If we would overflow, we should also not have written past end */
+    EXPECT_EQ(0xff, buf[buf_size]);
+    /* The buffer should still be null terminated */
+    EXPECT_EQ(0, buf[buf_size - 1]);
+
+    /* If we would fit, we should return the same as snprintf */
+    EXPECT_EQ(3, scnprintf(buf, buf_size, "%d\n", 10));
+    /* If it would fit, there should be a null terminator */
+    EXPECT_EQ(buf[3], 0);
 
 test_abort:;
 }
