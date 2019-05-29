@@ -298,17 +298,17 @@ TEST_F(libc, scnprintf) {
     char buf[SCNPRINTF_TEST_BUF_LEN];
     const size_t buf_size = SCNPRINTF_TEST_BUF_LEN - 2;
 
-    buf[0] = 0xfe;
+    buf[0] = 'z';
     /* We should always return 0 in the case of a zero size */
     EXPECT_EQ(0, scnprintf(buf, 0, "foo"));
     /* We should have written nothing to the buffer */
-    EXPECT_EQ(buf[0], 0xfe);
+    EXPECT_EQ('z', buf[0]);
 
-    buf[buf_size] = 0xff;
+    buf[buf_size] = 'q';
     /* If we would overflow, we should return chars printed */
     EXPECT_EQ(buf_size - 1, scnprintf(buf, buf_size, "aaaaaaa"));
     /* If we would overflow, we should also not have written past end */
-    EXPECT_EQ(0xff, buf[buf_size]);
+    EXPECT_EQ('q', buf[buf_size]);
     /* The buffer should still be null terminated */
     EXPECT_EQ(0, buf[buf_size - 1]);
 
