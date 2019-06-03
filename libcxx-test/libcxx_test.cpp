@@ -16,7 +16,11 @@
 
 #include <errno.h>
 
+#include <memory>
+
 #include <trusty_unittest.h>
+
+int global_count;
 
 #define CHECK_ERRNO(e)       \
     do {                     \
@@ -34,11 +38,13 @@ typedef struct libcxx {
 TEST_F_SETUP(libcxx) {
     /* Isolate the tests. */
     CLEAR_ERRNO();
+    global_count = 0;
 }
 
 TEST_F_TEARDOWN(libcxx) {
     /* errno should have been checked and cleared if the test sets errno. */
     CHECK_ERRNO(0);
+    ASSERT_EQ(0, global_count);
 
 test_abort:;
 }
@@ -68,6 +74,131 @@ GlobalSetter setter;
 TEST_F(libcxx, global_constructor) {
     /* Did a global constructor run? */
     ASSERT_EQ(true, did_init);
+test_abort:;
+}
+
+class Counter {
+public:
+    Counter() { global_count++; }
+
+    ~Counter() { global_count--; }
+};
+
+TEST_F(libcxx, unique_ptr) {
+    ASSERT_EQ(0, global_count);
+    {
+        std::unique_ptr<Counter> u(new Counter());
+        ASSERT_EQ(1, global_count);
+    }
+    ASSERT_EQ(0, global_count);
+test_abort:;
+}
+
+TEST_F(libcxx, unique_ptr_move) {
+    Counter* p = new Counter();
+    std::unique_ptr<Counter> a(p);
+    std::unique_ptr<Counter> b;
+
+    ASSERT_EQ(1, global_count);
+    ASSERT_EQ(p, a.get());
+    ASSERT_EQ(nullptr, b.get());
+
+    b = std::move(a);
+
+    ASSERT_EQ(1, global_count);
+    ASSERT_EQ(nullptr, a.get());
+    ASSERT_EQ(p, b.get());
+
+    b.reset();
+    ASSERT_EQ(0, global_count);
+    ASSERT_EQ(nullptr, b.get());
+
+test_abort:;
+}
+
+TEST_F(libcxx, shared_ptr) {
+    std::shared_ptr<Counter> a;
+    std::shared_ptr<Counter> b;
+    ASSERT_EQ(0, global_count);
+    a.reset(new Counter());
+    ASSERT_EQ(1, global_count);
+    b = a;
+    ASSERT_EQ(1, global_count);
+    ASSERT_NE(nullptr, a.get());
+    ASSERT_EQ(a.get(), b.get());
+    a.reset();
+    ASSERT_EQ(1, global_count);
+    b.reset();
+    ASSERT_EQ(0, global_count);
+
+test_abort:;
+}
+
+TEST_F(libcxx, shared_ptr_move) {
+    Counter* p = new Counter();
+    std::shared_ptr<Counter> a(p);
+    std::shared_ptr<Counter> b;
+
+    ASSERT_EQ(1, global_count);
+    ASSERT_EQ(p, a.get());
+    ASSERT_EQ(nullptr, b.get());
+
+    b = std::move(a);
+
+    ASSERT_EQ(1, global_count);
+    ASSERT_EQ(nullptr, a.get());
+    ASSERT_EQ(p, b.get());
+
+    b.reset();
+    ASSERT_EQ(0, global_count);
+    ASSERT_EQ(nullptr, b.get());
+
+test_abort:;
+}
+
+TEST_F(libcxx, weak_ptr) {
+    std::weak_ptr<Counter> w;
+    ASSERT_EQ(0, global_count);
+    {
+        std::shared_ptr<Counter> s(new Counter());
+        w = s;
+        ASSERT_EQ(1, global_count);
+        ASSERT_EQ(1, w.use_count());
+        {
+            auto t = w.lock();
+            ASSERT_EQ(1, global_count);
+            ASSERT_EQ(2, w.use_count());
+            ASSERT_EQ(s.get(), t.get());
+        }
+        ASSERT_EQ(1, global_count);
+        ASSERT_EQ(1, w.use_count());
+    }
+    ASSERT_EQ(0, global_count);
+    ASSERT_EQ(0, w.use_count());
+
+test_abort:;
+}
+
+TEST_F(libcxx, weak_ptr_move) {
+    std::shared_ptr<Counter> s(new Counter());
+    std::weak_ptr<Counter> a(s);
+    std::weak_ptr<Counter> b;
+
+    ASSERT_EQ(1, global_count);
+    ASSERT_EQ(1, a.use_count());
+    ASSERT_EQ(0, b.use_count());
+
+    b = std::move(a);
+
+    ASSERT_EQ(1, global_count);
+    ASSERT_EQ(0, a.use_count());
+    ASSERT_EQ(1, b.use_count());
+
+    s.reset();
+
+    ASSERT_EQ(0, global_count);
+    ASSERT_EQ(0, b.use_count());
+
 test_abort:;
 }
 
