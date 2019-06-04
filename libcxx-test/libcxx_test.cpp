@@ -17,6 +17,7 @@
 #include <errno.h>
 
 #include <memory>
+#include <string>
 
 #include <trusty_unittest.h>
 
@@ -198,6 +199,37 @@ TEST_F(libcxx, weak_ptr_move) {
 
     ASSERT_EQ(0, global_count);
     ASSERT_EQ(0, b.use_count());
+
+test_abort:;
+}
+
+// TODO test framework does not compare anything that can't be cast to long.
+TEST_F(libcxx, string_append) {
+    std::string a("abcdefghijklmnopqrstuvwxyz!!!");
+    std::string b("abcdefghijklmnopqrstuvwxyz");
+    ASSERT_NE(0, strcmp(a.c_str(), b.c_str()));
+    b += "!!!";
+    ASSERT_EQ(0, strcmp(a.c_str(), b.c_str()));
+
+test_abort:;
+}
+
+TEST_F(libcxx, string_move) {
+    std::string a("foo");
+    std::string b;
+    ASSERT_EQ(0, strcmp(a.c_str(), "foo"));
+    ASSERT_NE(0, strcmp(b.c_str(), "foo"));
+
+    b = std::move(a);
+
+    ASSERT_NE(0, strcmp(a.c_str(), "foo"));
+    ASSERT_EQ(0, strcmp(b.c_str(), "foo"));
+
+test_abort:;
+}
+
+TEST_F(libcxx, to_string) {
+    ASSERT_EQ(0, strcmp(std::to_string(123).c_str(), "123"));
 
 test_abort:;
 }
