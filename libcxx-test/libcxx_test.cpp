@@ -18,6 +18,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include <trusty_unittest.h>
 
@@ -47,7 +48,8 @@ TEST_F_TEARDOWN(libcxx) {
     CHECK_ERRNO(0);
     ASSERT_EQ(0, global_count);
 
-test_abort:;
+test_abort:
+    global_count = 0;
 }
 
 class Dummy {};
@@ -81,6 +83,8 @@ test_abort:;
 class Counter {
 public:
     Counter() { global_count++; }
+
+    Counter(const Counter& other) { global_count++; }
 
     ~Counter() { global_count--; }
 };
@@ -230,6 +234,42 @@ test_abort:;
 
 TEST_F(libcxx, to_string) {
     ASSERT_EQ(0, strcmp(std::to_string(123).c_str(), "123"));
+
+test_abort:;
+}
+
+TEST_F(libcxx, vector) {
+    const int limit = 20;
+    std::vector<int> v = {1, 2, 3, 4, 5, 6, 7};
+    for (int i = 8; i <= limit; ++i) {
+        v.push_back(i);
+    }
+    int sum = 0;
+    for (auto it = v.begin(); it != v.end(); ++it) {
+        sum += *it;
+    }
+    ASSERT_EQ(limit * (limit + 1) / 2, sum);
+
+test_abort:;
+}
+
+TEST_F(libcxx, vector_move) {
+    std::vector<Counter> a(3);
+    std::vector<Counter> b;
+
+    EXPECT_EQ(3, global_count);
+    EXPECT_EQ(3, a.size());
+    EXPECT_EQ(0, b.size());
+
+    b = std::move(a);
+
+    // Note: can't say much about the state of "a".
+    EXPECT_EQ(3, b.size());
+
+    a = {};
+    b = {};
+
+    EXPECT_EQ(0, global_count);
 
 test_abort:;
 }
