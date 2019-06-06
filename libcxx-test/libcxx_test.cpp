@@ -62,6 +62,25 @@ test_abort:;
 }
 
 /*
+ * NOTE currently -fno-threadsafe-statics is suppressing threadsafe statics.
+ * When this is no longer the case, this test will link against __cxa_guard_*.
+ * This test is mainly checking that static initializers are executed only once
+ * and that all required ABI functions are provided. Thread safety is outside
+ * the scope of this test.
+ */
+static Dummy* static_dummy_getter() {
+    static Dummy* d = new Dummy();
+    return d;
+}
+
+TEST_F(libcxx, safe_static) {
+    ASSERT_NE(nullptr, static_dummy_getter());
+    ASSERT_EQ(static_dummy_getter(), static_dummy_getter());
+
+test_abort:;
+}
+
+/*
  * Inspecting the generated code, it appears this variable can be optimized out
  * if it is not declared volatile.
  */
