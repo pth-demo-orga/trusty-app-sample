@@ -16,6 +16,7 @@
 
 #include <errno.h>
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <vector>
@@ -289,6 +290,20 @@ TEST_F(libcxx, vector_move) {
     b = {};
 
     EXPECT_EQ(0, global_count);
+
+test_abort:;
+}
+
+// libcxx's headers "extern template" common parameterizations of std::sort.
+// These parameterizations must be explicitly instantiated inside libcxx or
+// else there will be a link error.
+TEST_F(libcxx, vector_sort) {
+    std::vector<int> v = {2, 3, 1};
+    std::sort(v.begin(), v.end());
+
+    EXPECT_EQ(1, v[0]);
+    EXPECT_EQ(2, v[1]);
+    EXPECT_EQ(3, v[2]);
 
 test_abort:;
 }
