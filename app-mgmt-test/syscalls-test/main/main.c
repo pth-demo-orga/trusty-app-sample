@@ -30,7 +30,7 @@
 #define PORT_BASE "com.android.appmgmt-unittest.syscalls"
 
 #define KERNEL_ADDRESS KERNEL_ASPACE_BASE
-#define INVALID_USER_ADDRESS (USER_ASPACE_BASE + USER_ASPACE_SIZE - 0x1000)
+#define INVALID_USER_ADDRESS (0x1000)
 
 #define TEST_DATA_BYTE 0x5a
 #define PAGE_SIZE 4096
