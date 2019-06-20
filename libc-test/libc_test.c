@@ -400,6 +400,16 @@ TEST_F(libc, float_builtins) {
 }
 #endif
 
+/*
+ * We provide a mock implementation of stdin because libcxx refers to it.
+ * Make sure the mock behaves in a reasonable manner.
+ */
+TEST_F(libc, getc) {
+    EXPECT_EQ(EOF, getc(stdin));
+
+test_abort:;
+}
+
 #if __ARM_NEON__ || __ARM_NEON
 
 #include <arm_neon.h>
