@@ -22,7 +22,7 @@
 #include <string.h>
 #include <time.h>
 #include <trusty/string.h>
-
+#include <trusty/uuid.h>
 #include <trusty_unittest.h>
 
 #define CHECK_ERRNO(e)       \
@@ -318,6 +318,59 @@ TEST_F(libc, scnprintf) {
     EXPECT_EQ(buf[3], 0);
 
 test_abort:;
+}
+
+TEST_F(libc, str_to_uuid) {
+    const char* valid_str = "b100aae1-c0b3-4b8b-9e25-e69523968f7e";
+    const char* invalid_str;
+    struct uuid res_uuid;
+    struct uuid expected_uuid = {
+            0xb100aae1,
+            0xc0b3,
+            0x4b8b,
+            {0x9e, 0x25, 0xe6, 0x95, 0x23, 0x96, 0x8f, 0x7e}};
+
+    invalid_str = "b100aae1-c0b3-4b8b-9e25-e69523968f7";
+    /* The string must be exactly 36 characters */
+    EXPECT_EQ(-1, str_to_uuid(invalid_str, &res_uuid));
+
+    invalid_str = "b100aae1c0b3-4b8b-9e25-e69523968f7e";
+    /* There must be exactly 5 groups */
+    EXPECT_EQ(-1, str_to_uuid(invalid_str, &res_uuid));
+
+    invalid_str = "b100aa-e1c0b3-4b8b-9e25-e69523968f7e";
+    /* Hyphens must be at specific locations */
+    EXPECT_EQ(-1, str_to_uuid(invalid_str, &res_uuid));
+
+    invalid_str = "g100aae1-c0b3-4b8b-9e25-e69523968f7e";
+    /* The string must contain only hyphens and hex characters  */
+    EXPECT_EQ(-1, str_to_uuid(invalid_str, &res_uuid));
+
+    invalid_str = "B100aae1-c0b3-4b8b-9e25-e69523968f7e";
+    /* Hex characters must be lower case  */
+    EXPECT_EQ(-1, str_to_uuid(invalid_str, &res_uuid));
+
+    EXPECT_EQ(0, str_to_uuid(valid_str, &res_uuid));
+
+    EXPECT_EQ(0, memcmp(&expected_uuid, &res_uuid, sizeof(struct uuid)));
+}
+
+TEST_F(libc, uuid_to_str) {
+    const char* expected_str = "b100aae1-c0b3-4b8b-9e25-e69523968f7e";
+    const char* zero_str = "00000000-0000-0000-0000-000000000000";
+    struct uuid zero_uuid = {0};
+    char result_str[UUID_STR_SIZE];
+    struct uuid uuid = {0xb100aae1,
+                        0xc0b3,
+                        0x4b8b,
+                        {0x9e, 0x25, 0xe6, 0x95, 0x23, 0x96, 0x8f, 0x7e}};
+
+    /* Check for correct padding */
+    uuid_to_str(&zero_uuid, result_str);
+    EXPECT_EQ(0, strncmp(zero_str, result_str, UUID_STR_SIZE));
+
+    uuid_to_str(&uuid, result_str);
+    EXPECT_EQ(0, strncmp(expected_str, result_str, UUID_STR_SIZE));
 }
 
 #if __ARM_NEON__ || __ARM_NEON
