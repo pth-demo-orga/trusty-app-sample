@@ -373,6 +373,33 @@ TEST_F(libc, uuid_to_str) {
     EXPECT_EQ(0, strncmp(expected_str, result_str, UUID_STR_SIZE));
 }
 
+/*
+ * We're linking a prebuilt libgcc / compiler_rt provided by the toolchain.
+ * It wasn't designed for Trusty, so does it actually work? If we set things up
+ * wrong there may be ABI issues. One way to smoke these issues out is call
+ * functions that take floating point arguments. However - libgcc does not
+ * provide a full set of functions for every arch, only the ones it expects to
+ * use. This means we need to do some arch-specific testing.
+ */
+
+#ifdef __arm__
+extern double __extendsfdf2(float a);
+extern float __truncdfsf2(double a);
+
+TEST_F(libc, float_builtins) {
+    EXPECT_EQ(123, (int)__truncdfsf2(__extendsfdf2(123.0f)));
+}
+#endif
+
+#ifdef __aarch64__
+extern long double __extendsftf2(float a);
+extern float __trunctfsf2(long double a);
+
+TEST_F(libc, float_builtins) {
+    EXPECT_EQ(123, (int)__trunctfsf2(__extendsftf2(123.0f)));
+}
+#endif
+
 #if __ARM_NEON__ || __ARM_NEON
 
 #include <arm_neon.h>
