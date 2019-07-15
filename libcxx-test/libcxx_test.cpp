@@ -17,6 +17,7 @@
 #include <errno.h>
 
 #include <algorithm>
+#include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
@@ -306,6 +307,11 @@ TEST_F(libcxx, vector_sort) {
     EXPECT_EQ(3, v[2]);
 
 test_abort:;
+}
+
+// Make sure a simple use of cout can compile and run.
+TEST_F(libcxx, iostream_smoke_test) {
+    std::cout << "Hello, world. " << 123 << "!" << std::endl;
 }
 
 PORT_TEST(libcxx, "com.android.libcxxtest");
