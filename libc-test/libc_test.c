@@ -62,7 +62,7 @@ test_abort:;
 }
 
 TEST_F(libc, memset_test) {
-    char buf[130];
+    unsigned char buf[130];
     buf[0] = 0;
     buf[129] = 0;
     for (int val = 1; val < 256; val <<= 1) {
