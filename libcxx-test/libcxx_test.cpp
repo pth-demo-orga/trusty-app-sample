@@ -279,13 +279,13 @@ TEST_F(libcxx, vector_move) {
     std::vector<Counter> b;
 
     EXPECT_EQ(3, global_count);
-    EXPECT_EQ(3, a.size());
-    EXPECT_EQ(0, b.size());
+    EXPECT_EQ(3U, a.size());
+    EXPECT_EQ(0U, b.size());
 
     b = std::move(a);
 
     // Note: can't say much about the state of "a".
-    EXPECT_EQ(3, b.size());
+    EXPECT_EQ(3U, b.size());
 
     a = {};
     b = {};
