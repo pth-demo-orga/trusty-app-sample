@@ -157,6 +157,34 @@ TEST_F(libc, time) {
 test_abort:;
 }
 
+/* Smoke test because we mocked out timezone functions. */
+TEST_F(libc, localtime) {
+    time_t time = 0;
+    struct tm* result = localtime(&time);
+    ASSERT_NE(NULL, result);
+
+    /* Epoch. */
+    EXPECT_EQ(70, result->tm_year);
+    EXPECT_EQ(0, result->tm_mon);
+    EXPECT_EQ(1, result->tm_mday);
+    EXPECT_EQ(0, result->tm_hour);
+    EXPECT_EQ(0, result->tm_min);
+    EXPECT_EQ(0, result->tm_sec);
+
+    time += 24 * 60 * 60;
+    result = localtime(&time);
+    ASSERT_NE(NULL, result);
+
+    EXPECT_EQ(70, result->tm_year);
+    EXPECT_EQ(0, result->tm_mon);
+    EXPECT_EQ(2, result->tm_mday);
+    EXPECT_EQ(0, result->tm_hour);
+    EXPECT_EQ(0, result->tm_min);
+    EXPECT_EQ(0, result->tm_sec);
+
+test_abort:;
+}
+
 TEST_F(libc, snprintf_test) {
     char buffer[16];
     ASSERT_EQ(17, snprintf(buffer, sizeof(buffer), "%d %x %s...", 12345, 254,
