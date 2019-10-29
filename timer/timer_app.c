@@ -52,16 +52,7 @@ static void check_timestamps(int64_t t1,
     trusty_gettime(0, &t2);
     delta = t2 - t1;
 
-    /*
-     * NOTE: LK does time calculations at millisecond resolution.
-     * Since syscalls operate in terms of nanoseconds, this means there can be
-     * an observable error on the order of a millisecond.
-     * (For example, a sleep of 1 ms could take no time at all.)
-     * This will be fixed in the future.
-     * In the meantime, accept that the lower bound may be up to ONE_MS less
-     * than we specified.
-     */
-    EXPECT_EQ(false, (delta + (int64_t)ONE_MS < delta_min || delta > delta_max),
+    EXPECT_EQ(false, (delta < delta_min || delta > delta_max),
               "bad timestamp after %s: t1 %" PRId64 ", t2 %" PRId64
               ", delta %" PRId64 ", min %" PRId64 " max %" PRId64 "\n",
               name, t1, t2, t2 - t1, delta_min, delta_max);
