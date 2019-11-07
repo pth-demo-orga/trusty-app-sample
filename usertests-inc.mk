@@ -22,6 +22,7 @@ TRUSTY_ALL_USER_TASKS += \
 	trusty/user/app/sample/app-mgmt-test/syscalls-test/aux \
 	trusty/user/app/sample/app-mgmt-test/syscalls-test/builtin \
 	trusty/user/app/sample/app-mgmt-test/syscalls-test/main \
+	trusty/user/app/sample/hwcrypto-unittest \
 	trusty/user/app/sample/ipc-unittest/main \
 	trusty/user/app/sample/ipc-unittest/srv \
 	trusty/user/app/sample/libc-test \

@@ -26,6 +26,11 @@ MODULE_DEPS += \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/lib/hwkey \
 	trusty/user/base/lib/rng \
+	trusty/user/base/lib/unittest \
+
+ifeq (true,$(call TOBOOL,$(WITH_FAKE_HWRNG)))
+MODULE_DEFINES += WITH_FAKE_HWRNG=1
+endif
 
 include make/module.mk
 

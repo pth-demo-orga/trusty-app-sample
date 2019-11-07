@@ -29,6 +29,8 @@
  *
  */
 
+#define TLOG_TAG "hwcrypto_unittest"
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -37,7 +39,6 @@
 #include <trusty_unittest.h>
 #include <uapi/err.h>
 
-#define TLOG_TAG "hwcrypto_unittest"
 
 #define RPMB_STORAGE_AUTH_KEY_ID "com.android.trusty.storage_auth.rpmb"
 #define HWCRYPTO_UNITTEST_KEYBOX_ID "com.android.trusty.hwcrypto.unittest.key32"
@@ -48,19 +49,38 @@
 static const uint8_t UNITTEST_KEYSLOT[] = "unittestkeyslotunittestkeyslotun";
 #endif
 
-/**
+/*
  * Implement this hook for device specific hwkey tests
  */
 __WEAK void run_device_hwcrypto_unittest(void) {}
 
-static hwkey_session_t hwkey_session_;
+TEST(hwcrypto, device_hwcrypto_unittest) {
+    run_device_hwcrypto_unittest();
+}
 
-static void generic_invalid_session(void) {
-    TEST_BEGIN(__func__);
+typedef struct hwkey {
+    hwkey_session_t hwkey_session;
+} hwkey_t;
 
+TEST_F_SETUP(hwkey) {
+    int rc;
+
+    _state->hwkey_session = INVALID_IPC_HANDLE;
+    rc = hwkey_open();
+    ASSERT_GE(rc, 0);
+    _state->hwkey_session = (hwkey_session_t)rc;
+
+test_abort:;
+}
+
+TEST_F_TEARDOWN(hwkey) {
+    close(_state->hwkey_session);
+}
+
+TEST_F(hwkey, generic_invalid_session) {
     const uint8_t src_data[] = "thirtytwo-bytes-of-nonsense-data";
-    static const uint32_t size = sizeof(src_data);
-    uint8_t dest[size];
+    static const size_t size = sizeof(src_data);
+    uint8_t dest[sizeof(src_data)];
 
     hwkey_session_t invalid = INVALID_IPC_HANDLE;
     uint32_t kdf_version = HWKEY_KDF_VERSION_BEST;
@@ -68,21 +88,16 @@ static void generic_invalid_session(void) {
     // should fail immediately
     long rc = hwkey_derive(invalid, &kdf_version, src_data, dest, size);
     EXPECT_EQ(ERR_BAD_HANDLE, rc, "generic - bad handle");
-
-    TEST_END
 }
 
-static void generic_closed_session(void) {
-    TEST_BEGIN(__func__);
-
-    const uint8_t src_data[] = "thirtytwo-bytes-of-nonsense-data";
+TEST_F(hwkey, generic_closed_session) {
+    static const uint8_t src_data[] = "thirtytwo-bytes-of-nonsense-data";
     static const uint32_t size = sizeof(src_data);
-    ;
-    uint8_t dest[size];
+    uint8_t dest[sizeof(src_data)];
     uint32_t kdf_version = HWKEY_KDF_VERSION_BEST;
 
     long rc = hwkey_open();
-    EXPECT_GT_ZERO(rc + 1, "generic -  open");
+    EXPECT_GE(rc, 0, "generic - open");
 
     hwkey_session_t session = (hwkey_session_t)rc;
     hwkey_close(session);
@@ -90,30 +105,28 @@ static void generic_closed_session(void) {
     // should fail immediately
     rc = hwkey_derive(session, &kdf_version, src_data, dest, size);
     EXPECT_EQ(ERR_NOT_FOUND, rc, "generic - closed handle");
-
-    TEST_END
 }
 
-static void hwkey_derive_repeatable(void) {
-    TEST_BEGIN(__func__);
-
-    static const uint32_t size = 32;
+TEST_F(hwkey, derive_repeatable) {
     const uint8_t src_data[] = "thirtytwo-bytes-of-nonsense-data";
-    uint8_t dest[size];
-    uint8_t dest2[size];
+    uint8_t dest[32];
+    uint8_t dest2[sizeof(dest)];
+    static const size_t size = sizeof(dest);
     uint32_t kdf_version = HWKEY_KDF_VERSION_BEST;
 
     memset(dest, 0, size);
     memset(dest2, 0, size);
 
     /* derive key once */
-    long rc = hwkey_derive(hwkey_session_, &kdf_version, src_data, dest, size);
+    long rc = hwkey_derive(_state->hwkey_session, &kdf_version, src_data, dest,
+                           size);
     EXPECT_EQ(NO_ERROR, rc, "derive repeatable - initial derivation");
     EXPECT_NE(HWKEY_KDF_VERSION_BEST, kdf_version,
               "derive repeatable - kdf version");
 
     /* derive key again */
-    rc = hwkey_derive(hwkey_session_, &kdf_version, src_data, dest2, size);
+    rc = hwkey_derive(_state->hwkey_session, &kdf_version, src_data, dest2,
+                      size);
     EXPECT_EQ(NO_ERROR, rc, "derive repeatable - second derivation");
 
     /* ensure they are the same */
@@ -121,32 +134,30 @@ static void hwkey_derive_repeatable(void) {
     EXPECT_EQ(0, rc, "derive repeatable - equal");
     rc = memcmp(dest, src_data, size);
     EXPECT_NE(0, rc, "derive repeatable - same as seed");
-
-    TEST_END
 }
 
-static void hwkey_derive_different(void) {
-    TEST_BEGIN(__func__);
-
-    static const uint32_t size = 32;
+TEST_F(hwkey, derive_different) {
     const uint8_t src_data[] = "thirtytwo-bytes-of-nonsense-data";
     const uint8_t src_data2[] = "thirtytwo-byt3s-of-nons3ns3-data";
 
-    uint8_t dest[size];
-    uint8_t dest2[size];
+    uint8_t dest[32];
+    uint8_t dest2[sizeof(dest)];
+    static const uint32_t size = sizeof(dest);
     uint32_t kdf_version = HWKEY_KDF_VERSION_BEST;
 
     memset(dest, 0, size);
     memset(dest2, 0, size);
 
     /* derive key once */
-    long rc = hwkey_derive(hwkey_session_, &kdf_version, src_data, dest, size);
+    long rc = hwkey_derive(_state->hwkey_session, &kdf_version, src_data, dest,
+                           size);
     EXPECT_EQ(NO_ERROR, rc, "derive not repeatable - initial derivation");
     EXPECT_NE(HWKEY_KDF_VERSION_BEST, kdf_version,
               "derive not repeatable - kdf version");
 
     /* derive key again, with different source data */
-    rc = hwkey_derive(hwkey_session_, &kdf_version, src_data2, dest2, size);
+    rc = hwkey_derive(_state->hwkey_session, &kdf_version, src_data2, dest2,
+                      size);
     EXPECT_EQ(NO_ERROR, rc, "derive not repeatable - second derivation");
 
     /* ensure they are not the same */
@@ -156,79 +167,43 @@ static void hwkey_derive_different(void) {
     EXPECT_NE(0, rc, "derive not repeatable - equal to source");
     rc = memcmp(dest2, src_data2, size);
     EXPECT_NE(0, rc, "derive not repeatable - equal to source");
-
-    TEST_END
 }
 
-static void hwkey_derive_zero_length(void) {
-    TEST_BEGIN(__func__);
-
+TEST_F(hwkey, derive_zero_length) {
     static const uint32_t size = 0;
     const uint8_t* src_data = NULL;
     uint8_t* dest = NULL;
     uint32_t kdf_version = HWKEY_KDF_VERSION_BEST;
 
     /* derive key once */
-    long rc = hwkey_derive(hwkey_session_, &kdf_version, src_data, dest, size);
+    long rc = hwkey_derive(_state->hwkey_session, &kdf_version, src_data, dest,
+                           size);
     EXPECT_EQ(ERR_NOT_VALID, rc, "derive zero length");
-
-    TEST_END
 }
 
-static void hwkey_get_storage_auth(void) {
-    TEST_BEGIN(__func__);
-
+TEST_F(hwkey, get_storage_auth) {
     uint32_t actual_size = STORAGE_AUTH_KEY_SIZE;
     uint8_t storage_auth_key[STORAGE_AUTH_KEY_SIZE];
-    long rc = hwkey_get_keyslot_data(hwkey_session_, RPMB_STORAGE_AUTH_KEY_ID,
-                                     storage_auth_key, &actual_size);
+    long rc = hwkey_get_keyslot_data(_state->hwkey_session,
+                                     RPMB_STORAGE_AUTH_KEY_ID, storage_auth_key,
+                                     &actual_size);
     EXPECT_EQ(ERR_NOT_FOUND, rc, "auth key accessible when it shouldn't be");
-
-    TEST_END
 }
 
-static void hwkey_get_keybox(void) {
-    TEST_BEGIN(__func__);
+TEST_F(hwkey, get_keybox) {
+    uint8_t dest[sizeof(HWCRYPTO_UNITTEST_KEYBOX_ID)];
+    uint32_t actual_size = sizeof(dest);
+    long rc = hwkey_get_keyslot_data(_state->hwkey_session,
+                                     HWCRYPTO_UNITTEST_KEYBOX_ID, dest,
+                                     &actual_size);
 
-    uint32_t actual_size = strlen(HWCRYPTO_UNITTEST_KEYBOX_ID) + 1;
-    uint8_t dest[actual_size];
-    long rc = hwkey_get_keyslot_data(
-            hwkey_session_, HWCRYPTO_UNITTEST_KEYBOX_ID, dest, &actual_size);
-
-#ifdef WITH_HWCRYPTO_UNITTEST
+#if WITH_HWCRYPTO_UNITTEST
     EXPECT_EQ(NO_ERROR, rc, "get hwcrypto-unittest keybox");
     rc = memcmp(UNITTEST_KEYSLOT, dest, strlen(UNITTEST_KEYSLOT));
     EXPECT_EQ(0, rc, "get storage auth key invalid");
 #else
     EXPECT_EQ(ERR_NOT_FOUND, rc, "get hwcrypto-unittest keybox");
 #endif
-
-    TEST_END
-}
-
-static void run_hwkey_tests(void) {
-    TLOGI("WELCOME TO HWKEY UNITTEST!\n");
-    long rc = hwkey_open();
-    if (rc < 0) {
-        TLOGI("err (%ld) opening hwkey session\n", rc);
-        return;
-    }
-
-    hwkey_session_ = (hwkey_session_t)rc;
-
-    generic_invalid_session();
-    generic_closed_session();
-
-    hwkey_derive_repeatable();
-    hwkey_derive_different();
-    hwkey_derive_zero_length();
-    hwkey_get_storage_auth();
-    hwkey_get_keybox();
-
-    hwkey_close(hwkey_session_);
-
-    /* run device specific tests if available */
-    run_device_hwcrypto_unittest();
 }
 
 /***********************   HWRNG  UNITTEST  ***********************/
@@ -243,10 +218,9 @@ static void hwrng_update_hist(uint8_t* data, unsigned int cnt) {
 }
 
 static void hwrng_show_data(const void* ptr, size_t len) {
-    addr_t address = (addr_t)ptr;
+    uintptr_t address = (uintptr_t)ptr;
     size_t count;
     size_t i;
-
     fprintf(stderr, "Dumping first hwrng request:\n");
     for (count = 0; count < len; count += 16) {
         for (i = 0; i < MIN(len - count, 16); i++) {
@@ -257,27 +231,19 @@ static void hwrng_show_data(const void* ptr, size_t len) {
     }
 }
 
-static void run_hwrng_show_data_test(void) {
+TEST(hwrng, show_data_test) {
     int rc;
-
-    TEST_BEGIN(__func__);
-
     rc = trusty_rng_hw_rand(_rng_buf, 32);
     EXPECT_EQ(NO_ERROR, rc, "hwrng test");
     if (rc == NO_ERROR) {
         hwrng_show_data(_rng_buf, 32);
     }
-
-    TEST_END
 }
 
-static void run_hwrng_var_rng_req_test(void) {
+TEST(hwrng, var_rng_req_test) {
     int rc;
     unsigned int i;
     size_t req_cnt;
-
-    TEST_BEGIN(__func__);
-
     /* Issue 100 hwrng requests of variable sizes */
     for (i = 0; i < 100; i++) {
         req_cnt = ((size_t)rand() % sizeof(_rng_buf)) + 1;
@@ -288,11 +254,9 @@ static void run_hwrng_var_rng_req_test(void) {
             continue;
         }
     }
-
-    TEST_END
 }
 
-static void run_hwrng_stats_test(void) {
+TEST(hwrng, stats_test) {
     int rc;
     unsigned int i;
     size_t req_cnt;
@@ -300,9 +264,6 @@ static void run_hwrng_stats_test(void) {
     uint32_t cnt = 0;
     uint32_t ave = 0;
     uint32_t dev = 0;
-
-    TEST_BEGIN(__func__);
-
     /* issue 100x256 bytes requests */
     req_cnt = 256;
     exp_cnt = 1000 * req_cnt;
@@ -324,39 +285,25 @@ static void run_hwrng_stats_test(void) {
     EXPECT_EQ(exp_cnt, cnt, "hwrng ttl sample cnt");
     EXPECT_EQ(1000, ave, "hwrng eve sample cnt");
 
-    /**
+    /*
      * Ideally data should be uniformly distributed
      * Calculate average deviation from ideal model
      */
     for (i = 0; i < 256; i++) {
-        int val = _hist[i] - ave;
-        if (val < 0)
-            val = -val;
+        uint32_t val = (_hist[i] > ave) ? _hist[i] - ave : ave - _hist[i];
         dev += val;
     }
     dev /= 256;
-
-    /* Check if everage deviation is within 5% of ideal model
+    /*
+     * Check if average deviation is within 5% of ideal model
      * which is fairly arbitrary requirement. It could be useful
      * to alert is something terribly wrong with rng source.
      */
+#if WITH_FAKE_HWRNG
+    EXPECT_LE(50, dev, "average dev");
+#else
     EXPECT_GT(50, dev, "average dev");
-
-    TEST_END
+#endif
 }
 
-static void run_hwrng_tests(void) {
-    TLOGI("WELCOME TO HWRNG UNITTEST!\n");
-    run_hwrng_show_data_test();
-    run_hwrng_var_rng_req_test();
-    run_hwrng_stats_test();
-}
-
-static void run_all_tests(void) {
-    run_hwrng_tests();
-    run_hwkey_tests();
-}
-
-int main(void) {
-    run_all_tests();
-}
+PORT_TEST(hwcrypto, "com.android.trusty.hwcrypto.test")
