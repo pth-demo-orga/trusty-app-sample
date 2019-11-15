@@ -20,7 +20,10 @@
 
 trusty_app_manifest_t TRUSTY_APP_MANIFEST_ATTRS trusty_app_manifest = {
         /* UUID : {ef45baea-e0b0-477c-9494-d59edd047f46} */
-        {0xef45baea, 0xe0b0, 0x477c, {0xd5, 0x9e, 0xdd, 0x04, 0x7f, 0x46}},
+        {0xef45baea,
+         0xe0b0,
+         0x477c,
+         {0x94, 0x94, 0xd5, 0x9e, 0xdd, 0x04, 0x7f, 0x46}},
 
         /* optional configuration options here */
         {
