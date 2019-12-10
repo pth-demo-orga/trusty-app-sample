@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <uapi/err.h>
 
+#include <hwcrypto/hwrng_dev.h>
 #include <lib/tipc/tipc.h>
 #include <trusty_log.h>
 
@@ -67,7 +68,11 @@ int main(void) {
     TLOGI("Initializing\n");
 
     /* initialize service providers */
-    hwrng_init_srv_provider();
+    rc = hwrng_start_service();
+    if (rc != NO_ERROR) {
+        TLOGE("Failed (%d) to initialize HWRNG service\n", rc);
+        goto out;
+    }
     hwkey_init_srv_provider();
 
     TLOGI("enter main event loop\n");
@@ -89,5 +94,6 @@ int main(void) {
         }
     }
 
+out:
     return rc;
 }

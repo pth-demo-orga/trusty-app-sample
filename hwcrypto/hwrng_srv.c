@@ -24,11 +24,10 @@
 #include <string.h>
 #include <uapi/err.h>
 
+#include <hwcrypto/hwrng_dev.h>
 #include <interface/hwrng/hwrng.h>
 #include <lib/tipc/tipc.h>
 #include <trusty_log.h>
-
-#include "hwrng_srv_priv.h"
 
 #define HWRNG_SRV_NAME HWRNG_PORT
 #define MAX_HWRNG_MSG_SIZE 4096
@@ -90,6 +89,7 @@ static void hwrng_close_chan(struct hwrng_chan_ctx* ctx) {
  * Handle HWRNG request queue
  */
 static bool hwrng_handle_req_queue(void) {
+    int rc;
     struct hwrng_chan_ctx* ctx;
     struct hwrng_chan_ctx* temp;
 
@@ -107,11 +107,16 @@ static bool hwrng_handle_req_queue(void) {
         if (len > MAX_HWRNG_MSG_SIZE)
             len = MAX_HWRNG_MSG_SIZE;
 
-        /* get rng data */
-        hwrng_dev_get_rng_data(rng_data, len);
+        /* get hwrng data */
+        rc = hwrng_dev_get_rng_data(rng_data, len);
+        if (rc != NO_ERROR) {
+            TLOGE("failed (%d) to get hwrng data\n", rc);
+            hwrng_close_chan(ctx);
+            continue;
+        }
 
         /* send reply */
-        int rc = tipc_send1(ctx->chan, rng_data, len);
+        rc = tipc_send1(ctx->chan, rng_data, len);
         if (rc < 0) {
             if (rc == ERR_NOT_ENOUGH_BUFFER) {
                 /* mark it as send_blocked */
@@ -259,11 +264,22 @@ int hwrng_start_service(void) {
                      IPC_PORT_ALLOW_TA_CONNECT);
     if (rc < 0) {
         TLOGE("Failed (%d) to create port '%s'\n", rc, HWRNG_SRV_NAME);
-        return rc;
-    } else {
-        hwrng_port = (handle_t)rc;
-        set_cookie(hwrng_port, &hwrng_port_evt_handler);
+        goto err_port_create;
+    }
+
+    hwrng_port = (handle_t)rc;
+    set_cookie(hwrng_port, &hwrng_port_evt_handler);
+
+    rc = hwrng_dev_init();
+    if (rc != NO_ERROR) {
+        TLOGE("Failed (%d) to initialize HWRNG device\n", rc);
+        goto err_hwrng_dev_init;
     }
 
     return NO_ERROR;
+
+err_hwrng_dev_init:
+    close(hwrng_port);
+err_port_create:
+    return rc;
 }
