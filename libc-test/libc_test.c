@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 #include <trusty/string.h>
 #include <trusty/uuid.h>
 #include <trusty_unittest.h>
@@ -463,5 +464,22 @@ test_abort:;
 }
 
 #endif
+
+TEST_F(libc, sbrk) {
+    /* Allocating and releasing a small range should succeed */
+    const ssize_t brk_test_size = 64;
+    void* orig_brk = sbrk(brk_test_size);
+    ASSERT_NE(orig_brk, (void*)-1);
+    void* test_brk = sbrk(0);
+    ASSERT_EQ(sbrk(-brk_test_size), test_brk);
+    ASSERT_EQ(orig_brk, sbrk(0));
+
+    /* Allocating an oversized range should fail */
+    ASSERT_EQ(sbrk(10 * 4096), (void*)-1);
+    ASSERT_EQ(errno, ENOMEM);
+
+test_abort:
+    CLEAR_ERRNO();
+}
 
 PORT_TEST(libc, "com.android.libctest");
