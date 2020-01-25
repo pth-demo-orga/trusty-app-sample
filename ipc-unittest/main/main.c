@@ -739,7 +739,12 @@ TEST(ipc, accept_negative) {
     EXPECT_EQ(NO_ERROR, rc, "close channnel")
 }
 
-TEST(ipc, accept) {
+
+/*
+ * Disabled per b/140836874 - believed to be a race in the test code, not
+ * in IPC.
+ */
+TEST(ipc, DISABLED_accept) {
     int rc, rc1;
     uevent_t event;
     char path[MAX_PORT_PATH_LEN];
@@ -1585,7 +1590,11 @@ abort_test:
     close(hset2);
 }
 
-TEST(ipc, hset_add_chan) {
+/*
+ * Disabled per b/140836874 - believed to be a race in the test code, not
+ * in IPC.
+ */
+TEST(ipc, DISABLED_hset_add_chan) {
     int rc;
     uevent_t evt;
     handle_t hset1;
