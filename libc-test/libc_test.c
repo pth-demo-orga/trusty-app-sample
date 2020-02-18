@@ -14,17 +14,19 @@
  * limitations under the License.
  */
 
+#include <elf.h>
 #include <endian.h>
 #include <errno.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/auxv.h>
 #include <time.h>
-#include <unistd.h>
 #include <trusty/string.h>
 #include <trusty/uuid.h>
 #include <trusty_unittest.h>
+#include <unistd.h>
 
 #define CHECK_ERRNO(e)       \
     do {                     \
@@ -318,6 +320,14 @@ TEST_F(libc, stack_alignment) {
      */
     const uintptr_t alignment_mask = sizeof(void*) * 2 - 1;
     ASSERT_EQ(0, frame_ptr() & alignment_mask);
+
+test_abort:;
+}
+
+TEST_F(libc, stack_cookies) {
+    uint64_t* p = (uint64_t*)getauxval(AT_RANDOM);
+    ASSERT_NE(0, p);
+    ASSERT_EQ(true, 0 != *p || 0 != *(p + 1));
 
 test_abort:;
 }
