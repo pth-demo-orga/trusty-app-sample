@@ -25,6 +25,7 @@
     porttest("com.android.appmgmt-unittest.syscalls"),
     porttest("com.android.appmgmt-unittest.syscalls.aux"),
     porttest("com.android.uirq-unittest"),
+    porttest("com.android.memref.test"),
 
     # userspace tests using storage available at early boot
     needs(
