@@ -1,0 +1,20 @@
+{
+    "header": "hwcrypto_consts.h",
+    "constants":[
+        {
+            "name": "GEN_HWCRYPTO_UUID",
+            "value": "23fe5938-ccd5-4a78-8baf-0f3d05ffc2df",
+            "type": "uuid"
+        },
+        {
+            "name": "HWCRYPTO_UNITTEST_APP_UUID",
+            "value": "ab742471-d6e6-4806-85f6-0555b024f4da",
+            "type": "uuid"
+        },
+        {
+            "name": "SECURE_STORAGE_SERVER_APP_UUID",
+            "value": "cea8706d-6cb4-49f3-b994-29e0e478bd29",
+            "type": "uuid"
+        }
+    ]
+}

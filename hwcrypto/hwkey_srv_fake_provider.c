@@ -33,8 +33,8 @@
 #include <interface/hwkey/hwkey.h>
 #include <trusty_log.h>
 
+#include <hwcrypto_consts.h>
 #include "hwkey_srv_priv.h"
-#include "uuids.h"
 
 #pragma message "Compiling FAKE HWKEY provider"
 

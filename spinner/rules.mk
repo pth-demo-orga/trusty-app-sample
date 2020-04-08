@@ -20,7 +20,7 @@ MODULE := $(LOCAL_DIR)
 MANIFEST := $(LOCAL_DIR)/manifest.json
 
 MODULE_SRCS += \
-	$(LOCAL_DIR)/spinner.c
+	$(LOCAL_DIR)/spinner.c \
 
 MODULE_DEPS += \
 	trusty/user/base/lib/libc-trusty \

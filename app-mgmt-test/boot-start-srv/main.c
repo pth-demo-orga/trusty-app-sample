@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <app_mgmt_port_consts.h>
 #include <app_mgmt_test.h>
 #include <stdbool.h>
 #include <stddef.h>

@@ -20,7 +20,7 @@ MODULE := $(LOCAL_DIR)
 MANIFEST := $(LOCAL_DIR)/manifest.json
 
 MODULE_SRCS += \
-	$(LOCAL_DIR)/libcxx_test.cpp
+	$(LOCAL_DIR)/libcxx_test.cpp \
 
 MODULE_DEPS += \
 	trusty/user/base/lib/libc-trusty \

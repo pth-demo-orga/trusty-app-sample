@@ -17,11 +17,14 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 
 MODULE := $(LOCAL_DIR)
 
+MANIFEST := $(LOCAL_DIR)/manifest.json
+
+CONSTANTS := $(LOCAL_DIR)/../include/app/ipc_unittest/ipc_unittest_uuid_consts.json
+
 MODULE_INCLUDES += \
 	$(LOCAL_DIR)/../include \
 
 MODULE_SRCS += \
-	$(LOCAL_DIR)/manifest.c \
 	$(LOCAL_DIR)/main.c \
 
 MODULE_DEPS += \

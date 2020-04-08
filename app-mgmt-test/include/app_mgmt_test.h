@@ -21,13 +21,6 @@
 #include <trusty_ipc.h>
 #include <trusty_log.h>
 
-#define BOOT_START_PORT "com.android.trusty.appmgmt.bootstartsrv"
-#define NEVER_START_PORT "com.android.trusty.appmgmt.neverstartsrv"
-#define RESTART_PORT "com.android.trusty.appmgmt.restartsrv"
-#define START_PORT "com.android.trusty.appmgmt.portstartsrv"
-#define CTRL_PORT "com.android.trusty.appmgmt.portstartsrv.ctrl"
-#define SHUTDOWN_PORT "com.android.trusty.appmgmt.portstartsrv.shutdown"
-
 #define MAX_CMD_LEN 1
 
 enum {

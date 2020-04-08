@@ -27,8 +27,8 @@
 #include <lib/tipc/tipc.h>
 #include <trusty_log.h>
 
+#include <hwcrypto_consts.h>
 #include "hwkey_srv_priv.h"
-#include "uuids.h"
 
 #define HWKEY_MAX_PAYLOAD_SIZE 2048
 

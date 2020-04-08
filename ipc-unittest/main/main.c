@@ -26,7 +26,7 @@
 #include <trusty_unittest.h>
 
 #include <app/ipc_unittest/common.h>
-#include <app/ipc_unittest/uuids.h>
+#include <ipc_unittest_uuid_consts.h>
 #include <lib/tipc/tipc.h>
 #include <lib/unittest/unittest.h>
 
