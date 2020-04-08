@@ -17,9 +17,10 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 
 MODULE := $(LOCAL_DIR)
 
+MANIFST := $(LOCAL_DIR)/manifest.json
+
 MODULE_SRCS += \
-	$(LOCAL_DIR)/skel_app.c \
-	$(LOCAL_DIR)/manifest.c
+	$(LOCAL_DIR)/skel_app.c
 
 MODULE_DEPS += \
 	trusty/user/base/lib/libc-trusty \
