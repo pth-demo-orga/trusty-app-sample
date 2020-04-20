@@ -30,6 +30,7 @@
 #include <trusty_unittest.h>
 
 #include <lender.h>
+#include <lender_consts.h>
 
 #define TLOG_TAG "memref-test"
 

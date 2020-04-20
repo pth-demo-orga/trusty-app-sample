@@ -18,8 +18,6 @@
 
 #include <sys/types.h>
 
-#define LENDER_PORT "com.android.memref.lender"
-
 enum lender_command {
     LENDER_LEND_BSS,
     LENDER_LEND_RO,

@@ -37,6 +37,7 @@
 #include <trusty_unittest.h>
 
 #include <lender.h>
+#include <lender_consts.h>
 
 #define PAGE_SIZE 0x1000
 #define MAX_WRITE 0x800

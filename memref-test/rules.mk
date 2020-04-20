@@ -17,8 +17,11 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 
 MODULE := $(LOCAL_DIR)
 
+MANIFEST := $(LOCAL_DIR)/manifest.json
+
+CONSTANTS := $(LOCAL_DIR)/include/lender_consts.json
+
 MODULE_SRCS += \
-	$(LOCAL_DIR)/manifest.c \
 	$(LOCAL_DIR)/memref-test.c \
 
 MODULE_DEPS += \
