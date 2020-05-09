@@ -17,7 +17,7 @@ LOCAL_DIR := $(GET_LOCAL_DIR)
 
 MODULE := $(LOCAL_DIR)
 
-MANIFST := $(LOCAL_DIR)/manifest.json
+MANIFEST := $(LOCAL_DIR)/manifest.json
 
 MODULE_SRCS += \
 	$(LOCAL_DIR)/skel_app.c
