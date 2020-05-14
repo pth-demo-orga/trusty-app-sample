@@ -16,20 +16,22 @@
 
 [
     # userspace tests that don't use storage
-    porttest("com.android.libctest"),
-    porttest("com.android.libcxxtest"),
-    porttest("com.android.manifesttest"),
-    porttest("com.android.timer-unittest"),
-    porttest("com.android.ipc-unittest.ctrl"),
     porttest("com.android.appmgmt-unittest.appmngr"),
     porttest("com.android.appmgmt-unittest.syscalls"),
     porttest("com.android.appmgmt-unittest.syscalls.aux"),
-    porttest("com.android.uirq-unittest"),
+    porttest("com.android.ipc-unittest.ctrl"),
+    porttest("com.android.libctest"),
+    porttest("com.android.libcxxtest"),
+    porttest("com.android.manifesttest"),
     porttest("com.android.memref.test"),
+    porttest("com.android.timer-unittest"),
+    porttest("com.android.uirq-unittest"),
 
     # userspace tests using storage available at early boot
     needs(
         [
+            # init->check->clean is a side-effectful test chain
+            # must preserve order
             porttest("com.android.storage-unittest.tp.init"),
             porttest("com.android.storage-unittest.tp.check"),
             porttest("com.android.storage-unittest.tp.clean"),
