@@ -30,5 +30,6 @@ TRUSTY_ALL_USER_TASKS += \
 	trusty/user/app/sample/storage-unittest \
 	trusty/user/app/sample/timer \
 	trusty/user/app/sample/uirq-unittest \
+	trusty/user/app/sample/spi/swspi-srv \
 
 TRUSTY_LOADABLE_USER_TASKS += \
