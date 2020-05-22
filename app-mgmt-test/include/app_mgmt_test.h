@@ -27,28 +27,8 @@
 #define START_PORT "com.android.trusty.appmgmt.portstartsrv"
 #define CTRL_PORT "com.android.trusty.appmgmt.portstartsrv.ctrl"
 #define SHUTDOWN_PORT "com.android.trusty.appmgmt.portstartsrv.shutdown"
-#define LOADABLE_PORT "com.android.trusty.appmgmt.loadable"
-#define LOADABLE_START_PORT "com.android.trusty.appmgmt.loadable.start"
 
 #define MAX_CMD_LEN 1
-
-#define LOAD_START_UUID                                           \
-    {                                                             \
-        0x979f88fb, 0x2928, 0x4295,                               \
-                {0xb2, 0x74, 0x97, 0x59, 0x5a, 0xb5, 0x34, 0x9e}, \
-    }
-
-#define PORT_START_UUID                                           \
-    {                                                             \
-        0xc14672f9, 0x6a19, 0x4e3e,                               \
-                {0x9b, 0x27, 0x0c, 0xd6, 0x02, 0x4d, 0xe4, 0x01}, \
-    }
-
-#define BUILTIN_UUID                                              \
-    {                                                             \
-        0x0d5471ec, 0x2113, 0x4320,                               \
-                {0x80, 0x7f, 0xfa, 0x95, 0xdc, 0x60, 0x89, 0x9f}, \
-    }
 
 enum {
     CMD_NOP = 0,

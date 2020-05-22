@@ -17,8 +17,6 @@
 [
     # userspace tests that don't use storage
     porttest("com.android.appmgmt-unittest.appmngr"),
-    porttest("com.android.appmgmt-unittest.syscalls"),
-    porttest("com.android.appmgmt-unittest.syscalls.aux"),
     porttest("com.android.ipc-unittest.ctrl"),
     porttest("com.android.libctest"),
     porttest("com.android.libcxxtest"),

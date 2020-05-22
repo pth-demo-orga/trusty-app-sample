@@ -19,9 +19,6 @@ TRUSTY_ALL_USER_TASKS += \
 	trusty/user/app/sample/app-mgmt-test/never-start-srv \
 	trusty/user/app/sample/app-mgmt-test/port-start-srv \
 	trusty/user/app/sample/app-mgmt-test/restart-srv \
-	trusty/user/app/sample/app-mgmt-test/syscalls-test/aux \
-	trusty/user/app/sample/app-mgmt-test/syscalls-test/builtin \
-	trusty/user/app/sample/app-mgmt-test/syscalls-test/main \
 	trusty/user/app/sample/hwcrypto-unittest \
 	trusty/user/app/sample/ipc-unittest/main \
 	trusty/user/app/sample/ipc-unittest/srv \
@@ -35,7 +32,3 @@ TRUSTY_ALL_USER_TASKS += \
 	trusty/user/app/sample/uirq-unittest \
 
 TRUSTY_LOADABLE_USER_TASKS += \
-	trusty/user/app/sample/app-mgmt-test/syscalls-test/main/test_apps/duplicate_port \
-	trusty/user/app/sample/app-mgmt-test/syscalls-test/main/test_apps/load_start \
-	trusty/user/app/sample/app-mgmt-test/syscalls-test/main/test_apps/port_start \
-
