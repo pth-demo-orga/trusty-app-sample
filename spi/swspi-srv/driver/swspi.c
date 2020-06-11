@@ -34,6 +34,19 @@ static inline bool spi_dev_seq_active(struct spi_dev_ctx* dev) {
     return dev->cmds;
 }
 
+static void spi_req_exec_set_clk(struct spi_dev_ctx* dev, void* priv) {
+    /* Not a real device. No clock to configure */
+}
+
+int spi_req_set_clk(struct spi_dev_ctx* dev, uint64_t* clk_hz) {
+    assert(dev);
+    assert(clk_hz);
+
+    dev->cmds[dev->curr_cmd].exec = spi_req_exec_set_clk;
+    dev->curr_cmd++;
+    return NO_ERROR;
+}
+
 static void spi_req_exec_cs_assert(struct spi_dev_ctx* dev, void* priv) {
     assert(dev->bus->owner == NULL);
     /* become bus owner */

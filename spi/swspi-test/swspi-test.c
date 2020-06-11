@@ -31,6 +31,7 @@
 #define MAX_NUM_CMDS 32
 #define MAX_TOTAL_PAYLOAD 1024
 #define TXRX_SIZE 1024
+#define CLK_SPEED 1000000 /* 1 MHz */
 #define PAGE_SIZE getauxval(AT_PAGESZ)
 
 enum {
@@ -121,6 +122,9 @@ static int exec_xfer(struct spi_test_dev* test_dev, size_t len) {
     struct spi_dev* dev = &test_dev->dev;
     bool loopback = test_dev->loopback;
 
+    rc = spi_add_set_clk_cmd(dev, CLK_SPEED, NULL);
+    EXPECT_EQ(rc, 0);
+
     rc = spi_add_cs_assert_cmd(dev);
     EXPECT_EQ(rc, 0);
 
@@ -166,6 +170,7 @@ TEST_P(swspi, add_cmd) {
     int rc;
     void* tx = NULL;
     void* rx = NULL;
+    uint64_t* clk_hz = NULL;
     struct spi_dev* dev = &_state->test_dev->dev;
 
     rc = spi_add_cs_assert_cmd(dev);
@@ -197,6 +202,12 @@ TEST_P(swspi, add_cmd) {
     EXPECT_EQ(rc, 0);
 
     rc = spi_add_cs_deassert_cmd(dev);
+    EXPECT_EQ(rc, 0);
+
+    rc = spi_add_set_clk_cmd(dev, CLK_SPEED, NULL);
+    EXPECT_EQ(rc, 0);
+
+    rc = spi_add_set_clk_cmd(dev, CLK_SPEED, &clk_hz);
     EXPECT_EQ(rc, 0);
 }
 
@@ -297,6 +308,20 @@ TEST_P(swspi, cs_shared_bus) {
 
     rc = spi_exec_cmds(dev, &failed);
     EXPECT_LT(rc, 0);
+}
+
+TEST_P(swspi, set_clk) {
+    int rc;
+    uint64_t* clk_hz = NULL;
+    struct spi_dev* dev = &_state->test_dev->dev;
+
+    rc = spi_add_set_clk_cmd(dev, CLK_SPEED, &clk_hz);
+    EXPECT_EQ(rc, 0);
+
+    rc = spi_exec_cmds(dev, NULL);
+    EXPECT_EQ(rc, 0);
+
+    EXPECT_LE(*clk_hz, CLK_SPEED);
 }
 
 TEST_P(swspi, single_data_xfer) {
