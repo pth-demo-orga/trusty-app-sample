@@ -23,6 +23,7 @@ TRUSTY_ALL_USER_TASKS += \
 	trusty/user/app/sample/manifest-test \
 	trusty/user/app/sample/memref-test \
 	trusty/user/app/sample/memref-test/lender \
+	trusty/user/app/sample/memref-test/receiver \
 	trusty/user/app/sample/timer \
 	trusty/user/app/sample/spi/swspi-srv \
 	trusty/user/app/sample/spi/swspi-test \
