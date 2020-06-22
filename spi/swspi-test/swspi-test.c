@@ -29,8 +29,8 @@
 #include <trusty_unittest.h>
 
 #define MAX_NUM_CMDS 32
-#define MAX_TOTAL_PAYLOAD 1024
-#define TXRX_SIZE 1024
+#define MAX_TOTAL_PAYLOAD 1024 * 1024 /* 1 MB */
+#define TXRX_SIZE MAX_TOTAL_PAYLOAD
 #define CLK_SPEED 1000000 /* 1 MHz */
 #define PAGE_SIZE getauxval(AT_PAGESZ)
 
@@ -361,6 +361,14 @@ TEST_P(swspi, long_single_data_xfer) {
     EXPECT_EQ(rc, 0, "exec xfer 1024");
 }
 
+TEST_P(swspi, very_large_data_xfer) {
+    int rc;
+    struct spi_test_dev* test_dev = _state->test_dev;
+
+    rc = exec_xfer(test_dev, MAX_TOTAL_PAYLOAD);
+    EXPECT_EQ(rc, 0);
+}
+
 TEST_P(swspi, multi_segment_xfer) {
     int rc;
     void* tx0;
@@ -408,7 +416,7 @@ TEST_P(swspi, multi_segment_xfer) {
 TEST_P(swspi, unidir_recv) {
     int rc;
     void* rx;
-    uint8_t expected[TXRX_SIZE];
+    uint8_t expected[128];
     size_t sz = sizeof(expected);
     struct spi_dev* dev = &_state->test_dev->dev;
     bool loopback = _state->test_dev->loopback;
