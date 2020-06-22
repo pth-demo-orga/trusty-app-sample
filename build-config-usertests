@@ -24,7 +24,6 @@
     porttest("com.android.timer-unittest"),
     porttest("com.android.trusty.hwcrypto.test"),
     porttest("com.android.trusty.swspi.test"),
-    porttest("com.android.uirq-unittest"),
 
     # userspace tests using storage available at early boot
     needs(
