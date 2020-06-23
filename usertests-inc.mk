@@ -20,8 +20,6 @@ TRUSTY_ALL_USER_TASKS += \
 	trusty/user/app/sample/app-mgmt-test/port-start-srv \
 	trusty/user/app/sample/app-mgmt-test/restart-srv \
 	trusty/user/app/sample/hwcrypto-unittest \
-	trusty/user/app/sample/ipc-unittest/main \
-	trusty/user/app/sample/ipc-unittest/srv \
 	trusty/user/app/sample/manifest-test \
 	trusty/user/app/sample/libcxx-test \
 	trusty/user/app/sample/memref-test \
