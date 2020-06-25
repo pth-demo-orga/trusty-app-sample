@@ -23,30 +23,4 @@
     porttest("com.android.trusty.hwcrypto.test"),
     porttest("com.android.trusty.swspi.test"),
 
-    # userspace tests using storage available at early boot
-    needs(
-        [
-            # init->check->clean is a side-effectful test chain
-            # must preserve order
-            porttest("com.android.storage-unittest.tp.init"),
-            porttest("com.android.storage-unittest.tp.check"),
-            porttest("com.android.storage-unittest.tp.clean"),
-            porttest("com.android.storage-unittest.tp"),
-            porttest("com.android.storage-unittest.tdea.init"),
-            porttest("com.android.storage-unittest.tdea.check"),
-            porttest("com.android.storage-unittest.tdea.clean"),
-            porttest("com.android.storage-unittest.tdea"),
-        ],
-        storage_boot=True,
-    ),
-
-    # Storage tests which require a nonsecure file
-    # These need Android or a similar resource to run, simple RPMB
-    # in testrunner is insufficient.
-    needs(
-        [
-            porttest("com.android.storage-unittest.td"),
-        ],
-        storage_full=True,
-    ),
 ]
