@@ -17,7 +17,6 @@
 [
     # userspace tests that don't use storage
     porttest("com.android.appmgmt-unittest.appmngr"),
-    porttest("com.android.libcxxtest"),
     porttest("com.android.manifesttest"),
     porttest("com.android.memref.test"),
     porttest("com.android.timer-unittest"),

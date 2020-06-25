@@ -21,7 +21,6 @@ TRUSTY_ALL_USER_TASKS += \
 	trusty/user/app/sample/app-mgmt-test/restart-srv \
 	trusty/user/app/sample/hwcrypto-unittest \
 	trusty/user/app/sample/manifest-test \
-	trusty/user/app/sample/libcxx-test \
 	trusty/user/app/sample/memref-test \
 	trusty/user/app/sample/memref-test/lender \
 	trusty/user/app/sample/timer \
