@@ -89,7 +89,7 @@ int main(void) {
         return PTR_ERR(hset);
     }
 
-    rc = add_spimaster_service(hset, ports, countof(ports));
+    rc = add_spi_service(hset, ports, countof(ports));
     if (rc != NO_ERROR) {
         TLOGE("failed (%d) to initialize SPI test service\n", rc);
         return rc;
