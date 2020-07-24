@@ -196,6 +196,7 @@ int main(void) {
             TLOGI("recv_cmd failed: %d\n", rc);
             goto err_recv;
         }
+        rc = 0;
 
         done = handle_cmd(cmd, channel, &start_port);
     }

@@ -31,6 +31,7 @@ int main(void) {
     handle_t phandle;
     handle_t chandle;
     uevent_t uevt;
+    uuid_t peer_uuid;
 
     rc = port_create(BOOT_START_PORT, 1, 1, IPC_PORT_ALLOW_TA_CONNECT);
     if (rc < 0) {
@@ -44,6 +45,15 @@ int main(void) {
         if (rc != NO_ERROR || !(uevt.event & IPC_HANDLE_POLL_READY)) {
             TLOGI("Port wait failed(%d) event:%d handle:%d\n", rc, uevt.event,
                   phandle);
+            return rc;
+        }
+
+        rc = accept(uevt.handle, &peer_uuid);
+        if (rc == ERR_CHANNEL_CLOSED) {
+            continue; /* client already closed connection, nothing to do */
+        }
+        if (rc < 0) {
+            TLOGI("Accept failed %d\n", rc);
             return rc;
         }
 
