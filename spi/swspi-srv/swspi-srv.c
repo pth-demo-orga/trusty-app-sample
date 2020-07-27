@@ -30,7 +30,7 @@
 
 /*
  * Software SPI buses/devices are connected the following way:
- * First SPI bus is shared. It has a dummy and a test device connected to it.
+ * First SPI bus is shared. It has a fake and a test device connected to it.
  * Second SPI bus is dedicated. Only software loopback device is connected to
  * it.
  */
