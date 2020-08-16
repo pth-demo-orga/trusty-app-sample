@@ -28,6 +28,9 @@ MODULE_DEPS += \
     trusty/user/base/lib/spi/srv \
     trusty/user/base/lib/tipc \
 
+# Include software implementation of SPI loopback device by default
+WITH_SW_SPI_LOOPBACK ?= true
+
 ifeq (true,$(call TOBOOL,$(WITH_SW_SPI_LOOPBACK)))
     MODULE_DEFINES += WITH_SW_SPI_LOOPBACK=1
 endif
