@@ -328,6 +328,30 @@ TEST_P(swspi, set_clk) {
     EXPECT_LE(*clk_hz, CLK_SPEED);
 }
 
+TEST_P(swspi, delay) {
+    int rc;
+    struct spi_dev* dev = &_state->test_dev->dev;
+    uint64_t delay_ns = 1000000000; /* 1 second */
+    int64_t start_ns;
+    int64_t end_ns;
+
+    rc = spi_add_cs_assert_cmd(dev);
+    EXPECT_EQ(rc, 0);
+
+    rc = spi_add_delay_cmd(dev, delay_ns);
+    EXPECT_EQ(rc, 0);
+
+    rc = spi_add_cs_deassert_cmd(dev);
+    EXPECT_EQ(rc, 0);
+
+    trusty_gettime(0, &start_ns);
+    rc = spi_exec_cmds(dev, NULL);
+    trusty_gettime(0, &end_ns);
+
+    EXPECT_EQ(rc, 0);
+    EXPECT_GE(end_ns - start_ns, delay_ns);
+}
+
 TEST_P(swspi, single_data_xfer) {
     struct spi_test_dev* test_dev = _state->test_dev;
     int rc = exec_xfer(test_dev, 1);

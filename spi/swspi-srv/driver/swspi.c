@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <uapi/err.h>
 
 #define TLOG_TAG "swspi-drv"
@@ -152,6 +153,27 @@ int spi_req_xfer(struct spi_dev_ctx* dev, void* tx, void* rx, size_t len) {
 
     dev->cmds[dev->curr_cmd].exec = spi_req_exec_xfer;
     dev->cmds[dev->curr_cmd].priv = args;
+    dev->curr_cmd++;
+    return NO_ERROR;
+}
+
+static void spi_req_exec_delay(struct spi_dev_ctx* dev, void* priv) {
+    uint64_t delay_ns = *((uint64_t*)priv);
+    trusty_nanosleep(0, 0, delay_ns);
+}
+
+int spi_req_delay(struct spi_dev_ctx* dev, uint64_t delay_ns) {
+    assert(dev);
+
+    uint64_t* arg = malloc(sizeof(*arg));
+    if (!arg) {
+        TLOGE("failed to allocate memory for delay argument\n");
+        return ERR_NO_MEMORY;
+    }
+    *arg = delay_ns;
+
+    dev->cmds[dev->curr_cmd].exec = spi_req_exec_delay;
+    dev->cmds[dev->curr_cmd].priv = arg;
     dev->curr_cmd++;
     return NO_ERROR;
 }
