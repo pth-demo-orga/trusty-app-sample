@@ -24,6 +24,8 @@ MODULE_SRCS += \
 
 MODULE_DEPS += \
 	$(HWCRYPTO_UNITTEST_DEVICE_MODULE) \
+
+MODULE_LIBRARY_DEPS += \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/lib/hwkey \
 	trusty/user/base/lib/rng \
@@ -33,5 +35,5 @@ ifeq (true,$(call TOBOOL,$(WITH_FAKE_HWRNG)))
 MODULE_DEFINES += WITH_FAKE_HWRNG=1
 endif
 
-include make/module.mk
+include make/trusted_app.mk
 

@@ -21,14 +21,14 @@ MANIFEST := $(LOCAL_DIR)/manifest.json
 MODULE_SRCS += \
 	$(LOCAL_DIR)/main.c \
 
-MODULE_DEPS += \
+MODULE_LIBRARY_DEPS += \
 	trusty/user/base/lib/unittest \
 
 #BUILD_FROM_SOURCE := true
 
 ifeq (true,$(call TOBOOL,$(BUILD_FROM_SOURCE)))
 # Build library from source.
-MODULE_DEPS += \
+MODULE_LIBRARY_DEPS += \
 	$(LOCAL_DIR)/lib \
 
 else
@@ -44,9 +44,9 @@ MODULE_EXTRA_ARCHIVES += \
 	$(LOCAL_DIR)/prebuilts/arch/$(ARCH)/lib.mod.a \
 
 # Also link in dependencies of the prebuilt.
-MODULE_DEPS += \
+MODULE_LIBRARY_DEPS += \
 	trusty/user/base/lib/libc-trusty \
 
 endif
 
-include make/module.mk
+include make/trusted_app.mk

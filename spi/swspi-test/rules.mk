@@ -21,10 +21,10 @@ MANIFEST := $(LOCAL_DIR)/manifest.json
 MODULE_SRCS += \
 	$(LOCAL_DIR)/swspi-test.c \
 
-MODULE_DEPS += \
-	trusty/user/base/interface/spi \
+MODULE_LIBRARY_DEPS += \
 	trusty/user/base/lib/libc-trusty \
-	trusty/user/base/lib/spi/client \
 	trusty/user/base/lib/unittest \
+	trusty/user/base/lib/spi/client \
+	trusty/user/base/lib/spi/common \
 
-include make/module.mk
+include make/trusted_app.mk

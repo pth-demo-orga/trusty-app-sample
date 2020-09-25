@@ -27,7 +27,7 @@ MODULE_INCLUDES += \
 MODULE_SRCS += \
 	$(LOCAL_DIR)/main.c \
 
-MODULE_DEPS += \
+MODULE_LIBRARY_DEPS += \
 	trusty/user/base/lib/libc-trusty \
 
 # Encrypt this application for testing
@@ -35,4 +35,4 @@ ifneq ($(APPLOADER_ENCRYPT_KEY_0_FILE),)
 APPLOADER_ENCRYPT_KEY_ID_FOR_$(MODULE) := 0
 endif
 
-include make/module.mk
+include make/trusted_app.mk

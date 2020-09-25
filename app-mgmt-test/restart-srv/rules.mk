@@ -27,8 +27,8 @@ MODULE_INCLUDES += \
 MODULE_SRCS += \
 	$(LOCAL_DIR)/main.c \
 
-MODULE_DEPS += \
+MODULE_LIBRARY_DEPS += \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/lib/tipc \
 
-include make/module.mk
+include make/trusted_app.mk

@@ -18,7 +18,7 @@ MODULE_SRCS += \
 	$(LOCAL_DIR)/keybox/srv.c \
 	$(LOCAL_DIR)/keybox/keybox.c \
 
-MODULE_DEPS += \
+MODULE_LIBRARY_DEPS += \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/lib/tipc \
 	trusty/user/base/interface/keybox \

@@ -21,12 +21,13 @@ MANIFEST := $(LOCAL_DIR)/manifest.json
 MODULE_SRCS := \
     $(LOCAL_DIR)/swspi-srv.c \
 
-MODULE_DEPS += \
-    trusty/user/app/sample/spi/swspi-srv/driver \
+MODULE_LIBRARY_DEPS += \
     trusty/user/base/interface/spi \
     trusty/user/base/lib/libc-trusty \
     trusty/user/base/lib/spi/srv \
+    trusty/user/base/lib/spi/srv/tipc \
     trusty/user/base/lib/tipc \
+    trusty/user/app/sample/spi/swspi-srv/driver \
 
 # Include software implementation of SPI loopback device by default
 WITH_SW_SPI_LOOPBACK ?= true
@@ -35,4 +36,4 @@ ifeq (true,$(call TOBOOL,$(WITH_SW_SPI_LOOPBACK)))
     MODULE_DEFINES += WITH_SW_SPI_LOOPBACK=1
 endif
 
-include make/module.mk
+include make/trusted_app.mk

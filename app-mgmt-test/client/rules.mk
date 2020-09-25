@@ -21,19 +21,19 @@ MANIFEST := $(LOCAL_DIR)/manifest.json
 
 CONSTANTS := $(LOCAL_DIR)/../include/app_mgmt_port_consts.json
 
-BOOT_START_APP  := $(abspath $(BUILDDIR)/../boot-start-srv/boot-start-srv.app)
-NEVER_START_APP := $(abspath $(BUILDDIR)/../never-start-srv/never-start-srv.app)
-PORT_START_APP  := $(abspath $(BUILDDIR)/../port-start-srv/port-start-srv.app)
-RESTART_APP     := $(abspath $(BUILDDIR)/../restart-srv/restart-srv.app)
-PORT_WAITER_APP := $(abspath $(BUILDDIR)/../port-waiter-srv/port-waiter-srv.app)
-UNSIGNED_APP    := $(abspath $(BUILDDIR)/../boot-start-srv/boot-start-srv.app.initial)
-DEV_ONLY_APP    := $(abspath $(BUILDDIR)/../dev-only-srv/dev-only-srv.app)
+BOOT_START_APP  := $(abspath $(TRUSTY_APP_BUILDDIR)/trusty/user/app/sample/app-mgmt-test/boot-start-srv/boot-start-srv.app)
+NEVER_START_APP := $(abspath $(TRUSTY_APP_BUILDDIR)/trusty/user/app/sample/app-mgmt-test/never-start-srv/never-start-srv.app)
+PORT_START_APP  := $(abspath $(TRUSTY_APP_BUILDDIR)/trusty/user/app/sample/app-mgmt-test/port-start-srv/port-start-srv.app)
+RESTART_APP     := $(abspath $(TRUSTY_APP_BUILDDIR)/trusty/user/app/sample/app-mgmt-test/restart-srv/restart-srv.app)
+PORT_WAITER_APP := $(abspath $(TRUSTY_APP_BUILDDIR)/trusty/user/app/sample/app-mgmt-test/port-waiter-srv/port-waiter-srv.app)
+UNSIGNED_APP    := $(abspath $(TRUSTY_APP_BUILDDIR)/trusty/user/app/sample/app-mgmt-test/boot-start-srv/boot-start-srv.app.initial)
+DEV_ONLY_APP    := $(abspath $(TRUSTY_APP_BUILDDIR)/trusty/user/app/sample/app-mgmt-test/dev-only-srv/dev-only-srv.app)
 
 MODULE_SRCS += \
 	$(LOCAL_DIR)/main.c \
 	$(LOCAL_DIR)/apps.S \
 
-MODULE_DEPS += \
+MODULE_LIBRARY_DEPS += \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/lib/system_state \
 	trusty/user/base/lib/tipc \
@@ -61,4 +61,4 @@ MODULE_SRCDEPS += \
 	$(UNSIGNED_APP) \
 	$(DEV_ONLY_APP) \
 
-include make/module.mk
+include make/trusted_app.mk

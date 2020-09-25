@@ -22,6 +22,8 @@ MANIFEST := $(LOCAL_DIR)/manifest.json
 
 CONSTANTS := $(LOCAL_DIR)/hwcrypto_consts.json
 
+MODULE_INCLUDES := $(LOCAL_DIR)/include
+
 MODULE_SRCS := \
 	$(LOCAL_DIR)/main.c \
 	$(LOCAL_DIR)/hwrng_srv.c \
@@ -35,7 +37,7 @@ ifeq (true,$(call TOBOOL,$(WITH_FAKE_HWKEY)))
 MODULE_SRCS += $(LOCAL_DIR)/hwkey_srv_fake_provider.c
 endif
 
-MODULE_DEPS := \
+MODULE_LIBRARY_DEPS := \
 	external/boringssl \
 	trusty/user/base/interface/hwaes \
 	trusty/user/base/interface/hwrng \
@@ -74,4 +76,4 @@ endif
 
 include $(LOCAL_DIR)/keybox/rules.mk
 
-include make/module.mk
+include make/trusted_app.mk

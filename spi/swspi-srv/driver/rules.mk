@@ -19,4 +19,9 @@ MODULE := $(LOCAL_DIR)
 MODULE_SRCS += \
     $(LOCAL_DIR)/swspi.c \
 
-include make/module.mk
+MODULE_LIBRARY_DEPS += \
+    trusty/user/base/lib/spi/srv \
+    trusty/user/base/lib/spi/srv/batch \
+    trusty/user/base/lib/spi/common \
+
+include make/library.mk
