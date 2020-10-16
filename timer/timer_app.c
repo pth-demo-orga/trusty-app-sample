@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
+#include <trusty/time.h>
 
 #include <lib/unittest/unittest.h>
 #include <trusty_unittest.h>

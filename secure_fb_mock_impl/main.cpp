@@ -22,9 +22,9 @@
 #include <lib/tipc/tipc.h>
 #include <lk/err_ptr.h>
 #include <lk/macros.h>
-#include <memref.h>
 #include <sys/auxv.h>
 #include <sys/mman.h>
+#include <trusty/memref.h>
 #include <trusty_ipc.h>
 #include <trusty_log.h>
 

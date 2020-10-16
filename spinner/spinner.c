@@ -17,7 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
+#include <trusty/time.h>
 #include <trusty_ipc.h>
 #include <trusty_log.h>
 #include <uapi/err.h>

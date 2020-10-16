@@ -15,6 +15,7 @@
  */
 
 #include <sys/mman.h>
+#include <trusty/sys/mman.h>
 #include <trusty_unittest.h>
 
 #define TEST1_ID 1

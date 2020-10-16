@@ -28,12 +28,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/auxv.h>
+#include <sys/mman.h>
 
 #include <lib/tipc/tipc.h>
 #include <lib/tipc/tipc_srv.h>
 #include <lib/unittest/unittest.h>
 
-#include <sys/mman.h>
+#include <trusty/sys/mman.h>
 #include <trusty_unittest.h>
 
 /* Number of pages to expect from NS */

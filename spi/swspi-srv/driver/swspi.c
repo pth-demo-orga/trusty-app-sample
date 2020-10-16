@@ -21,7 +21,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
+#include <trusty/time.h>
 #include <uapi/err.h>
 
 #define TLOG_TAG "swspi-drv"
