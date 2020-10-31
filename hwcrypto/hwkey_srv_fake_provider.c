@@ -194,6 +194,40 @@ other_err:
 }
 
 /*
+ * Keymint KAK support
+ */
+#define KM_KAK_SIZE 32
+/* TODO import this constant from KM TA when build support is ready */
+#define KM_KAK_ID "com.android.trusty.keymint.kak"
+
+/* KM app uuid */
+static const uuid_t km_uuid = KM_APP_UUID;
+
+static uint8_t kak_salt[KM_KAK_SIZE] = {
+        0x70, 0xc4, 0x7c, 0xfa, 0x2c, 0xb1, 0xee, 0xdc, 0xa5, 0xdf, 0xbc,
+        0x8d, 0xd4, 0xf7, 0x0d, 0x42, 0x93, 0x3b, 0x7f, 0x7b, 0xc2, 0x9e,
+        0x6d, 0xa5, 0xb2, 0x92, 0x7a, 0x21, 0x8e, 0xc9, 0xe6, 0x9a,
+};
+
+/*
+ * This should be replaced with a device-specific implementation such that
+ * any Strongbox on the device will have the same KAK.
+ */
+static uint32_t get_km_kak_key(const struct hwkey_keyslot* slot,
+                               uint8_t* kbuf,
+                               size_t kbuf_len,
+                               size_t* klen) {
+    assert(kbuf);
+    assert(klen);
+
+    if (kbuf_len < KM_KAK_SIZE) {
+        return HWKEY_ERR_BAD_LEN;
+    }
+
+    return derive_key_v1(slot->uuid, kak_salt, KM_KAK_SIZE, kbuf, klen);
+}
+
+/*
  *  List of keys slots that hwkey service supports
  */
 static const struct hwkey_keyslot _keys[] = {
@@ -201,6 +235,11 @@ static const struct hwkey_keyslot _keys[] = {
                 .uuid = &ss_uuid,
                 .key_id = RPMB_SS_AUTH_KEY_ID,
                 .handler = get_rpmb_ss_auth_key,
+        },
+        {
+                .uuid = &km_uuid,
+                .key_id = KM_KAK_ID,
+                .handler = get_km_kak_key,
         },
 };
 
