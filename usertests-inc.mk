@@ -28,4 +28,10 @@ TRUSTY_ALL_USER_TASKS += \
 	trusty/user/app/sample/spi/swspi-srv \
 	trusty/user/app/sample/spi/swspi-test \
 
+ifeq ($(TRUSTY_USER_ARCH),arm64)
+TRUSTY_ALL_USER_TASKS += \
+	trusty/user/app/sample/prebuilts-test \
+
+endif
+
 TRUSTY_LOADABLE_USER_TASKS += \
