@@ -36,6 +36,9 @@
 #include <sys/mman.h>
 #include <trusty_unittest.h>
 
+/* Number of pages to expect from NS */
+static const size_t num_pages = 10;
+
 static struct tipc_port_acl receiver_port_acl = {
         .flags = IPC_PORT_ALLOW_NS_CONNECT,
         .uuid_num = 0,
@@ -86,14 +89,17 @@ static int receiver_on_message(const struct tipc_port* port,
 
     size_t page_size = getauxval(AT_PAGESZ);
 
-    char* out = mmap(0, page_size, PROT_READ | PROT_WRITE, 0, handle, 0);
+    char* out = mmap(0, page_size * num_pages, PROT_READ | PROT_WRITE, 0,
+                     handle, 0);
     if (out == MAP_FAILED) {
         rc = (intptr_t)out;
         TLOGE("Failed to mmap handle\n");
         return rc;
     }
 
-    strcpy(out, "Hello from Trusty!");
+    for (size_t skip = 0; skip < num_pages; skip++) {
+        strcpy(&out[skip * page_size], "Hello from Trusty!");
+    }
 
     munmap((void*)out, page_size);
 
