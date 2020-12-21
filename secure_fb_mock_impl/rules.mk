@@ -28,6 +28,7 @@ MODULE_DEPS += \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/lib/libstdc++-trusty \
 	trusty/user/base/lib/tipc \
+	trusty/user/base/lib/secure_dpu \
 	trusty/user/base/lib/secure_fb/srv \
 
 include make/module.mk

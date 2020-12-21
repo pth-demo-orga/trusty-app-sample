@@ -16,6 +16,7 @@
 
 #define TLOG_TAG "secure_fb_impl"
 
+#include <lib/secure_dpu/secure_dpu.h>
 #include <lib/secure_fb/srv/dev.h>
 #include <lib/secure_fb/srv/srv.h>
 #include <lib/tipc/tipc.h>
@@ -36,6 +37,8 @@ static constexpr const uint32_t kDeviceHeight = 800;
 static constexpr const uint32_t kFbCount = 1;
 static constexpr const uint32_t kFbId = 0xdeadbeef;
 
+static handle_t secure_dpu_handle = INVALID_IPC_HANDLE;
+
 class SecureFbMockImpl {
 private:
     struct FbDbEntry {
@@ -47,20 +50,34 @@ private:
     FbDbEntry fb_db_[kFbCount];
 
 public:
+    ~SecureFbMockImpl() {
+        if (secure_dpu_free_buffer(secure_dpu_handle,
+                                   (void*)fb_db_[0].fb_info.buffer) < 0) {
+            TLOGE("Failed to free framebuffer\n");
+        }
+        if (secure_dpu_stop_secure_display(secure_dpu_handle) < 0) {
+            TLOGE("Failed to stop secure_display\n");
+        }
+    }
+
     int Init(uint32_t width, uint32_t height) {
+        if (secure_dpu_start_secure_display(secure_dpu_handle) < 0) {
+            TLOGE("Failed to start secure_display\n");
+            return SECURE_FB_ERROR_UNINITIALIZED;
+        }
+
         uint32_t fb_size =
                 round_up(sizeof(uint32_t) * width * height, PAGE_SIZE());
-        /*
-         * Every secure_fb client (of which there can only be one at a time)
-         * gets the same framebuffer memory. We do this so to prevent running
-         * out of memory as the number of connections to secure_fb server grows
-         * over time.
-         */
-        static void* fb_base = memalign(PAGE_SIZE(), fb_size);
-        if (!fb_base) {
+
+        void* fb_base;
+        size_t buffer_len = (size_t)fb_size;
+        if (secure_dpu_allocate_buffer(secure_dpu_handle,
+                                       &fb_base, &buffer_len) < 0
+                                       || buffer_len < fb_size) {
             TLOGE("Failed to allocate framebuffer of size: %u\n", fb_size);
             return SECURE_FB_ERROR_MEMORY_ALLOCATION;
         }
+        fb_size = buffer_len;
 
         /*
          * Create a handle for the buffer by which it can be passed to the TUI
@@ -148,6 +165,12 @@ int main(void) {
     if (IS_ERR(hset)) {
         TLOGE("failed (%d) to create handle set\n", PTR_ERR(hset));
         return PTR_ERR(hset);
+    }
+
+    rc = add_secure_dpu_service(hset, &secure_dpu_handle);
+    if (rc != NO_ERROR) {
+        TLOGE("failed (%d) to initialize secure_dpu mock service\n", rc);
+        return rc;
     }
 
     rc = add_secure_fb_service(hset);
