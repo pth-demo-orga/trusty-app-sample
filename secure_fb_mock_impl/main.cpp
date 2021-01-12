@@ -43,6 +43,7 @@ class SecureFbMockImpl {
 private:
     struct FbDbEntry {
         secure_fb_info fb_info;
+        secure_dpu_buf_info buf_info;
         handle_t handle;
         ptrdiff_t offset;
     };
@@ -51,8 +52,7 @@ private:
 
 public:
     ~SecureFbMockImpl() {
-        if (secure_dpu_free_buffer(secure_dpu_handle,
-                                   (void*)fb_db_[0].fb_info.buffer) < 0) {
+        if (secure_dpu_release_buffer(&fb_db_[0].buf_info) < 0) {
             TLOGE("Failed to free framebuffer\n");
         }
         if (secure_dpu_stop_secure_display(secure_dpu_handle) < 0) {
@@ -68,16 +68,15 @@ public:
 
         uint32_t fb_size =
                 round_up(sizeof(uint32_t) * width * height, PAGE_SIZE());
+        secure_dpu_buf_info buf_info;
 
-        void* fb_base;
-        size_t buffer_len = (size_t)fb_size;
         if (secure_dpu_allocate_buffer(secure_dpu_handle,
-                                       &fb_base, &buffer_len) < 0
-                                       || buffer_len < fb_size) {
+                                       (size_t)fb_size,
+                                       &buf_info) < 0) {
             TLOGE("Failed to allocate framebuffer of size: %u\n", fb_size);
             return SECURE_FB_ERROR_MEMORY_ALLOCATION;
         }
-        fb_size = buffer_len;
+        void* fb_base = buf_info.addr;
 
         /*
          * Create a handle for the buffer by which it can be passed to the TUI
@@ -102,6 +101,7 @@ public:
                                 .height = height,
                                 .pixel_format = TTUI_PF_RGBA8,
                         },
+                .buf_info = buf_info,
                 .handle = handle,
         };
 
