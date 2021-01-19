@@ -135,7 +135,11 @@ public:
 
 secure_fb_handle_t secure_fb_impl_init() {
     auto sfb = new SecureFbMockImpl();
-    sfb->Init(kDeviceWidth, kDeviceHeight);
+    auto rc = sfb->Init(kDeviceWidth, kDeviceHeight);
+    if (rc != SECURE_FB_ERROR_OK) {
+        delete sfb;
+        return NULL;
+    }
     return sfb;
 }
 
