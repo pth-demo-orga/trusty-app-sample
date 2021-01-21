@@ -21,15 +21,34 @@ MANIFEST := $(LOCAL_DIR)/manifest.json
 
 CONSTANTS := $(LOCAL_DIR)/../include/app_mgmt_port_consts.json
 
-MODULE_INCLUDES += \
-	$(LOCAL_DIR)/../include \
+BOOT_START_APP  := $(abspath $(BUILDDIR)/../boot-start-srv/boot-start-srv.app)
+NEVER_START_APP := $(abspath $(BUILDDIR)/../never-start-srv/never-start-srv.app)
+PORT_START_APP  := $(abspath $(BUILDDIR)/../port-start-srv/port-start-srv.app)
+RESTART_APP     := $(abspath $(BUILDDIR)/../restart-srv/restart-srv.app)
 
 MODULE_SRCS += \
 	$(LOCAL_DIR)/main.c \
+	$(LOCAL_DIR)/apps.S \
 
 MODULE_DEPS += \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/lib/tipc \
 	trusty/user/base/lib/unittest \
+	trusty/user/base/interface/apploader \
+
+MODULE_ASMFLAGS += \
+	-DBOOT_START_APP=\"$(BOOT_START_APP)\" \
+	-DNEVER_START_APP=\"$(NEVER_START_APP)\" \
+	-DPORT_START_APP=\"$(PORT_START_APP)\" \
+	-DRESTART_APP=\"$(RESTART_APP)\" \
+
+MODULE_INCLUDES += \
+	$(LOCAL_DIR)/../include \
+
+MODULE_SRCDEPS += \
+	$(BOOT_START_APP) \
+	$(NEVER_START_APP) \
+	$(PORT_START_APP) \
+	$(RESTART_APP) \
 
 include make/module.mk

@@ -14,11 +14,7 @@
 #
 
 TRUSTY_ALL_USER_TASKS += \
-	trusty/user/app/sample/app-mgmt-test/boot-start-srv \
 	trusty/user/app/sample/app-mgmt-test/client\
-	trusty/user/app/sample/app-mgmt-test/never-start-srv \
-	trusty/user/app/sample/app-mgmt-test/port-start-srv \
-	trusty/user/app/sample/app-mgmt-test/restart-srv \
 	trusty/user/app/sample/hwcrypto-unittest \
 	trusty/user/app/sample/manifest-test \
 	trusty/user/app/sample/memref-test \
@@ -35,3 +31,8 @@ TRUSTY_ALL_USER_TASKS += \
 endif
 
 TRUSTY_LOADABLE_USER_TASKS += \
+	trusty/user/app/sample/app-mgmt-test/boot-start-srv \
+	trusty/user/app/sample/app-mgmt-test/never-start-srv \
+	trusty/user/app/sample/app-mgmt-test/port-start-srv \
+	trusty/user/app/sample/app-mgmt-test/restart-srv \
+

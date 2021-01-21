@@ -17,11 +17,15 @@
 #include <app_mgmt_port_consts.h>
 #include <app_mgmt_test.h>
 #include <assert.h>
+#include <interface/apploader/apploader.h>
 #include <lib/tipc/tipc.h>
 #include <lib/unittest/unittest.h>
+#include <memref.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/auxv.h>
+#include <sys/mman.h>
 #include <time.h>
 #include <trusty_ipc.h>
 #include <trusty_unittest.h>
@@ -186,10 +190,169 @@ test_abort:
     return;
 }
 
+static void send_apploader_request(handle_t channel,
+                                   uint32_t cmd,
+                                   void* req,
+                                   size_t req_size,
+                                   handle_t handle) {
+    if (HasFailure())
+        return;
+
+    struct apploader_header hdr = {
+            .cmd = cmd,
+    };
+    struct iovec iov[2] = {{&hdr, sizeof(hdr)}, {req, req_size}};
+    ipc_msg_t msg = {
+            .iov = iov,
+            .num_iov = (req && req_size) ? 2 : 1,
+            .handles = &handle,
+            .num_handles = (handle != INVALID_IPC_HANDLE) ? 1 : 0,
+    };
+
+    int rc;
+    rc = send_msg(channel, &msg);
+    ASSERT_EQ(rc, (ssize_t)sizeof(hdr) + (ssize_t)req_size);
+
+test_abort:;
+}
+
+static uint32_t read_apploader_response(handle_t channel,
+                                        uint32_t cmd,
+                                        handle_t* handles,
+                                        size_t num_handles,
+                                        ipc_msg_info_t* msg_inf) {
+    int rc;
+    struct apploader_resp resp;
+    ASSERT_EQ(msg_inf->len, sizeof(resp));
+
+    struct iovec iov = {
+            .iov_base = (void*)&resp,
+            .iov_len = sizeof(resp),
+    };
+    ipc_msg_t msg = {
+            .iov = &iov,
+            .num_iov = 1,
+            .handles = handles,
+            .num_handles = num_handles,
+    };
+    rc = read_msg(channel, msg_inf->id, 0, &msg);
+    ASSERT_EQ(rc, (ssize_t)sizeof(resp));
+    ASSERT_EQ(resp.hdr.cmd, cmd | APPLOADER_RESP_BIT);
+
+    return resp.error;
+
+test_abort:
+    return 0;
+}
+
+static uint32_t recv_apploader_response(handle_t channel,
+                                        uint32_t cmd,
+                                        handle_t* handles,
+                                        size_t num_handles) {
+    int rc;
+    struct uevent event;
+    ipc_msg_info_t msg_inf;
+
+    if (HasFailure())
+        return 0;
+
+    rc = wait(channel, &event, INFINITE_TIME);
+    ASSERT_EQ(rc, NO_ERROR);
+    ASSERT_NE(event.event & IPC_HANDLE_POLL_MSG, 0);
+
+    rc = get_msg(channel, &msg_inf);
+    ASSERT_EQ(rc, NO_ERROR);
+
+    rc = read_apploader_response(channel, cmd, handles, num_handles, &msg_inf);
+    put_msg(channel, msg_inf.id);
+    return rc;
+
+test_abort:
+    return 0;
+}
+
+static uint32_t load_app(char* app_begin, char* app_end) {
+    int rc;
+    handle_t chan = INVALID_IPC_HANDLE;
+    handle_t handle = INVALID_IPC_HANDLE;
+
+    rc = connect(APPLOADER_PORT, IPC_CONNECT_WAIT_FOR_PORT);
+    ASSERT_GT(rc, 0);
+    chan = (handle_t)rc;
+
+    uint64_t page_size = getauxval(AT_PAGESZ);
+    ptrdiff_t app_size = app_end - app_begin;
+    size_t aligned_app_size = round_up(app_size, page_size);
+
+    handle = memref_create(app_begin, aligned_app_size, MMAP_FLAG_PROT_READ);
+    ASSERT_GT(handle, 0);
+
+    struct apploader_load_app_req req = {
+            .package_size = app_size,
+    };
+    send_apploader_request(chan, APPLOADER_CMD_LOAD_APPLICATION, &req,
+                           sizeof(req), handle);
+    ASSERT_EQ(false, HasFailure());
+
+    uint32_t error;
+    error = recv_apploader_response(chan, APPLOADER_CMD_LOAD_APPLICATION, NULL,
+                                    0);
+    ASSERT_EQ(false, HasFailure());
+    ASSERT_EQ(true, error == APPLOADER_NO_ERROR ||
+                            error == APPLOADER_ERR_ALREADY_EXISTS);
+
+    /* Wait for a bit for the app to start properly */
+    if (error == APPLOADER_NO_ERROR) {
+        trusty_nanosleep(0, 0, WAIT_FOR_APP_SLEEP_NS);
+    }
+
+    close(handle);
+    close(chan);
+
+    return error;
+
+test_abort:
+    if (handle > 0) {
+        close(handle);
+    }
+    close(chan);
+    return 0;
+}
+
+extern char boot_start_app_begin[], boot_start_app_end[];
+extern char never_start_app_begin[], never_start_app_end[];
+extern char port_start_app_begin[], port_start_app_end[];
+extern char restart_app_begin[], restart_app_end[];
+
+/*
+ * Loading an application the a second time should return
+ * APPLOADER_ERR_ALREADY_EXISTS. This test should be the first
+ * in the file to load boot-start-srv so we test both proper
+ * application loading and the second load attempt.
+ */
+TEST(AppMgrBoot, DoubleLoad) {
+    uint32_t error;
+
+    error = load_app(boot_start_app_begin, boot_start_app_end);
+    ASSERT_EQ(false, HasFailure());
+    if (error == APPLOADER_ERR_ALREADY_EXISTS) {
+        unittest_printf("[  WARNING ] boot-start-srv already loaded\n");
+    }
+
+    error = load_app(boot_start_app_begin, boot_start_app_end);
+    ASSERT_EQ(false, HasFailure());
+    ASSERT_EQ(error, APPLOADER_ERR_ALREADY_EXISTS);
+
+test_abort:;
+}
+
 static void AppMgrPortStart_SetUp(AppMgrPortStart_t* state) {
     int rc;
     uevent_t uevt;
     handle_t chan;
+
+    load_app(port_start_app_begin, port_start_app_end);
+    ASSERT_EQ(false, HasFailure());
 
     for (size_t i = 0; i < CHAN_COUNT; i++) {
         state->chans[i] = INVALID_IPC_HANDLE;
@@ -239,20 +402,30 @@ test_abort:
 TEST(AppMgrBoot, BootStartNegative) {
     int rc;
 
+    load_app(never_start_app_begin, never_start_app_end);
+    ASSERT_EQ(false, HasFailure());
+
     /* never-start-srv should not be running */
     rc = connect(NEVER_START_PORT, IPC_CONNECT_ASYNC);
     EXPECT_LT(rc, 0);
     close((handle_t)rc);
+
+test_abort:;
 }
 
 /* Apps without deferred should start at boot */
 TEST(AppMgrBoot, BootStartPositive) {
     int rc;
 
+    load_app(boot_start_app_begin, boot_start_app_end);
+    ASSERT_EQ(false, HasFailure());
+
     /* boot-start-srv should be running from boot */
     rc = connect(BOOT_START_PORT, IPC_CONNECT_ASYNC);
     EXPECT_GE(rc, 0);
     close((handle_t)rc);
+
+test_abort:;
 }
 
 /* Apps with automatic restart should restart after exiting */
@@ -260,6 +433,9 @@ TEST(AppMgrRestart, AppRestartPositive) {
     int rc;
     uevent_t uevt;
     handle_t chan = INVALID_IPC_HANDLE;
+
+    load_app(restart_app_begin, restart_app_end);
+    ASSERT_EQ(false, HasFailure());
 
     /* restart-srv should be running from boot or a previous restart */
     rc = connect(RESTART_PORT, IPC_CONNECT_ASYNC | IPC_CONNECT_WAIT_FOR_PORT);
@@ -288,6 +464,9 @@ TEST(AppMgrRestart, AppRestartNegativePortStartPositive) {
     int rc;
     handle_t chan = INVALID_IPC_HANDLE;
 
+    load_app(port_start_app_begin, port_start_app_end);
+    ASSERT_EQ(false, HasFailure());
+
     /* Start and connect to port-start-srv */
     rc = connect(START_PORT, 0);
     ASSERT_GE(rc, 0);
@@ -301,17 +480,22 @@ TEST(AppMgrRestart, AppRestartNegativePortStartPositive) {
     ASSERT_EQ(false, port_start_srv_running());
 
 test_abort:
-    close((handle_t)rc);
+    close(chan);
 }
 
 /* Regular ports should not start an app on connection */
 TEST(AppMgrPortStartNegative, PortStartNegative) {
     int rc;
 
+    load_app(port_start_app_begin, port_start_app_end);
+    ASSERT_EQ(false, HasFailure());
+
     /* A connection to CTRL_PORT should not start port-start-srv */
     rc = connect(CTRL_PORT, IPC_CONNECT_ASYNC);
     EXPECT_LT(rc, 0);
     close((handle_t)rc);
+
+test_abort:;
 }
 
 /* Start ports with closed pending connections should not start an app */
@@ -324,6 +508,8 @@ TEST_F(AppMgrPortStart, PortStartPendingNegative) {
 
     /* Close the main channel and shutdown port-start-srv */
     send_exit(_state, MAIN_CHAN);
+
+test_abort:;
 }
 
 /* Start ports with pending connections should start an app */
