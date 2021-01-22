@@ -44,3 +44,10 @@ port_start_app_end:
 restart_app_begin:
 .incbin RESTART_APP
 restart_app_end:
+
+.global port_waiter_app_begin, port_waiter_app_end
+.hidden port_waiter_app_begin, port_waiter_app_end
+.balign 4096
+port_waiter_app_begin:
+.incbin PORT_WAITER_APP
+port_waiter_app_end:

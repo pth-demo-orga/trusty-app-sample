@@ -30,6 +30,11 @@
             "name": "BOOT_START_PORT",
             "value": "com.android.trusty.appmgmt.bootstartsrv",
             "type": "port"
+        },
+        {
+            "name": "PORT_WAITER_PORT",
+            "value": "com.android.trusty.appmgmt.portwaitersrv",
+            "type": "port"
         }
     ]
 }

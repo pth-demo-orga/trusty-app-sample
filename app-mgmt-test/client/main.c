@@ -323,6 +323,7 @@ extern char boot_start_app_begin[], boot_start_app_end[];
 extern char never_start_app_begin[], never_start_app_end[];
 extern char port_start_app_begin[], port_start_app_end[];
 extern char restart_app_begin[], restart_app_end[];
+extern char port_waiter_app_begin[], port_waiter_app_end[];
 
 /*
  * Loading an application the a second time should return
@@ -344,6 +345,54 @@ TEST(AppMgrBoot, DoubleLoad) {
     ASSERT_EQ(error, APPLOADER_ERR_ALREADY_EXISTS);
 
 test_abort:;
+}
+
+/*
+ * Start an app that waits on the port of another loadable app that has not
+ * been loaded yet, then start the second app. The kernel should correctly wake
+ * up the first app after loading the second.
+ */
+TEST(AppMgrWaitForPort, WaitConnectForPort) {
+    int rc;
+    handle_t chan = INVALID_IPC_HANDLE;
+    struct uevent uevt;
+    uint8_t rsp;
+
+    /*
+     * port-start-srv should not be running
+     * TODO: unload it ourselves when app unloading is supported; until then,
+     * we only allow this test to be run once per boot, and it needs to be the
+     * first one in the file.
+     */
+    static bool skip = false;
+    if (skip) {
+        unittest_printf("[  SKIPPED ]\n");
+        return;
+    }
+    skip = true;
+    ASSERT_EQ(false, port_start_srv_running());
+
+    /* Load port-waiter-srv */
+    load_app(port_waiter_app_begin, port_waiter_app_end);
+    ASSERT_EQ(false, HasFailure());
+
+    /* Load port-start-srv now, which should wake up port-waiter-srv */
+    uint32_t load_error = load_app(port_start_app_begin, port_start_app_end);
+    ASSERT_EQ(false, HasFailure());
+    ASSERT_EQ(load_error, APPLOADER_NO_ERROR);
+
+    /* Connect to port-waiter-srv */
+    rc = connect(PORT_WAITER_PORT, 0);
+    ASSERT_GE(rc, 0);
+    chan = (handle_t)rc;
+
+    ASSERT_EQ(NO_ERROR, wait(chan, &uevt, INFINITE_TIME));
+    ASSERT_NE(0, uevt.event & IPC_HANDLE_POLL_MSG);
+    ASSERT_EQ(sizeof(rsp), tipc_recv1(chan, sizeof(rsp), &rsp, sizeof(rsp)));
+    ASSERT_EQ(RSP_OK, rsp);
+
+test_abort:
+    close(chan);
 }
 
 static void AppMgrPortStart_SetUp(AppMgrPortStart_t* state) {
