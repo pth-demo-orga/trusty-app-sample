@@ -44,7 +44,7 @@ private:
     struct FbDbEntry {
         secure_fb_info fb_info;
         secure_dpu_buf_info buf_info;
-        handle_t handle;
+        handle_t handle = INVALID_IPC_HANDLE;
         ptrdiff_t offset;
     };
 
@@ -52,6 +52,9 @@ private:
 
 public:
     ~SecureFbMockImpl() {
+        if (fb_db_[0].handle != INVALID_IPC_HANDLE) {
+            close(fb_db_[0].handle);
+        }
         if (secure_dpu_release_buffer(&fb_db_[0].buf_info) < 0) {
             TLOGE("Failed to free framebuffer\n");
         }
@@ -82,11 +85,10 @@ public:
          * Create a handle for the buffer by which it can be passed to the TUI
          * app for rendering.
          */
-        static int handle =
+        int handle =
                 memref_create(fb_base, fb_size, PROT_READ | PROT_WRITE);
         if (handle < 0) {
             TLOGE("Failed to create memref (%d)\n", handle);
-            free(fb_base);
             return SECURE_FB_ERROR_SHARED_MEMORY;
         }
 
