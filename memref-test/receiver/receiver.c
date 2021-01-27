@@ -101,7 +101,7 @@ static int receiver_on_message(const struct tipc_port* port,
         strcpy(&out[skip * page_size], "Hello from Trusty!");
     }
 
-    munmap((void*)out, page_size);
+    munmap((void*)out, page_size * num_pages);
 
     close(handle);
 
