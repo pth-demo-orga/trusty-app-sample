@@ -42,6 +42,16 @@ MODULE_DEPS := \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/lib/tipc \
 
+ifneq ($(APPLOADER_SIGN_PUBLIC_KEY_0_FILE),)
+MODULE_COMPILEFLAGS += \
+	-DAPPLOADER_SIGN_PUBLIC_KEY_0_FILE=\"$(APPLOADER_SIGN_PUBLIC_KEY_0_FILE)\"
+endif
+
+ifneq ($(APPLOADER_SIGN_PUBLIC_KEY_1_FILE),)
+MODULE_COMPILEFLAGS += \
+	-DAPPLOADER_SIGN_PUBLIC_KEY_1_FILE=\"$(APPLOADER_SIGN_PUBLIC_KEY_1_FILE)\"
+endif
+
 include $(LOCAL_DIR)/keybox/rules.mk
 
 include make/module.mk

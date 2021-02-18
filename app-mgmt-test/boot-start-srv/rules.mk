@@ -30,4 +30,9 @@ MODULE_SRCS += \
 MODULE_DEPS += \
 	trusty/user/base/lib/libc-trusty \
 
+# Sign this application with the second key for testing
+ifneq ($(APPLOADER_SIGN_PRIVATE_KEY_1_FILE),)
+APPLOADER_SIGN_KEY_ID_FOR_$(MODULE) := 1
+endif
+
 include make/module.mk
