@@ -29,6 +29,8 @@
 #include "hwkey_srv_priv.h"
 #include "hwrng_srv_priv.h"
 
+#include "keybox/srv.h"
+
 /*
  *  Dispatch event
  */
@@ -74,6 +76,12 @@ int main(void) {
         goto out;
     }
     hwkey_init_srv_provider();
+
+    rc = keybox_start_service();
+    if (rc != NO_ERROR) {
+        TLOGE("Failed (%d) to initialize Keybox service\n", rc);
+        goto out;
+    }
 
     TLOGI("enter main event loop\n");
 

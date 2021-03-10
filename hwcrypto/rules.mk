@@ -42,4 +42,6 @@ MODULE_DEPS := \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/lib/tipc \
 
+include $(LOCAL_DIR)/keybox/rules.mk
+
 include make/module.mk
