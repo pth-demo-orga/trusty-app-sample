@@ -35,4 +35,9 @@ ifneq ($(APPLOADER_SIGN_PRIVATE_KEY_1_FILE),)
 APPLOADER_SIGN_KEY_ID_FOR_$(MODULE) := 1
 endif
 
+# Encrypt this application for testing
+ifneq ($(APPLOADER_ENCRYPT_KEY_0_FILE),)
+APPLOADER_ENCRYPT_KEY_ID_FOR_$(MODULE) := 0
+endif
+
 include make/module.mk

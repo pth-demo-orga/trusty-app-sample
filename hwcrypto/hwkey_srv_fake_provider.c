@@ -262,6 +262,18 @@ INCLUDE_APPLOADER_KEY(apploader_sign_key_1, APPLOADER_SIGN_PUBLIC_KEY_1_FILE);
 #define APPLOADER_HAS_KEYS
 #endif
 
+#ifdef APPLOADER_ENCRYPT_KEY_0_FILE
+INCLUDE_APPLOADER_KEY(apploader_encrypt_key_0, APPLOADER_ENCRYPT_KEY_0_FILE);
+#define APPLOADER_ENCRYPT_KEY_0 "com.android.trusty.apploader.encrypt.key.0"
+#define APPLOADER_HAS_KEYS
+#endif
+
+#ifdef APPLOADER_ENCRYPT_KEY_1_FILE
+INCLUDE_APPLOADER_KEY(apploader_encrypt_key_1, APPLOADER_ENCRYPT_KEY_1_FILE);
+#define APPLOADER_ENCRYPT_KEY_1 "com.android.trusty.apploader.encrypt.key.1"
+#define APPLOADER_HAS_KEYS
+#endif
+
 #ifdef APPLOADER_HAS_KEYS
 /* Apploader app uuid */
 static const uuid_t apploader_uuid = APPLOADER_APP_UUID;
@@ -315,6 +327,22 @@ static const struct hwkey_keyslot _keys[] = {
                 .key_id = APPLOADER_SIGN_KEY_1,
                 .handler = get_apploader_key,
                 .priv = &apploader_sign_key_1,
+        },
+#endif
+#ifdef APPLOADER_ENCRYPT_KEY_0
+        {
+                .uuid = &apploader_uuid,
+                .key_id = APPLOADER_ENCRYPT_KEY_0,
+                .handler = get_apploader_key,
+                .priv = &apploader_encrypt_key_0,
+        },
+#endif
+#ifdef APPLOADER_ENCRYPT_KEY_1
+        {
+                .uuid = &apploader_uuid,
+                .key_id = APPLOADER_ENCRYPT_KEY_1,
+                .handler = get_apploader_key,
+                .priv = &apploader_encrypt_key_1,
         },
 #endif
 };
