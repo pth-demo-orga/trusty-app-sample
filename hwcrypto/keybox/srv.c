@@ -201,7 +201,7 @@ static void keybox_port_handler(const uevent_t* ev, void* priv) {
 int keybox_start_service(void) {
     int rc;
 
-    TLOGI("Start Keybox service\n");
+    TLOGD("Start Keybox service\n");
 
     /* create Keybox port */
     rc = port_create(KEYBOX_PORT, 1, sizeof(struct full_keybox_req),

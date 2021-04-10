@@ -44,7 +44,7 @@ int main(void) {
     handle_t hport;
     uuid_t peer_uuid;
 
-    TLOGI("Starting spinner test app!!!\n");
+    TLOGD("Starting spinner test app!!!\n");
 
     /* create control port and wait on it */
     rc = port_create(TEST_CTRL_PORT, 1, 1024, IPC_PORT_ALLOW_NS_CONNECT);

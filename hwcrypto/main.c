@@ -67,7 +67,7 @@ int main(void) {
     int rc;
     uevent_t event;
 
-    TLOGI("Initializing\n");
+    TLOGD("Initializing\n");
 
     /* initialize service providers */
     rc = hwrng_start_service();
@@ -83,7 +83,7 @@ int main(void) {
         goto out;
     }
 
-    TLOGI("enter main event loop\n");
+    TLOGD("enter main event loop\n");
 
     /* enter main event loop */
     while (1) {
