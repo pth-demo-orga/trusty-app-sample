@@ -24,6 +24,25 @@ TRUSTY_ALL_USER_TASKS += \
 	trusty/user/app/sample/spi/swspi-srv \
 	trusty/user/app/sample/spi/swspi-test \
 
+ifeq (true,$(call TOBOOL,$(USER_SCS_ENABLED)))
+TRUSTY_ALL_USER_TASKS += \
+	trusty/user/app/sample/userscs-test/default \
+	trusty/user/app/sample/userscs-test/custom \
+
+# TODO: We cannot robustly support trusty apps that opt out of shadow call
+# stacks until support for library variants is added to the SDK. Blocked on
+# https://android-review.googlesource.com/c/trusty/lib/+/1706286
+# USER_COVERAGE_ENABLED is set for fuzzing builds and causes apps to be
+# instrumented to track coverage. When user shadow call stacks are enabled
+# system wide, even apps that opt out are linked against the sanitizer
+# coverage runtime that uses shadow call stacks which causes crashes.
+ifeq (false,$(call TOBOOL,$(USER_COVERAGE_ENABLED)))
+TRUSTY_ALL_USER_TASKS += \
+	trusty/user/app/sample/userscs-test/disabled \
+
+endif
+endif # USER_SCS_ENABLED
+
 ifneq (,$(findstring arm,$(TRUSTY_USER_ARCH)))
 TRUSTY_ALL_USER_TASKS += \
 	trusty/user/app/sample/prebuilts-test \
