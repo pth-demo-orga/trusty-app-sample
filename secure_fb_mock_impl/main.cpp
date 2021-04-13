@@ -55,6 +55,10 @@ public:
         if (fb_db_[0].handle != INVALID_IPC_HANDLE) {
             close(fb_db_[0].handle);
         }
+        int rc = munmap(fb_db_[0].fb_info.buffer, fb_db_[0].fb_info.size);
+        if (rc < 0) {
+            TLOGE("Failed to do munmap\n");
+        }
         if (secure_dpu_release_buffer(&fb_db_[0].buf_info) < 0) {
             TLOGE("Failed to free framebuffer\n");
         }
@@ -79,7 +83,12 @@ public:
             TLOGE("Failed to allocate framebuffer of size: %u\n", fb_size);
             return SECURE_FB_ERROR_MEMORY_ALLOCATION;
         }
-        void* fb_base = buf_info.addr;
+        void* fb_base = mmap(0, (size_t)fb_size, PROT_READ | PROT_WRITE, 0,
+                             buf_info.handle, 0);
+        if (fb_base == MAP_FAILED) {
+            TLOGE("Error when calling mmap()\n");
+            return SECURE_FB_ERROR_SHARED_MEMORY;
+        }
 
         /*
          * Create a handle for the buffer by which it can be passed to the TUI
