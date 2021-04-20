@@ -62,11 +62,6 @@ uint32_t hwaes_aes_op(const struct hwaes_aes_op_args* args) {
     const EVP_CIPHER* cipher;
     int out_data_size;
 
-    if (args->mode != HWAES_CBC_MODE) {
-        TLOGE("the mode is not implemented yet\n");
-        return HWAES_ERR_NOT_IMPLEMENTED;
-    }
-
     if (args->padding != HWAES_NO_PADDING) {
         TLOGE("the padding type is not implemented yet\n");
         return HWAES_ERR_NOT_IMPLEMENTED;
@@ -100,16 +95,64 @@ uint32_t hwaes_aes_op(const struct hwaes_aes_op_args* args) {
         return HWAES_ERR_INVALID_ARGS;
     }
 
-    switch (args->key.len) {
-    case 16:
-        cipher = EVP_aes_128_cbc();
-        break;
-    case 32:
-        cipher = EVP_aes_256_cbc();
-        break;
-    default:
-        TLOGE("invalid key length: (%zd)\n", args->key.len);
-        return HWAES_ERR_INVALID_ARGS;
+    if (args->mode == HWAES_CBC_MODE) {
+        switch (args->key.len) {
+        case 16:
+            cipher = EVP_aes_128_cbc();
+            break;
+        case 32:
+            cipher = EVP_aes_256_cbc();
+            break;
+        default:
+            TLOGE("invalid key length: (%zd)\n", args->key.len);
+            return HWAES_ERR_INVALID_ARGS;
+        }
+
+        if (hwaes_check_arg_in(&args->aad) == HWAES_NO_ERROR) {
+            TLOGE("AAD is not supported in CBC mode\n");
+            return HWAES_ERR_INVALID_ARGS;
+        }
+
+        if (hwaes_check_arg_in(&args->tag_in) == HWAES_NO_ERROR ||
+            hwaes_check_arg_out(&args->tag_out) == HWAES_NO_ERROR) {
+            TLOGE("Authentication tag is not supported in CBC mode\n");
+            return HWAES_ERR_INVALID_ARGS;
+        }
+    } else if (args->mode == HWAES_GCM_MODE) {
+        switch (args->key.len) {
+        case 16:
+            cipher = EVP_aes_128_gcm();
+            break;
+        case 32:
+            cipher = EVP_aes_256_gcm();
+            break;
+        default:
+            TLOGE("invalid key length: (%zd)\n", args->key.len);
+            return HWAES_ERR_INVALID_ARGS;
+        }
+
+        if (args->encrypt) {
+            if (hwaes_check_arg_in(&args->tag_in) == HWAES_NO_ERROR) {
+                TLOGE("Input authentication tag set while encrypting in GCM mode\n");
+                return HWAES_ERR_INVALID_ARGS;
+            }
+            if (hwaes_check_arg_out(&args->tag_out) != HWAES_NO_ERROR) {
+                TLOGE("Missing output authentication tag in GCM mode\n");
+                return HWAES_ERR_INVALID_ARGS;
+            }
+        } else {
+            if (hwaes_check_arg_in(&args->tag_in) != HWAES_NO_ERROR) {
+                TLOGE("Missing input authentication tag in GCM mode\n");
+                return HWAES_ERR_INVALID_ARGS;
+            }
+            if (hwaes_check_arg_out(&args->tag_out) == HWAES_NO_ERROR) {
+                TLOGE("Output authentication tag set while decrypting in GCM mode\n");
+                return HWAES_ERR_INVALID_ARGS;
+            }
+        }
+    } else {
+        TLOGE("AES mode %d is not implemented yet\n", args->mode);
+        return HWAES_ERR_NOT_IMPLEMENTED;
     }
 
     assert(cipher_ctx);
@@ -145,6 +188,25 @@ uint32_t hwaes_aes_op(const struct hwaes_aes_op_args* args) {
         return HWAES_ERR_GENERIC;
     }
 
+    if (hwaes_check_arg_in(&args->aad) == HWAES_NO_ERROR) {
+        evp_ret = EVP_CipherUpdate(cipher_ctx, NULL, &out_data_size,
+                                   args->aad.data_ptr, args->aad.len);
+        if (evp_ret != 1) {
+            TLOGE("EVP CipherUpdate for AAD failed\n");
+            return HWAES_ERR_GENERIC;
+        }
+    }
+
+    if (hwaes_check_arg_in(&args->tag_in) == HWAES_NO_ERROR) {
+        evp_ret = EVP_CIPHER_CTX_ctrl(cipher_ctx, EVP_CTRL_AEAD_SET_TAG,
+                                      args->tag_in.len,
+                                      (void*)args->tag_in.data_ptr);
+        if (evp_ret != 1) {
+            TLOGE("EVP set AEAD tag failed\n");
+            return HWAES_ERR_GENERIC;
+        }
+    }
+
     evp_ret = EVP_CipherUpdate(cipher_ctx, args->text_out.data_ptr,
                                &out_data_size, args->text_in.data_ptr,
                                args->text_in.len);
@@ -165,6 +227,16 @@ uint32_t hwaes_aes_op(const struct hwaes_aes_op_args* args) {
     if (!evp_ret) {
         TLOGE("EVP_CipherFinal_ex failed\n");
         return HWAES_ERR_GENERIC;
+    }
+
+    if (hwaes_check_arg_out(&args->tag_out) == HWAES_NO_ERROR) {
+        evp_ret =
+                EVP_CIPHER_CTX_ctrl(cipher_ctx, EVP_CTRL_AEAD_GET_TAG,
+                                    args->tag_out.len, args->tag_out.data_ptr);
+        if (evp_ret != 1) {
+            TLOGE("EVP get AEAD tag failed\n");
+            return HWAES_ERR_GENERIC;
+        }
     }
 
     return HWAES_NO_ERROR;
