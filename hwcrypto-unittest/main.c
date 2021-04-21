@@ -43,17 +43,26 @@
 #define HWCRYPTO_UNITTEST_KEYBOX_ID "com.android.trusty.hwcrypto.unittest.key32"
 #define HWCRYPTO_UNITTEST_DERIVED_KEYBOX_ID \
     "com.android.trusty.hwcrypto.unittest.derived_key32"
+#define HWCRYPTO_UNITTEST_OPAQUE_HANDLE_ID \
+    "com.android.trusty.hwcrypto.unittest.opaque_handle"
+#define HWCRYPTO_UNITTEST_OPAQUE_HANDLE2_ID \
+    "com.android.trusty.hwcrypto.unittest.opaque_handle2"
+#define HWCRYPTO_UNITTEST_OPAQUE_HANDLE_NOACCESS_ID \
+    "com.android.trusty.hwcrypto.unittest.opaque_handle_noaccess"
 
 #define STORAGE_AUTH_KEY_SIZE 32
 
-#if WITH_HWCRYPTO_UNITTEST
 static const uint8_t UNITTEST_KEYSLOT[] = "unittestkeyslotunittestkeyslotun";
 static const uint8_t UNITTEST_DERIVED_KEYSLOT[] =
         "unittestderivedkeyslotunittestde";
+
+#if WITH_HWCRYPTO_UNITTEST
+#define DISABLED_WITHOUT_HWCRYPTO_UNITTEST(name) name
 #else
 #pragma message                                                                          \
         "hwcrypto-unittest is built with the WITH_HWCRYPTO_UNITTEST define not enabled." \
         "Hwkey tests will not test anything."
+#define DISABLED_WITHOUT_HWCRYPTO_UNITTEST(name) DISABLED_##name
 #endif
 
 /*
@@ -232,6 +241,228 @@ TEST_F(hwkey, get_derived_keybox) {
 #else
     EXPECT_EQ(ERR_NOT_FOUND, rc, "get hwcrypto-unittest derived keybox");
 #endif
+}
+
+TEST_F(hwkey, get_opaque_handle) {
+    uint8_t dest[HWKEY_OPAQUE_HANDLE_MAX_SIZE] = {0};
+    uint32_t actual_size = sizeof(dest);
+    long rc = hwkey_get_keyslot_data(_state->hwkey_session,
+                                     HWCRYPTO_UNITTEST_OPAQUE_HANDLE_ID, dest,
+                                     &actual_size);
+#if WITH_HWCRYPTO_UNITTEST
+    EXPECT_EQ(NO_ERROR, rc, "get hwcrypto-unittest opaque keybox");
+    EXPECT_LE(actual_size, HWKEY_OPAQUE_HANDLE_MAX_SIZE);
+
+    rc = strnlen((const char*)dest, HWKEY_OPAQUE_HANDLE_MAX_SIZE);
+    EXPECT_LT(rc, HWKEY_OPAQUE_HANDLE_MAX_SIZE,
+              "opaque handle is unexpected size");
+#else
+    EXPECT_EQ(ERR_NOT_FOUND, rc, "hwcrypto-unittest not enabled");
+#endif
+}
+
+/* The following tests require hwcrpyto-unittest to do anything useful. */
+
+TEST_F(hwkey, DISABLED_WITHOUT_HWCRYPTO_UNITTEST(get_opaque_key)) {
+    uint8_t handle[HWKEY_OPAQUE_HANDLE_MAX_SIZE] = {0};
+    uint32_t actual_size = sizeof(handle);
+    long rc = hwkey_get_keyslot_data(_state->hwkey_session,
+                                     HWCRYPTO_UNITTEST_OPAQUE_HANDLE_ID, handle,
+                                     &actual_size);
+
+    EXPECT_EQ(NO_ERROR, rc, "get hwcrypto-unittest opaque keybox");
+    EXPECT_LE(actual_size, HWKEY_OPAQUE_HANDLE_MAX_SIZE);
+    rc = strnlen((const char*)handle, HWKEY_OPAQUE_HANDLE_MAX_SIZE);
+    EXPECT_LT(rc, HWKEY_OPAQUE_HANDLE_MAX_SIZE,
+              "Unexpected opaque handle size");
+
+    uint8_t key_buf[sizeof(UNITTEST_KEYSLOT) - 1] = {0};
+    actual_size = sizeof(key_buf);
+    rc = hwkey_get_keyslot_data(_state->hwkey_session, (const char*)handle,
+                                key_buf, &actual_size);
+    EXPECT_EQ(NO_ERROR, rc, "get hwcrypto-unittest opaque key failed");
+
+    rc = memcmp(UNITTEST_KEYSLOT, key_buf, sizeof(UNITTEST_KEYSLOT) - 1);
+    EXPECT_EQ(0, rc, "opaque key did not match expected value");
+}
+
+TEST_F(hwkey, DISABLED_WITHOUT_HWCRYPTO_UNITTEST(get_multiple_opaque_handles)) {
+    uint8_t handle1[HWKEY_OPAQUE_HANDLE_MAX_SIZE] = {0};
+    uint32_t actual_size = sizeof(handle1);
+    long rc = hwkey_get_keyslot_data(_state->hwkey_session,
+                                     HWCRYPTO_UNITTEST_OPAQUE_HANDLE_ID,
+                                     handle1, &actual_size);
+    EXPECT_EQ(NO_ERROR, rc, "get hwcrypto-unittest opaque keybox");
+    EXPECT_LE(actual_size, HWKEY_OPAQUE_HANDLE_MAX_SIZE);
+
+    uint8_t handle2[HWKEY_OPAQUE_HANDLE_MAX_SIZE] = {0};
+    actual_size = sizeof(handle2);
+    rc = hwkey_get_keyslot_data(_state->hwkey_session,
+                                HWCRYPTO_UNITTEST_OPAQUE_HANDLE_NOACCESS_ID,
+                                handle2, &actual_size);
+    EXPECT_EQ(NO_ERROR, rc, "get hwcrypto-unittest opaque keybox");
+    EXPECT_LE(actual_size, HWKEY_OPAQUE_HANDLE_MAX_SIZE);
+
+    rc = memcmp(handle1, handle2, HWKEY_OPAQUE_HANDLE_MAX_SIZE);
+    EXPECT_NE(0, rc, "opaque handles should not be the same");
+
+    uint8_t key_buf[sizeof(UNITTEST_KEYSLOT)] = {0};
+    actual_size = sizeof(key_buf);
+    rc = hwkey_get_keyslot_data(_state->hwkey_session, (const char*)handle1,
+                                key_buf, &actual_size);
+    EXPECT_EQ(NO_ERROR, rc, "handle was not valid");
+    EXPECT_EQ(actual_size, sizeof(UNITTEST_KEYSLOT) - 1, "wrong key length");
+    rc = memcmp(UNITTEST_KEYSLOT, key_buf, sizeof(UNITTEST_KEYSLOT) - 1);
+    EXPECT_EQ(0, rc, "opaque key did not match expected value");
+
+    /* we are not allowed to retrieve key material for the NOACCESS handle */
+    memset(key_buf, 0, sizeof(UNITTEST_KEYSLOT));
+    actual_size = sizeof(key_buf);
+    rc = hwkey_get_keyslot_data(_state->hwkey_session, (const char*)handle2,
+                                key_buf, &actual_size);
+    EXPECT_EQ(ERR_NOT_FOUND, rc,
+              "should not be able to retrieve key for second handle");
+
+    /*
+     * We need to reconnect to ensure that the tokens have been dropped and
+     * cleared.
+     */
+    hwkey_close(_state->hwkey_session);
+    int new_sess = hwkey_open();
+    ASSERT_GE(new_sess, 0);
+    _state->hwkey_session = (hwkey_session_t)new_sess;
+
+    /* Has the keyslot data been cleared? */
+    memset(key_buf, 0, sizeof(UNITTEST_KEYSLOT));
+    actual_size = sizeof(key_buf);
+    rc = hwkey_get_keyslot_data(_state->hwkey_session, (const char*)handle1,
+                                key_buf, &actual_size);
+    EXPECT_EQ(ERR_NOT_FOUND, rc, "handle was still valid");
+
+    actual_size = sizeof(key_buf);
+    rc = hwkey_get_keyslot_data(_state->hwkey_session, (const char*)handle2,
+                                key_buf, &actual_size);
+    EXPECT_EQ(ERR_NOT_FOUND, rc, "handle was still valid");
+
+test_abort:;
+}
+
+/*
+ * Make sure that attempting to get the same handle from multiple concurrent
+ * sessions doesn't break things.
+ */
+TEST_F(hwkey,
+       DISABLED_WITHOUT_HWCRYPTO_UNITTEST(opaque_handle_multiple_sessions)) {
+    uint8_t handle1[HWKEY_OPAQUE_HANDLE_MAX_SIZE] = {0};
+    uint32_t actual_size = sizeof(handle1);
+    long rc = hwkey_get_keyslot_data(_state->hwkey_session,
+                                     HWCRYPTO_UNITTEST_OPAQUE_HANDLE_ID,
+                                     handle1, &actual_size);
+    EXPECT_EQ(NO_ERROR, rc, "get hwcrypto-unittest opaque keybox");
+    EXPECT_LE(actual_size, HWKEY_OPAQUE_HANDLE_MAX_SIZE);
+
+    int new_sess = hwkey_open();
+    ASSERT_GE(new_sess, 0);
+
+    uint8_t handle2[HWKEY_OPAQUE_HANDLE_MAX_SIZE] = {0};
+    actual_size = sizeof(handle2);
+    rc = hwkey_get_keyslot_data(new_sess, HWCRYPTO_UNITTEST_OPAQUE_HANDLE_ID,
+                                handle2, &actual_size);
+    EXPECT_EQ(ERR_ALREADY_EXISTS, rc, "retrieve same handle twice");
+
+    /* Fetch a new handle with a different keyslot from the second session */
+    actual_size = sizeof(handle2);
+    rc = hwkey_get_keyslot_data(new_sess, HWCRYPTO_UNITTEST_OPAQUE_HANDLE2_ID,
+                                handle2, &actual_size);
+    EXPECT_EQ(NO_ERROR, rc, "get hwcrypto-unittest opaque keybox");
+    EXPECT_LE(actual_size, HWKEY_OPAQUE_HANDLE_MAX_SIZE);
+
+    uint8_t key_buf[sizeof(UNITTEST_KEYSLOT)] = {0};
+
+    /* Fetch the keys via the first session */
+    actual_size = sizeof(key_buf);
+    rc = hwkey_get_keyslot_data(_state->hwkey_session, (const char*)handle1,
+                                key_buf, &actual_size);
+    EXPECT_EQ(NO_ERROR, rc, "handle was not valid");
+    EXPECT_EQ(actual_size, sizeof(UNITTEST_KEYSLOT) - 1, "wrong key length");
+    rc = memcmp(UNITTEST_KEYSLOT, key_buf, sizeof(UNITTEST_KEYSLOT) - 1);
+    EXPECT_EQ(0, rc, "opaque key did not match expected value");
+
+    memset(key_buf, 0, sizeof(UNITTEST_KEYSLOT));
+    actual_size = sizeof(key_buf);
+    rc = hwkey_get_keyslot_data(_state->hwkey_session, (const char*)handle2,
+                                key_buf, &actual_size);
+    EXPECT_EQ(NO_ERROR, rc, "handle was not valid");
+    EXPECT_EQ(actual_size, sizeof(UNITTEST_KEYSLOT) - 1, "wrong key length");
+    rc = memcmp(UNITTEST_KEYSLOT, key_buf, sizeof(UNITTEST_KEYSLOT) - 1);
+    EXPECT_EQ(0, rc, "opaque key did not match expected value");
+
+    /* Fetch the same key via the second session */
+    memset(key_buf, 0, sizeof(UNITTEST_KEYSLOT));
+    actual_size = sizeof(key_buf);
+    rc = hwkey_get_keyslot_data(new_sess, (const char*)handle1, key_buf,
+                                &actual_size);
+    EXPECT_EQ(NO_ERROR, rc, "handle was not valid");
+    EXPECT_EQ(actual_size, sizeof(UNITTEST_KEYSLOT) - 1, "wrong key length");
+    rc = memcmp(UNITTEST_KEYSLOT, key_buf, sizeof(UNITTEST_KEYSLOT) - 1);
+    EXPECT_EQ(0, rc, "opaque key did not match expected value");
+
+    memset(key_buf, 0, sizeof(UNITTEST_KEYSLOT));
+    actual_size = sizeof(key_buf);
+    rc = hwkey_get_keyslot_data(new_sess, (const char*)handle2, key_buf,
+                                &actual_size);
+    EXPECT_EQ(NO_ERROR, rc, "handle was not valid");
+    EXPECT_EQ(actual_size, sizeof(UNITTEST_KEYSLOT) - 1, "wrong key length");
+    rc = memcmp(UNITTEST_KEYSLOT, key_buf, sizeof(UNITTEST_KEYSLOT) - 1);
+    EXPECT_EQ(0, rc, "opaque key did not match expected value");
+
+    hwkey_close(new_sess);
+
+    /* Has the keyslot data been cleared? */
+    actual_size = sizeof(key_buf);
+    rc = hwkey_get_keyslot_data(_state->hwkey_session, (const char*)handle1,
+                                key_buf, &actual_size);
+    EXPECT_EQ(NO_ERROR, rc, "first session handle wasn't valid");
+
+    actual_size = sizeof(key_buf);
+    rc = hwkey_get_keyslot_data(_state->hwkey_session, (const char*)handle2,
+                                key_buf, &actual_size);
+    EXPECT_EQ(ERR_NOT_FOUND, rc, "second session handle was still valid");
+
+    /* Disconnect the original session which retrieved the handle */
+    hwkey_close(_state->hwkey_session);
+    new_sess = hwkey_open();
+    ASSERT_GE(new_sess, 0);
+    _state->hwkey_session = (hwkey_session_t)new_sess;
+
+    actual_size = sizeof(key_buf);
+    rc = hwkey_get_keyslot_data(_state->hwkey_session, (const char*)handle1,
+                                key_buf, &actual_size);
+    EXPECT_EQ(ERR_NOT_FOUND, rc, "handle was still valid");
+
+    actual_size = sizeof(key_buf);
+    rc = hwkey_get_keyslot_data(_state->hwkey_session, (const char*)handle2,
+                                key_buf, &actual_size);
+    EXPECT_EQ(ERR_NOT_FOUND, rc, "handle was still valid");
+
+test_abort:;
+}
+
+TEST_F(hwkey, DISABLED_WITHOUT_HWCRYPTO_UNITTEST(try_empty_opaque_handle)) {
+    /* Reconnect just to make sure there is no spurious handles remaining. */
+    hwkey_close(_state->hwkey_session);
+    int new_sess = hwkey_open();
+    ASSERT_GE(new_sess, 0);
+    _state->hwkey_session = (hwkey_session_t)new_sess;
+
+    uint8_t key_buf[sizeof(UNITTEST_KEYSLOT) - 1] = {0};
+    uint32_t actual_size = sizeof(key_buf);
+    long rc = hwkey_get_keyslot_data(_state->hwkey_session, "", key_buf,
+                                     &actual_size);
+    EXPECT_EQ(ERR_NOT_FOUND, rc,
+              "retrieving a key with an empty access token succeeded");
+
+test_abort:;
 }
 
 /***********************   HWRNG  UNITTEST  ***********************/

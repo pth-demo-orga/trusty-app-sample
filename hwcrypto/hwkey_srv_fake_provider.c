@@ -179,6 +179,28 @@ static const struct hwkey_derived_keyslot_data hwcrypto_unittest_derived_data =
                 .encrypted_key_size_ptr = &_unittest_encrypted_key32_size,
                 .retriever = get_unittest_derived_key32,
 };
+
+static const uuid_t* unittest_allowed_opaque_key_uuids[] = {
+        &hwcrypto_unittest_uuid,
+};
+
+static struct hwkey_opaque_handle_data unittest_opaque_handle_data = {
+        .allowed_uuids = unittest_allowed_opaque_key_uuids,
+        .allowed_uuids_len = countof(unittest_allowed_opaque_key_uuids),
+        .retriever = get_unittest_key32,
+};
+
+static struct hwkey_opaque_handle_data unittest_opaque_handle_data2 = {
+        .allowed_uuids = unittest_allowed_opaque_key_uuids,
+        .allowed_uuids_len = countof(unittest_allowed_opaque_key_uuids),
+        .retriever = get_unittest_key32,
+};
+
+static struct hwkey_opaque_handle_data unittest_opaque_handle_data_noaccess = {
+        .allowed_uuids = NULL,
+        .allowed_uuids_len = 0,
+        .retriever = get_unittest_key32,
+};
 #endif /* WITH_HWCRYPTO_UNITTEST */
 
 /*
@@ -460,6 +482,25 @@ static const struct hwkey_keyslot _keys[] = {
                 .key_id = "com.android.trusty.hwcrypto.unittest.derived_key32",
                 .priv = &hwcrypto_unittest_derived_data,
                 .handler = hwkey_derived_keyslot_handler,
+        },
+        {
+                .uuid = &hwcrypto_unittest_uuid,
+                .key_id = "com.android.trusty.hwcrypto.unittest.opaque_handle",
+                .handler = get_key_handle,
+                .priv = &unittest_opaque_handle_data,
+        },
+        {
+                .uuid = &hwcrypto_unittest_uuid,
+                .key_id = "com.android.trusty.hwcrypto.unittest.opaque_handle2",
+                .handler = get_key_handle,
+                .priv = &unittest_opaque_handle_data2,
+        },
+        {
+                .uuid = &hwcrypto_unittest_uuid,
+                .key_id =
+                        "com.android.trusty.hwcrypto.unittest.opaque_handle_noaccess",
+                .handler = get_key_handle,
+                .priv = &unittest_opaque_handle_data_noaccess,
         },
 #endif /* WITH_HWCRYPTO_UNITTEST */
 };
