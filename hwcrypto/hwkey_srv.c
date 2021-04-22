@@ -51,40 +51,6 @@ static uint8_t key_data[HWKEY_MAX_PAYLOAD_SIZE];
 static unsigned int key_slot_cnt;
 static const struct hwkey_keyslot* key_slots;
 
-#if WITH_HWCRYPTO_UNITTEST
-/*
- *  Support for hwcrypto unittest keys should be only enabled
- *  to test hwcrypto related APIs
- */
-
-/* UUID of HWCRYPTO_UNITTEST application */
-static const uuid_t hwcrypto_unittest_uuid = HWCRYPTO_UNITTEST_APP_UUID;
-
-static uint8_t _unittest_key32[32] = "unittestkeyslotunittestkeyslotun";
-static uint32_t get_unittest_key32(const struct hwkey_keyslot* slot,
-                                   uint8_t* kbuf,
-                                   size_t kbuf_len,
-                                   size_t* klen) {
-    assert(kbuf);
-    assert(klen);
-    assert(kbuf_len >= sizeof(_unittest_key32));
-
-    /* just return predefined key */
-    memcpy(kbuf, _unittest_key32, sizeof(_unittest_key32));
-    *klen = sizeof(_unittest_key32);
-
-    return HWKEY_NO_ERROR;
-}
-
-static const struct hwkey_keyslot test_key_slots[] = {
-        {
-                .uuid = &hwcrypto_unittest_uuid,
-                .key_id = "com.android.trusty.hwcrypto.unittest.key32",
-                .handler = get_unittest_key32,
-        },
-};
-#endif /* WITH_HWCRYPTO_UNITTEST */
-
 /*
  * Close specified hwkey context
  */
@@ -141,15 +107,6 @@ static int hwkey_handle_get_keyslot_cmd(struct hwkey_chan_ctx* ctx,
 
     hdr->status = _handle_slots(ctx, slot_id, key_slots, key_slot_cnt, key_data,
                                 sizeof(key_data), &klen);
-
-#if WITH_HWCRYPTO_UNITTEST
-    if (hdr->status == HWKEY_ERR_NOT_FOUND) {
-        /* also search test keys */
-        hdr->status = _handle_slots(ctx, slot_id, test_key_slots,
-                                    countof(test_key_slots), key_data,
-                                    sizeof(key_data), &klen);
-    }
-#endif
 
     rc = hwkey_send_rsp(ctx, hdr, key_data, klen);
     if (klen) {

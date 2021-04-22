@@ -122,6 +122,32 @@ uint32_t derive_key_v1(const uuid_t* uuid,
     return HWKEY_NO_ERROR;
 }
 
+#if WITH_HWCRYPTO_UNITTEST
+/*
+ *  Support for hwcrypto unittest keys should be only enabled
+ *  to test hwcrypto related APIs
+ */
+
+/* UUID of HWCRYPTO_UNITTEST application */
+static const uuid_t hwcrypto_unittest_uuid = HWCRYPTO_UNITTEST_APP_UUID;
+
+static uint8_t _unittest_key32[32] = "unittestkeyslotunittestkeyslotun";
+static uint32_t get_unittest_key32(const struct hwkey_keyslot* slot,
+                                   uint8_t* kbuf,
+                                   size_t kbuf_len,
+                                   size_t* klen) {
+    assert(kbuf);
+    assert(klen);
+    assert(kbuf_len >= sizeof(_unittest_key32));
+
+    /* just return predefined key */
+    memcpy(kbuf, _unittest_key32, sizeof(_unittest_key32));
+    *klen = sizeof(_unittest_key32);
+
+    return HWKEY_NO_ERROR;
+}
+#endif /* WITH_HWCRYPTO_UNITTEST */
+
 /*
  *  RPMB Key support
  */
@@ -345,6 +371,14 @@ static const struct hwkey_keyslot _keys[] = {
                 .priv = &apploader_encrypt_key_1,
         },
 #endif
+
+#if WITH_HWCRYPTO_UNITTEST
+        {
+                .uuid = &hwcrypto_unittest_uuid,
+                .key_id = "com.android.trusty.hwcrypto.unittest.key32",
+                .handler = get_unittest_key32,
+        },
+#endif /* WITH_HWCRYPTO_UNITTEST */
 };
 
 /*
