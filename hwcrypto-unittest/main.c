@@ -39,14 +39,17 @@
 #include <trusty_unittest.h>
 #include <uapi/err.h>
 
-
 #define RPMB_STORAGE_AUTH_KEY_ID "com.android.trusty.storage_auth.rpmb"
 #define HWCRYPTO_UNITTEST_KEYBOX_ID "com.android.trusty.hwcrypto.unittest.key32"
 
 #define STORAGE_AUTH_KEY_SIZE 32
 
-#ifdef WITH_HWCRYPTO_UNITTEST
+#if WITH_HWCRYPTO_UNITTEST
 static const uint8_t UNITTEST_KEYSLOT[] = "unittestkeyslotunittestkeyslotun";
+#else
+#pragma message                                                                          \
+        "hwcrypto-unittest is built with the WITH_HWCRYPTO_UNITTEST define not enabled." \
+        "Hwkey tests will not test anything."
 #endif
 
 /*
@@ -199,7 +202,7 @@ TEST_F(hwkey, get_keybox) {
 
 #if WITH_HWCRYPTO_UNITTEST
     EXPECT_EQ(NO_ERROR, rc, "get hwcrypto-unittest keybox");
-    rc = memcmp(UNITTEST_KEYSLOT, dest, strlen(UNITTEST_KEYSLOT));
+    rc = memcmp(UNITTEST_KEYSLOT, dest, sizeof(UNITTEST_KEYSLOT) - 1);
     EXPECT_EQ(0, rc, "get storage auth key invalid");
 #else
     EXPECT_EQ(ERR_NOT_FOUND, rc, "get hwcrypto-unittest keybox");
