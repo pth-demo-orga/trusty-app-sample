@@ -32,7 +32,12 @@ int hwrng_dev_init(void) {
     return NO_ERROR;
 }
 
-int hwrng_dev_get_rng_data(uint8_t* buf, size_t buf_len) {
-    memset(buf, 0, buf_len);
+static size_t counter = 1;
+
+__attribute__((no_sanitize("unsigned-integer-overflow"))) int
+hwrng_dev_get_rng_data(uint8_t* buf, size_t buf_len) {
+    for (uint8_t* end = buf + buf_len; buf < end; ++buf) {
+        *buf = counter++ & 0xff;
+    }
     return NO_ERROR;
 }

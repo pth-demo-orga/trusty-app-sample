@@ -302,11 +302,7 @@ TEST(hwrng, stats_test) {
      * which is fairly arbitrary requirement. It could be useful
      * to alert is something terribly wrong with rng source.
      */
-#if WITH_FAKE_HWRNG
-    EXPECT_LE(50, dev, "average dev");
-#else
     EXPECT_GT(50, dev, "average dev");
-#endif
 }
 
 PORT_TEST(hwcrypto, "com.android.trusty.hwcrypto.test")
