@@ -23,9 +23,13 @@ MANIFEST := $(LOCAL_DIR)/manifest.json
 MODULE_SRCS := \
 	$(LOCAL_DIR)/main.c \
 
+MODULE_INCLUDES += \
+	trusty/user/app/sample/hwcrypto/include \
+
 MODULE_DEPS := \
 	trusty/user/base/lib/libc-trusty \
 	trusty/user/base/lib/hwaes/srv \
+	trusty/user/base/lib/hwkey \
 	trusty/user/base/lib/tipc \
 	external/boringssl \
 

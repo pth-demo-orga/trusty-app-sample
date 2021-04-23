@@ -31,6 +31,7 @@
 #include <openssl/err.h>
 #include <openssl/hkdf.h>
 
+#include <interface/hwaes/hwaes.h>
 #include <interface/hwkey/hwkey.h>
 #include <lib/system_state/system_state.h>
 #include <trusty_log.h>
@@ -309,6 +310,21 @@ static uint32_t get_km_kak_key(const struct hwkey_keyslot* slot,
     return derive_key_v1(slot->uuid, kak_salt, KM_KAK_SIZE, kbuf, klen);
 }
 
+#if WITH_HWCRYPTO_UNITTEST
+static const uuid_t hwaes_uuid = SAMPLE_HWAES_APP_UUID;
+static const uuid_t hwaes_unittest_uuid = HWAES_UNITTEST_APP_UUID;
+
+static const uuid_t* hwaes_unittest_allowed_opaque_key_uuids[] = {
+        &hwaes_uuid,
+};
+
+static struct hwkey_opaque_handle_data hwaes_unittest_opaque_handle_data = {
+        .allowed_uuids = hwaes_unittest_allowed_opaque_key_uuids,
+        .allowed_uuids_len = countof(hwaes_unittest_allowed_opaque_key_uuids),
+        .retriever = get_unittest_key32,
+};
+#endif
+
 /*
  * Apploader key(s)
  */
@@ -501,6 +517,12 @@ static const struct hwkey_keyslot _keys[] = {
                         "com.android.trusty.hwcrypto.unittest.opaque_handle_noaccess",
                 .handler = get_key_handle,
                 .priv = &unittest_opaque_handle_data_noaccess,
+        },
+        {
+                .uuid = &hwaes_unittest_uuid,
+                .key_id = "com.android.trusty.hwaes.unittest.opaque_handle",
+                .handler = get_key_handle,
+                .priv = &hwaes_unittest_opaque_handle_data,
         },
 #endif /* WITH_HWCRYPTO_UNITTEST */
 };

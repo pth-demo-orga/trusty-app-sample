@@ -18,6 +18,7 @@
 
 #include <assert.h>
 #include <lib/hwaes_server/hwaes_server.h>
+#include <lib/hwkey/hwkey.h>
 #include <lib/tipc/tipc_srv.h>
 #include <lk/err_ptr.h>
 #include <stdlib.h>
@@ -95,8 +96,40 @@ uint32_t hwaes_aes_op(const struct hwaes_aes_op_args* args) {
         return HWAES_ERR_INVALID_ARGS;
     }
 
+    uint8_t key_buffer[AES_KEY_MAX_SIZE] = {0};
+    struct hwaes_arg_in key = args->key;
+
+    /* Fetch the real key contents if needed */
+    if (args->key_type == HWAES_OPAQUE_HANDLE) {
+        if (key.len > HWKEY_OPAQUE_HANDLE_MAX_SIZE) {
+            TLOGE("Wrong opaque handle length: %zu\n", key.len);
+            return HWAES_ERR_INVALID_ARGS;
+        }
+        if (key.data_ptr[key.len - 1] != 0) {
+            TLOGE("Opaque handle is not null-terminated\n");
+            return HWAES_ERR_INVALID_ARGS;
+        }
+        long ret = hwkey_open();
+        if (ret < 0) {
+            TLOGE("Failed to open connection to hwkey service\n");
+            return HWAES_ERR_GENERIC;
+        }
+        hwkey_session_t session = (hwkey_session_t)ret;
+        uint32_t key_len = sizeof(key_buffer);
+        ret = hwkey_get_keyslot_data(session, (const char*)key.data_ptr,
+                                     key_buffer, &key_len);
+        hwkey_close(session);
+        if (ret != NO_ERROR) {
+            TLOGE("Failed to retrieve opaque key: %ld\n", ret);
+            return HWAES_ERR_IO;
+        }
+
+        key.data_ptr = key_buffer;
+        key.len = key_len;
+    }
+
     if (args->mode == HWAES_CBC_MODE) {
-        switch (args->key.len) {
+        switch (key.len) {
         case 16:
             cipher = EVP_aes_128_cbc();
             break;
@@ -104,7 +137,7 @@ uint32_t hwaes_aes_op(const struct hwaes_aes_op_args* args) {
             cipher = EVP_aes_256_cbc();
             break;
         default:
-            TLOGE("invalid key length: (%zd)\n", args->key.len);
+            TLOGE("invalid key length: (%zd)\n", key.len);
             return HWAES_ERR_INVALID_ARGS;
         }
 
@@ -119,7 +152,7 @@ uint32_t hwaes_aes_op(const struct hwaes_aes_op_args* args) {
             return HWAES_ERR_INVALID_ARGS;
         }
     } else if (args->mode == HWAES_GCM_MODE) {
-        switch (args->key.len) {
+        switch (key.len) {
         case 16:
             cipher = EVP_aes_128_gcm();
             break;
@@ -127,7 +160,7 @@ uint32_t hwaes_aes_op(const struct hwaes_aes_op_args* args) {
             cipher = EVP_aes_256_gcm();
             break;
         default:
-            TLOGE("invalid key length: (%zd)\n", args->key.len);
+            TLOGE("invalid key length: (%zd)\n", key.len);
             return HWAES_ERR_INVALID_ARGS;
         }
 
@@ -175,7 +208,7 @@ uint32_t hwaes_aes_op(const struct hwaes_aes_op_args* args) {
         return HWAES_ERR_INVALID_ARGS;
     }
 
-    evp_ret = EVP_CipherInit_ex(cipher_ctx, cipher, NULL, args->key.data_ptr,
+    evp_ret = EVP_CipherInit_ex(cipher_ctx, cipher, NULL, key.data_ptr,
                                 args->iv.data_ptr, args->encrypt);
     if (!evp_ret) {
         TLOGE("EVP_CipherInit_ex failed\n");

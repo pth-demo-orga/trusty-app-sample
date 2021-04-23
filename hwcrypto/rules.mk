@@ -37,6 +37,7 @@ endif
 
 MODULE_DEPS := \
 	external/boringssl \
+	trusty/user/base/interface/hwaes \
 	trusty/user/base/interface/hwrng \
 	trusty/user/base/interface/hwkey \
 	trusty/user/base/lib/libc-trusty \

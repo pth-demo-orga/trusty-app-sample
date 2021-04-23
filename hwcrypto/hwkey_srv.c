@@ -75,7 +75,7 @@ static struct tipc_event_handler hwkey_port_evt_handler = {
 };
 
 static uint8_t req_data[HWKEY_MAX_PAYLOAD_SIZE + 1];
-static uint8_t key_data[HWKEY_MAX_PAYLOAD_SIZE];
+static __attribute__((aligned(4))) uint8_t key_data[HWKEY_MAX_PAYLOAD_SIZE];
 
 static unsigned int key_slot_cnt;
 static const struct hwkey_keyslot* key_slots;

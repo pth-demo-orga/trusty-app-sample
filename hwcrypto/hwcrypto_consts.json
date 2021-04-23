@@ -25,6 +25,16 @@
             "name": "APPLOADER_APP_UUID",
             "value": "081ba88f-f1ee-452e-b5e8-a7e9ef173a97",
             "type": "uuid"
+        },
+        {
+            "name": "SAMPLE_HWAES_APP_UUID",
+            "value": "6f4a2303-f4f8-431d-82d1-3ec52aebbb89",
+            "type": "uuid"
+        },
+        {
+            "name": "HWAES_UNITTEST_APP_UUID",
+            "value": "ab8a6820-1cc2-44d5-bee0-22b51befa835",
+            "type": "uuid"
         }
     ]
 }
