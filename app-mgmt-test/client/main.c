@@ -337,7 +337,7 @@ TEST(AppMgrBoot, DoubleLoad) {
     error = load_app(boot_start_app_begin, boot_start_app_end);
     ASSERT_EQ(false, HasFailure());
     if (error == APPLOADER_ERR_ALREADY_EXISTS) {
-        unittest_printf("[  WARNING ] boot-start-srv already loaded\n");
+        trusty_unittest_printf("[  WARNING ] boot-start-srv already loaded\n");
     }
 
     error = load_app(boot_start_app_begin, boot_start_app_end);
@@ -366,7 +366,7 @@ TEST(AppMgrWaitForPort, WaitConnectForPort) {
      */
     static bool skip = false;
     if (skip) {
-        unittest_printf("[  SKIPPED ]\n");
+        trusty_unittest_printf("[  SKIPPED ]\n");
         return;
     }
     skip = true;
