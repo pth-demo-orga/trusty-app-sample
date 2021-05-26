@@ -25,6 +25,7 @@
 
 #include <interface/hwkey/hwkey.h>
 #include <lib/tipc/tipc.h>
+#include <openssl/evp.h>
 #include <trusty_log.h>
 
 #include <hwcrypto_consts.h>
@@ -94,6 +95,116 @@ static uint32_t _handle_slots(struct hwkey_chan_ctx* ctx,
         }
     }
     return HWKEY_ERR_NOT_FOUND;
+}
+
+uint32_t hwkey_derived_keyslot_handler(const struct hwkey_keyslot* slot,
+                                       uint8_t* kbuf,
+                                       size_t kbuf_len,
+                                       size_t* klen) {
+    assert(slot);
+    assert(kbuf);
+    assert(klen);
+
+    const struct hwkey_derived_keyslot_data* data = slot->priv;
+    assert(data);
+    assert(data->encrypted_key_size_ptr);
+
+    uint8_t key_buffer[HWKEY_DERIVED_KEY_MAX_SIZE] = {0};
+    size_t key_len;
+    uint32_t rc = data->retriever(data->priv, key_buffer, sizeof(key_buffer),
+                                  &key_len);
+    if (rc != HWKEY_NO_ERROR) {
+        return rc;
+    }
+
+    const EVP_CIPHER* cipher;
+    switch (key_len) {
+    case 16:
+        cipher = EVP_aes_128_cbc();
+        break;
+    case 32:
+        cipher = EVP_aes_256_cbc();
+        break;
+    default:
+        TLOGE("invalid key length: (%zd)\n", key_len);
+        return HWKEY_ERR_GENERIC;
+    }
+
+    int evp_ret;
+    int out_len = 0;
+    uint8_t* iv = NULL;
+    EVP_CIPHER_CTX* cipher_ctx = EVP_CIPHER_CTX_new();
+    if (!cipher_ctx) {
+        return HWKEY_ERR_GENERIC;
+    }
+
+    /* if we exit early */
+    rc = HWKEY_ERR_GENERIC;
+
+    evp_ret = EVP_DecryptInit_ex(cipher_ctx, cipher, NULL, NULL, NULL);
+    if (evp_ret != 1) {
+        TLOGE("Initializing decryption algorithm failed\n");
+        goto out;
+    }
+
+    unsigned int iv_length = EVP_CIPHER_CTX_iv_length(cipher_ctx);
+
+    /* encrypted key contains IV + ciphertext */
+    if (iv_length >= *data->encrypted_key_size_ptr) {
+        TLOGE("Encrypted key is too small\n");
+        goto out;
+    }
+
+    if (kbuf_len < *data->encrypted_key_size_ptr - iv_length) {
+        TLOGE("Not enough space in output buffer\n");
+        rc = HWKEY_ERR_BAD_LEN;
+        goto out;
+    }
+
+    evp_ret = EVP_DecryptInit_ex(cipher_ctx, cipher, NULL, key_buffer,
+                                 data->encrypted_key_data);
+    if (evp_ret != 1) {
+        TLOGE("Initializing decryption algorithm failed\n");
+        goto out;
+    }
+
+    evp_ret = EVP_CIPHER_CTX_set_padding(cipher_ctx, 0);
+    if (evp_ret != 1) {
+        TLOGE("EVP_CIPHER_CTX_set_padding failed\n");
+        goto out;
+    }
+
+    evp_ret = EVP_DecryptUpdate(cipher_ctx, kbuf, &out_len,
+                                data->encrypted_key_data + iv_length,
+                                *data->encrypted_key_size_ptr - iv_length);
+    if (evp_ret != 1) {
+        TLOGE("EVP_DecryptUpdate failed\n");
+        goto out;
+    }
+
+    /* We don't support padding so input length == output length */
+    assert(out_len >= 0 &&
+           (unsigned int)out_len == *data->encrypted_key_size_ptr - iv_length);
+
+    evp_ret = EVP_DecryptFinal_ex(cipher_ctx, NULL, &out_len);
+    if (evp_ret != 1) {
+        TLOGE("EVP_DecryptFinal failed\n");
+        goto out;
+    }
+
+    assert(out_len == 0);
+
+    *klen = *data->encrypted_key_size_ptr - iv_length;
+
+    /* Decryption was successful */
+    rc = HWKEY_NO_ERROR;
+
+out:
+    if (iv) {
+        free(iv);
+    }
+    EVP_CIPHER_CTX_free(cipher_ctx);
+    return rc;
 }
 
 /*

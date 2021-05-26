@@ -41,11 +41,15 @@
 
 #define RPMB_STORAGE_AUTH_KEY_ID "com.android.trusty.storage_auth.rpmb"
 #define HWCRYPTO_UNITTEST_KEYBOX_ID "com.android.trusty.hwcrypto.unittest.key32"
+#define HWCRYPTO_UNITTEST_DERIVED_KEYBOX_ID \
+    "com.android.trusty.hwcrypto.unittest.derived_key32"
 
 #define STORAGE_AUTH_KEY_SIZE 32
 
 #if WITH_HWCRYPTO_UNITTEST
 static const uint8_t UNITTEST_KEYSLOT[] = "unittestkeyslotunittestkeyslotun";
+static const uint8_t UNITTEST_DERIVED_KEYSLOT[] =
+        "unittestderivedkeyslotunittestde";
 #else
 #pragma message                                                                          \
         "hwcrypto-unittest is built with the WITH_HWCRYPTO_UNITTEST define not enabled." \
@@ -206,6 +210,27 @@ TEST_F(hwkey, get_keybox) {
     EXPECT_EQ(0, rc, "get storage auth key invalid");
 #else
     EXPECT_EQ(ERR_NOT_FOUND, rc, "get hwcrypto-unittest keybox");
+#endif
+}
+
+/*
+ * The derived key slot should return UNITTEST_DERIVED_KEYSLOT after decrypting
+ * it with the UNITTEST_KEYSLOT key.
+ */
+TEST_F(hwkey, get_derived_keybox) {
+    uint8_t dest[sizeof(HWCRYPTO_UNITTEST_DERIVED_KEYBOX_ID)];
+    uint32_t actual_size = sizeof(dest);
+    long rc = hwkey_get_keyslot_data(_state->hwkey_session,
+                                     HWCRYPTO_UNITTEST_DERIVED_KEYBOX_ID, dest,
+                                     &actual_size);
+
+#if WITH_HWCRYPTO_UNITTEST
+    EXPECT_EQ(NO_ERROR, rc, "get hwcrypto-unittest derived keybox");
+    rc = memcmp(UNITTEST_DERIVED_KEYSLOT, dest,
+                sizeof(UNITTEST_DERIVED_KEYSLOT) - 1);
+    EXPECT_EQ(0, rc, "get derived invalid");
+#else
+    EXPECT_EQ(ERR_NOT_FOUND, rc, "get hwcrypto-unittest derived keybox");
 #endif
 }
 

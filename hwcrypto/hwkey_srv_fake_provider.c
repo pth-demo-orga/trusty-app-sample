@@ -147,6 +147,38 @@ static uint32_t get_unittest_key32(const struct hwkey_keyslot* slot,
 
     return HWKEY_NO_ERROR;
 }
+
+static uint32_t get_unittest_derived_key32(const void* priv,
+                                           uint8_t* kbuf,
+                                           size_t kbuf_len,
+                                           size_t* klen) {
+    /*
+     * get_unittest_key32 does not use the slot pointer, so we can reuse it as
+     * the retriever for hwkey_derived_keyslot_data
+     */
+    return get_unittest_key32(NULL, kbuf, kbuf_len, klen);
+}
+
+/*
+ * "unittestderivedkeyslotunittestde" encrypted with _unittest_key32 using an
+ * all 0 IV. IV is prepended to the ciphertext.
+ */
+static uint8_t _unittest_encrypted_key32[48] = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x3e, 0x2b, 0x02, 0x54, 0x54, 0x8c, 0xa7, 0xb8,
+        0xa3, 0xfa, 0xf5, 0xd0, 0xbc, 0x1d, 0x40, 0x11, 0xac, 0x68, 0xbb, 0xf0,
+        0x55, 0xa3, 0xc5, 0x49, 0x3e, 0x77, 0x4a, 0x8b, 0x3f, 0x33, 0x56, 0x07,
+};
+
+static unsigned int _unittest_encrypted_key32_size =
+        sizeof(_unittest_encrypted_key32);
+
+static const struct hwkey_derived_keyslot_data hwcrypto_unittest_derived_data =
+        {
+                .encrypted_key_data = _unittest_encrypted_key32,
+                .encrypted_key_size_ptr = &_unittest_encrypted_key32_size,
+                .retriever = get_unittest_derived_key32,
+};
 #endif /* WITH_HWCRYPTO_UNITTEST */
 
 /*
@@ -422,6 +454,12 @@ static const struct hwkey_keyslot _keys[] = {
                 .uuid = &hwcrypto_unittest_uuid,
                 .key_id = "com.android.trusty.hwcrypto.unittest.key32",
                 .handler = get_unittest_key32,
+        },
+        {
+                .uuid = &hwcrypto_unittest_uuid,
+                .key_id = "com.android.trusty.hwcrypto.unittest.derived_key32",
+                .priv = &hwcrypto_unittest_derived_data,
+                .handler = hwkey_derived_keyslot_handler,
         },
 #endif /* WITH_HWCRYPTO_UNITTEST */
 };
