@@ -26,6 +26,7 @@ NEVER_START_APP := $(abspath $(BUILDDIR)/../never-start-srv/never-start-srv.app)
 PORT_START_APP  := $(abspath $(BUILDDIR)/../port-start-srv/port-start-srv.app)
 RESTART_APP     := $(abspath $(BUILDDIR)/../restart-srv/restart-srv.app)
 PORT_WAITER_APP := $(abspath $(BUILDDIR)/../port-waiter-srv/port-waiter-srv.app)
+UNSIGNED_APP    := $(abspath $(BUILDDIR)/../boot-start-srv/boot-start-srv.app.initial)
 
 MODULE_SRCS += \
 	$(LOCAL_DIR)/main.c \
@@ -43,6 +44,7 @@ MODULE_ASMFLAGS += \
 	-DPORT_START_APP=\"$(PORT_START_APP)\" \
 	-DRESTART_APP=\"$(RESTART_APP)\" \
 	-DPORT_WAITER_APP=\"$(PORT_WAITER_APP)\" \
+	-DUNSIGNED_APP=\"$(UNSIGNED_APP)\" \
 
 MODULE_INCLUDES += \
 	$(LOCAL_DIR)/../include \
@@ -53,5 +55,6 @@ MODULE_SRCDEPS += \
 	$(PORT_START_APP) \
 	$(RESTART_APP) \
 	$(PORT_WAITER_APP) \
+	$(UNSIGNED_APP) \
 
 include make/module.mk

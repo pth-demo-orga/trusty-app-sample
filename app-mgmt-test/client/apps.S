@@ -51,3 +51,10 @@ restart_app_end:
 port_waiter_app_begin:
 .incbin PORT_WAITER_APP
 port_waiter_app_end:
+
+.global unsigned_app_begin, unsigned_app_end
+.hidden unsigned_app_begin, unsigned_app_end
+.balign 4096
+unsigned_app_begin:
+.incbin UNSIGNED_APP
+unsigned_app_end:

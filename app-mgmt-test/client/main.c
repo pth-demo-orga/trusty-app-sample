@@ -298,8 +298,6 @@ static uint32_t load_app(char* app_begin, char* app_end) {
     error = recv_apploader_response(chan, APPLOADER_CMD_LOAD_APPLICATION, NULL,
                                     0);
     ASSERT_EQ(false, HasFailure());
-    ASSERT_EQ(true, error == APPLOADER_NO_ERROR ||
-                            error == APPLOADER_ERR_ALREADY_EXISTS);
 
     /* Wait for a bit for the app to start properly */
     if (error == APPLOADER_NO_ERROR) {
@@ -324,6 +322,7 @@ extern char never_start_app_begin[], never_start_app_end[];
 extern char port_start_app_begin[], port_start_app_end[];
 extern char restart_app_begin[], restart_app_end[];
 extern char port_waiter_app_begin[], port_waiter_app_end[];
+extern char unsigned_app_begin[], unsigned_app_end[];
 
 /*
  * Loading an application the a second time should return
@@ -336,6 +335,8 @@ TEST(AppMgrBoot, DoubleLoad) {
 
     error = load_app(boot_start_app_begin, boot_start_app_end);
     ASSERT_EQ(false, HasFailure());
+    ASSERT_EQ(true, error == APPLOADER_NO_ERROR ||
+                            error == APPLOADER_ERR_ALREADY_EXISTS);
     if (error == APPLOADER_ERR_ALREADY_EXISTS) {
         trusty_unittest_printf("[  WARNING ] boot-start-srv already loaded\n");
     }
@@ -373,11 +374,13 @@ TEST(AppMgrWaitForPort, WaitConnectForPort) {
     ASSERT_EQ(false, port_start_srv_running());
 
     /* Load port-waiter-srv */
-    load_app(port_waiter_app_begin, port_waiter_app_end);
+    uint32_t load_error = load_app(port_waiter_app_begin, port_waiter_app_end);
     ASSERT_EQ(false, HasFailure());
+    ASSERT_EQ(true, load_error == APPLOADER_NO_ERROR ||
+                            load_error == APPLOADER_ERR_ALREADY_EXISTS);
 
     /* Load port-start-srv now, which should wake up port-waiter-srv */
-    uint32_t load_error = load_app(port_start_app_begin, port_start_app_end);
+    load_error = load_app(port_start_app_begin, port_start_app_end);
     ASSERT_EQ(false, HasFailure());
     ASSERT_EQ(load_error, APPLOADER_NO_ERROR);
 
@@ -400,8 +403,10 @@ static void AppMgrPortStart_SetUp(AppMgrPortStart_t* state) {
     uevent_t uevt;
     handle_t chan;
 
-    load_app(port_start_app_begin, port_start_app_end);
+    uint32_t error = load_app(port_start_app_begin, port_start_app_end);
     ASSERT_EQ(false, HasFailure());
+    ASSERT_EQ(true, error == APPLOADER_NO_ERROR ||
+                            error == APPLOADER_ERR_ALREADY_EXISTS);
 
     for (size_t i = 0; i < CHAN_COUNT; i++) {
         state->chans[i] = INVALID_IPC_HANDLE;
@@ -451,8 +456,10 @@ test_abort:
 TEST(AppMgrBoot, BootStartNegative) {
     int rc;
 
-    load_app(never_start_app_begin, never_start_app_end);
+    uint32_t error = load_app(never_start_app_begin, never_start_app_end);
     ASSERT_EQ(false, HasFailure());
+    ASSERT_EQ(true, error == APPLOADER_NO_ERROR ||
+                            error == APPLOADER_ERR_ALREADY_EXISTS);
 
     /* never-start-srv should not be running */
     rc = connect(NEVER_START_PORT, IPC_CONNECT_ASYNC);
@@ -466,8 +473,10 @@ test_abort:;
 TEST(AppMgrBoot, BootStartPositive) {
     int rc;
 
-    load_app(boot_start_app_begin, boot_start_app_end);
+    uint32_t error = load_app(boot_start_app_begin, boot_start_app_end);
     ASSERT_EQ(false, HasFailure());
+    ASSERT_EQ(true, error == APPLOADER_NO_ERROR ||
+                            error == APPLOADER_ERR_ALREADY_EXISTS);
 
     /* boot-start-srv should be running from boot */
     rc = connect(BOOT_START_PORT, IPC_CONNECT_ASYNC);
@@ -483,8 +492,10 @@ TEST(AppMgrRestart, AppRestartPositive) {
     uevent_t uevt;
     handle_t chan = INVALID_IPC_HANDLE;
 
-    load_app(restart_app_begin, restart_app_end);
+    uint32_t error = load_app(restart_app_begin, restart_app_end);
     ASSERT_EQ(false, HasFailure());
+    ASSERT_EQ(true, error == APPLOADER_NO_ERROR ||
+                            error == APPLOADER_ERR_ALREADY_EXISTS);
 
     /* restart-srv should be running from boot or a previous restart */
     rc = connect(RESTART_PORT, IPC_CONNECT_ASYNC | IPC_CONNECT_WAIT_FOR_PORT);
@@ -513,8 +524,10 @@ TEST(AppMgrRestart, AppRestartNegativePortStartPositive) {
     int rc;
     handle_t chan = INVALID_IPC_HANDLE;
 
-    load_app(port_start_app_begin, port_start_app_end);
+    uint32_t error = load_app(port_start_app_begin, port_start_app_end);
     ASSERT_EQ(false, HasFailure());
+    ASSERT_EQ(true, error == APPLOADER_NO_ERROR ||
+                            error == APPLOADER_ERR_ALREADY_EXISTS);
 
     /* Start and connect to port-start-srv */
     rc = connect(START_PORT, 0);
@@ -536,8 +549,10 @@ test_abort:
 TEST(AppMgrPortStartNegative, PortStartNegative) {
     int rc;
 
-    load_app(port_start_app_begin, port_start_app_end);
+    uint32_t error = load_app(port_start_app_begin, port_start_app_end);
     ASSERT_EQ(false, HasFailure());
+    ASSERT_EQ(true, error == APPLOADER_NO_ERROR ||
+                            error == APPLOADER_ERR_ALREADY_EXISTS);
 
     /* A connection to CTRL_PORT should not start port-start-srv */
     rc = connect(CTRL_PORT, IPC_CONNECT_ASYNC);
@@ -822,6 +837,15 @@ TEST_F(AppMgrPortStart, PortStartPendingWaitingClosedPositive) {
      * and then shut it down
      */
     wait_and_exit(_state, PEND_CHAN);
+}
+
+/* Test loading an unsigned app */
+TEST(AppLoader, UnsignedApp) {
+    uint32_t error = load_app(unsigned_app_begin, unsigned_app_end);
+    ASSERT_EQ(false, HasFailure());
+    ASSERT_EQ(APPLOADER_ERR_VERIFICATION_FAILED, error);
+
+test_abort:;
 }
 
 static bool run_appmngr_tests(struct unittest* test) {
