@@ -32,6 +32,7 @@
 #include <openssl/hkdf.h>
 
 #include <interface/hwkey/hwkey.h>
+#include <lib/system_state/system_state.h>
 #include <trusty_log.h>
 
 #include <hwcrypto_consts.h>
@@ -280,24 +281,52 @@ struct apploader_key {
 INCLUDE_APPLOADER_KEY(apploader_sign_key_0, APPLOADER_SIGN_PUBLIC_KEY_0_FILE);
 #define APPLOADER_SIGN_KEY_0 "com.android.trusty.apploader.sign.key.0"
 #define APPLOADER_HAS_KEYS
+#ifdef APPLOADER_SIGN_KEY_0_UNLOCKED_ONLY
+#define APPLOADER_SIGN_KEY_0_HANDLER get_apploader_unlocked_key
+#else
+#define APPLOADER_SIGN_KEY_0_HANDLER get_apploader_key
+#endif
 #endif
 
 #ifdef APPLOADER_SIGN_PUBLIC_KEY_1_FILE
 INCLUDE_APPLOADER_KEY(apploader_sign_key_1, APPLOADER_SIGN_PUBLIC_KEY_1_FILE);
 #define APPLOADER_SIGN_KEY_1 "com.android.trusty.apploader.sign.key.1"
 #define APPLOADER_HAS_KEYS
+#ifdef APPLOADER_SIGN_KEY_1_UNLOCKED_ONLY
+#define APPLOADER_SIGN_KEY_1_HANDLER get_apploader_unlocked_key
+#else
+/*
+ * Rather than rely on a correct build configuration, a real hwkey
+ * implementation should ensure that dev signing keys are not allowed in
+ * unlocked state by either hard-coding dev key slot handlers to a handler that
+ * checks the unlock state or by erroring out here if the build configuration is
+ * unexpected.
+ */
+#pragma message "Apploader signing key 1 is not gated on unlock status"
+#define APPLOADER_SIGN_KEY_1_HANDLER get_apploader_key
+#endif
 #endif
 
 #ifdef APPLOADER_ENCRYPT_KEY_0_FILE
 INCLUDE_APPLOADER_KEY(apploader_encrypt_key_0, APPLOADER_ENCRYPT_KEY_0_FILE);
 #define APPLOADER_ENCRYPT_KEY_0 "com.android.trusty.apploader.encrypt.key.0"
 #define APPLOADER_HAS_KEYS
+#ifdef APPLOADER_ENCRYPT_KEY_0_UNLOCKED_ONLY
+#define APPLOADER_ENCRYPT_KEY_0_HANDLER get_apploader_unlocked_key
+#else
+#define APPLOADER_ENCRYPT_KEY_0_HANDLER get_apploader_key
+#endif
 #endif
 
 #ifdef APPLOADER_ENCRYPT_KEY_1_FILE
 INCLUDE_APPLOADER_KEY(apploader_encrypt_key_1, APPLOADER_ENCRYPT_KEY_1_FILE);
 #define APPLOADER_ENCRYPT_KEY_1 "com.android.trusty.apploader.encrypt.key.1"
 #define APPLOADER_HAS_KEYS
+#ifdef APPLOADER_ENCRYPT_KEY_1_UNLOCKED_ONLY
+#define APPLOADER_ENCRYPT_KEY_1_HANDLER get_apploader_unlocked_key
+#else
+#define APPLOADER_ENCRYPT_KEY_1_HANDLER get_apploader_key
+#endif
 #endif
 
 #ifdef APPLOADER_HAS_KEYS
@@ -323,6 +352,22 @@ static uint32_t get_apploader_key(const struct hwkey_keyslot* slot,
 
     return HWKEY_NO_ERROR;
 }
+
+/*
+ * Retrieve the respective key only if the system state APP_LOADING_UNLOCKED
+ * flag is true
+ */
+static uint32_t get_apploader_unlocked_key(const struct hwkey_keyslot* slot,
+                                           uint8_t* kbuf,
+                                           size_t kbuf_len,
+                                           size_t* klen) {
+    if (system_state_app_loading_unlocked()) {
+        return get_apploader_key(slot, kbuf, kbuf_len, klen);
+    } else {
+        return HWKEY_ERR_NOT_FOUND;
+    }
+}
+
 #endif
 
 /*
@@ -343,7 +388,7 @@ static const struct hwkey_keyslot _keys[] = {
         {
                 .uuid = &apploader_uuid,
                 .key_id = APPLOADER_SIGN_KEY_0,
-                .handler = get_apploader_key,
+                .handler = APPLOADER_SIGN_KEY_0_HANDLER,
                 .priv = &apploader_sign_key_0,
         },
 #endif
@@ -351,7 +396,7 @@ static const struct hwkey_keyslot _keys[] = {
         {
                 .uuid = &apploader_uuid,
                 .key_id = APPLOADER_SIGN_KEY_1,
-                .handler = get_apploader_key,
+                .handler = APPLOADER_SIGN_KEY_1_HANDLER,
                 .priv = &apploader_sign_key_1,
         },
 #endif
@@ -359,7 +404,7 @@ static const struct hwkey_keyslot _keys[] = {
         {
                 .uuid = &apploader_uuid,
                 .key_id = APPLOADER_ENCRYPT_KEY_0,
-                .handler = get_apploader_key,
+                .handler = APPLOADER_ENCRYPT_KEY_0_HANDLER,
                 .priv = &apploader_encrypt_key_0,
         },
 #endif
@@ -367,7 +412,7 @@ static const struct hwkey_keyslot _keys[] = {
         {
                 .uuid = &apploader_uuid,
                 .key_id = APPLOADER_ENCRYPT_KEY_1,
-                .handler = get_apploader_key,
+                .handler = APPLOADER_ENCRYPT_KEY_1_HANDLER,
                 .priv = &apploader_encrypt_key_1,
         },
 #endif

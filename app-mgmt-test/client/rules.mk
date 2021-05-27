@@ -27,6 +27,7 @@ PORT_START_APP  := $(abspath $(BUILDDIR)/../port-start-srv/port-start-srv.app)
 RESTART_APP     := $(abspath $(BUILDDIR)/../restart-srv/restart-srv.app)
 PORT_WAITER_APP := $(abspath $(BUILDDIR)/../port-waiter-srv/port-waiter-srv.app)
 UNSIGNED_APP    := $(abspath $(BUILDDIR)/../boot-start-srv/boot-start-srv.app.initial)
+DEV_ONLY_APP    := $(abspath $(BUILDDIR)/../dev-only-srv/dev-only-srv.app)
 
 MODULE_SRCS += \
 	$(LOCAL_DIR)/main.c \
@@ -34,6 +35,7 @@ MODULE_SRCS += \
 
 MODULE_DEPS += \
 	trusty/user/base/lib/libc-trusty \
+	trusty/user/base/lib/system_state \
 	trusty/user/base/lib/tipc \
 	trusty/user/base/lib/unittest \
 	trusty/user/base/interface/apploader \
@@ -45,6 +47,7 @@ MODULE_ASMFLAGS += \
 	-DRESTART_APP=\"$(RESTART_APP)\" \
 	-DPORT_WAITER_APP=\"$(PORT_WAITER_APP)\" \
 	-DUNSIGNED_APP=\"$(UNSIGNED_APP)\" \
+	-DDEV_ONLY_APP=\"$(DEV_ONLY_APP)\" \
 
 MODULE_INCLUDES += \
 	$(LOCAL_DIR)/../include \
@@ -56,5 +59,6 @@ MODULE_SRCDEPS += \
 	$(RESTART_APP) \
 	$(PORT_WAITER_APP) \
 	$(UNSIGNED_APP) \
+	$(DEV_ONLY_APP) \
 
 include make/module.mk

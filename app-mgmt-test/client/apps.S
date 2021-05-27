@@ -58,3 +58,10 @@ port_waiter_app_end:
 unsigned_app_begin:
 .incbin UNSIGNED_APP
 unsigned_app_end:
+
+.global dev_only_app_begin, dev_only_app_end
+.hidden dev_only_app_begin, dev_only_app_end
+.balign 4096
+dev_only_app_begin:
+.incbin DEV_ONLY_APP
+dev_only_app_end:

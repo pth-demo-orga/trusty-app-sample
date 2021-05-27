@@ -18,6 +18,7 @@
 #include <app_mgmt_test.h>
 #include <assert.h>
 #include <interface/apploader/apploader.h>
+#include <lib/system_state/system_state.h>
 #include <lib/tipc/tipc.h>
 #include <lib/unittest/unittest.h>
 #include <memref.h>
@@ -323,6 +324,7 @@ extern char port_start_app_begin[], port_start_app_end[];
 extern char restart_app_begin[], restart_app_end[];
 extern char port_waiter_app_begin[], port_waiter_app_end[];
 extern char unsigned_app_begin[], unsigned_app_end[];
+extern char dev_only_app_begin[], dev_only_app_end[];
 
 /*
  * Loading an application the a second time should return
@@ -844,6 +846,26 @@ TEST(AppLoader, UnsignedApp) {
     uint32_t error = load_app(unsigned_app_begin, unsigned_app_end);
     ASSERT_EQ(false, HasFailure());
     ASSERT_EQ(APPLOADER_ERR_VERIFICATION_FAILED, error);
+
+test_abort:;
+}
+
+/*
+ * Dev apploader keys should only be available when the system state service
+ * indicates that the system is in an unlocked state. This app is signed with
+ * apploader slot 1, which is the dev key and therefore must only load in the
+ * unlocked state.
+ */
+TEST(AppMgrBoot, UnlockedDevLoad) {
+    uint32_t error = load_app(dev_only_app_begin, dev_only_app_end);
+    ASSERT_EQ(false, HasFailure());
+
+    if (system_state_app_loading_unlocked()) {
+        ASSERT_EQ(true, error == APPLOADER_NO_ERROR ||
+                                error == APPLOADER_ERR_ALREADY_EXISTS);
+    } else {
+        EXPECT_EQ(APPLOADER_ERR_VERIFICATION_FAILED, error);
+    }
 
 test_abort:;
 }

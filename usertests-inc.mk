@@ -32,6 +32,7 @@ endif
 
 TRUSTY_LOADABLE_USER_TASKS += \
 	trusty/user/app/sample/app-mgmt-test/boot-start-srv \
+	trusty/user/app/sample/app-mgmt-test/dev-only-srv \
 	trusty/user/app/sample/app-mgmt-test/never-start-srv \
 	trusty/user/app/sample/app-mgmt-test/port-start-srv \
 	trusty/user/app/sample/app-mgmt-test/restart-srv \

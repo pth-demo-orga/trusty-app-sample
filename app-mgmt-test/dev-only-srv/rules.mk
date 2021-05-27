@@ -30,9 +30,11 @@ MODULE_SRCS += \
 MODULE_DEPS += \
 	trusty/user/base/lib/libc-trusty \
 
-# Encrypt this application for testing
-ifneq ($(APPLOADER_ENCRYPT_KEY_0_FILE),)
-APPLOADER_ENCRYPT_KEY_ID_FOR_$(MODULE) := 0
+ifneq ($(strip $(APPLOADER_SIGN_UNLOCKED_KEY_ID)),)
+# Sign this application with the dev key for testing
+ifneq ($(APPLOADER_SIGN_PRIVATE_KEY_$(APPLOADER_SIGN_UNLOCKED_KEY_ID)_FILE),)
+APPLOADER_SIGN_KEY_ID_FOR_$(MODULE) := $(APPLOADER_SIGN_UNLOCKED_KEY_ID)
+endif
 endif
 
 include make/module.mk
