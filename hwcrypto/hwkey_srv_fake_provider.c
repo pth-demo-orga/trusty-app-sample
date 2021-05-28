@@ -345,25 +345,26 @@ struct apploader_key {
             .key_size_ptr = &key##_size,       \
     };
 
-#undef APPLOADER_HAS_KEYS
+#undef APPLOADER_HAS_SIGNING_KEYS
+#undef APPLOADER_HAS_ENCRYPTION_KEYS
 
 #ifdef APPLOADER_SIGN_PUBLIC_KEY_0_FILE
 INCLUDE_APPLOADER_KEY(apploader_sign_key_0, APPLOADER_SIGN_PUBLIC_KEY_0_FILE);
 #define APPLOADER_SIGN_KEY_0 "com.android.trusty.apploader.sign.key.0"
-#define APPLOADER_HAS_KEYS
+#define APPLOADER_HAS_SIGNING_KEYS
 #ifdef APPLOADER_SIGN_KEY_0_UNLOCKED_ONLY
-#define APPLOADER_SIGN_KEY_0_HANDLER get_apploader_unlocked_key
+#define APPLOADER_SIGN_KEY_0_HANDLER get_apploader_sign_unlocked_key
 #else
-#define APPLOADER_SIGN_KEY_0_HANDLER get_apploader_key
+#define APPLOADER_SIGN_KEY_0_HANDLER get_apploader_sign_key
 #endif
 #endif
 
 #ifdef APPLOADER_SIGN_PUBLIC_KEY_1_FILE
 INCLUDE_APPLOADER_KEY(apploader_sign_key_1, APPLOADER_SIGN_PUBLIC_KEY_1_FILE);
 #define APPLOADER_SIGN_KEY_1 "com.android.trusty.apploader.sign.key.1"
-#define APPLOADER_HAS_KEYS
+#define APPLOADER_HAS_SIGNING_KEYS
 #ifdef APPLOADER_SIGN_KEY_1_UNLOCKED_ONLY
-#define APPLOADER_SIGN_KEY_1_HANDLER get_apploader_unlocked_key
+#define APPLOADER_SIGN_KEY_1_HANDLER get_apploader_sign_unlocked_key
 #else
 /*
  * Rather than rely on a correct build configuration, a real hwkey
@@ -373,44 +374,33 @@ INCLUDE_APPLOADER_KEY(apploader_sign_key_1, APPLOADER_SIGN_PUBLIC_KEY_1_FILE);
  * unexpected.
  */
 #pragma message "Apploader signing key 1 is not gated on unlock status"
-#define APPLOADER_SIGN_KEY_1_HANDLER get_apploader_key
+#define APPLOADER_SIGN_KEY_1_HANDLER get_apploader_sign_key
 #endif
 #endif
 
 #ifdef APPLOADER_ENCRYPT_KEY_0_FILE
 INCLUDE_APPLOADER_KEY(apploader_encrypt_key_0, APPLOADER_ENCRYPT_KEY_0_FILE);
 #define APPLOADER_ENCRYPT_KEY_0 "com.android.trusty.apploader.encrypt.key.0"
-#define APPLOADER_HAS_KEYS
-#ifdef APPLOADER_ENCRYPT_KEY_0_UNLOCKED_ONLY
-#define APPLOADER_ENCRYPT_KEY_0_HANDLER get_apploader_unlocked_key
-#else
-#define APPLOADER_ENCRYPT_KEY_0_HANDLER get_apploader_key
-#endif
+#define APPLOADER_HAS_ENCRYPTION_KEYS
 #endif
 
 #ifdef APPLOADER_ENCRYPT_KEY_1_FILE
 INCLUDE_APPLOADER_KEY(apploader_encrypt_key_1, APPLOADER_ENCRYPT_KEY_1_FILE);
 #define APPLOADER_ENCRYPT_KEY_1 "com.android.trusty.apploader.encrypt.key.1"
-#define APPLOADER_HAS_KEYS
-#ifdef APPLOADER_ENCRYPT_KEY_1_UNLOCKED_ONLY
-#define APPLOADER_ENCRYPT_KEY_1_HANDLER get_apploader_unlocked_key
-#else
-#define APPLOADER_ENCRYPT_KEY_1_HANDLER get_apploader_key
-#endif
+#define APPLOADER_HAS_ENCRYPTION_KEYS
 #endif
 
-#ifdef APPLOADER_HAS_KEYS
+#if defined(APPLOADER_HAS_SIGNING_KEYS) || \
+        defined(APPLOADER_HAS_ENCRYPTION_KEYS)
 /* Apploader app uuid */
 static const uuid_t apploader_uuid = APPLOADER_APP_UUID;
 
-static uint32_t get_apploader_key(const struct hwkey_keyslot* slot,
+static uint32_t get_apploader_key(const struct apploader_key* key,
                                   uint8_t* kbuf,
                                   size_t kbuf_len,
                                   size_t* klen) {
     assert(kbuf);
     assert(klen);
-
-    struct apploader_key* key = (struct apploader_key*)slot->priv;
     assert(key);
     assert(key->key_size_ptr);
 
@@ -422,21 +412,80 @@ static uint32_t get_apploader_key(const struct hwkey_keyslot* slot,
 
     return HWKEY_NO_ERROR;
 }
+#endif
+
+#ifdef APPLOADER_HAS_SIGNING_KEYS
+static uint32_t get_apploader_sign_key(const struct hwkey_keyslot* slot,
+                                       uint8_t* kbuf,
+                                       size_t kbuf_len,
+                                       size_t* klen) {
+    assert(slot);
+    return get_apploader_key(slot->priv, kbuf, kbuf_len, klen);
+}
 
 /*
  * Retrieve the respective key only if the system state APP_LOADING_UNLOCKED
  * flag is true
  */
-static uint32_t get_apploader_unlocked_key(const struct hwkey_keyslot* slot,
-                                           uint8_t* kbuf,
-                                           size_t kbuf_len,
-                                           size_t* klen) {
+static uint32_t get_apploader_sign_unlocked_key(
+        const struct hwkey_keyslot* slot,
+        uint8_t* kbuf,
+        size_t kbuf_len,
+        size_t* klen) {
+    assert(slot);
     if (system_state_app_loading_unlocked()) {
-        return get_apploader_key(slot, kbuf, kbuf_len, klen);
+        return get_apploader_key(slot->priv, kbuf, kbuf_len, klen);
     } else {
         return HWKEY_ERR_NOT_FOUND;
     }
 }
+#endif
+
+#ifdef APPLOADER_HAS_ENCRYPTION_KEYS
+
+#if !WITH_HWCRYPTO_UNITTEST
+static const uuid_t hwaes_uuid = SAMPLE_HWAES_APP_UUID;
+#endif
+
+static const uuid_t* apploader_allowed_opaque_key_uuids[] = {
+        &hwaes_uuid,
+};
+
+/*
+ * Retrieve apploader key data out of a slot containing an opaque handle
+ * structure
+ */
+static uint32_t get_apploader_encrypt_key(const struct hwkey_keyslot* slot,
+                                          uint8_t* kbuf,
+                                          size_t kbuf_len,
+                                          size_t* klen) {
+    assert(slot);
+    assert(slot->priv);
+    const struct hwkey_opaque_handle_data* data = slot->priv;
+    return get_apploader_key(data->priv, kbuf, kbuf_len, klen);
+}
+
+#ifdef APPLOADER_ENCRYPT_KEY_0
+static struct hwkey_opaque_handle_data
+        apploader_encrypt_key_0_opaque_handle_data = {
+                .allowed_uuids = apploader_allowed_opaque_key_uuids,
+                .allowed_uuids_len =
+                        countof(apploader_allowed_opaque_key_uuids),
+                .retriever = get_apploader_encrypt_key,
+                .priv = &apploader_encrypt_key_0,
+};
+#endif
+
+#ifdef APPLOADER_ENCRYPT_KEY_1
+static struct hwkey_opaque_handle_data
+        apploader_encrypt_key_1_opaque_handle_data = {
+                .allowed_uuids = apploader_allowed_opaque_key_uuids,
+                .allowed_uuids_len =
+                        countof(apploader_allowed_opaque_key_uuids),
+                .retriever = get_apploader_encrypt_key,
+                .priv = &apploader_encrypt_key_1,
+};
+#endif
 
 #endif
 
@@ -474,16 +523,16 @@ static const struct hwkey_keyslot _keys[] = {
         {
                 .uuid = &apploader_uuid,
                 .key_id = APPLOADER_ENCRYPT_KEY_0,
-                .handler = APPLOADER_ENCRYPT_KEY_0_HANDLER,
-                .priv = &apploader_encrypt_key_0,
+                .handler = get_key_handle,
+                .priv = &apploader_encrypt_key_0_opaque_handle_data,
         },
 #endif
 #ifdef APPLOADER_ENCRYPT_KEY_1
         {
                 .uuid = &apploader_uuid,
                 .key_id = APPLOADER_ENCRYPT_KEY_1,
-                .handler = APPLOADER_ENCRYPT_KEY_1_HANDLER,
-                .priv = &apploader_encrypt_key_1,
+                .handler = get_key_handle,
+                .priv = &apploader_encrypt_key_1_opaque_handle_data,
         },
 #endif
 
