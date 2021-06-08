@@ -21,13 +21,13 @@ MANIFEST := $(LOCAL_DIR)/manifest.json
 
 CONSTANTS := $(LOCAL_DIR)/../include/app_mgmt_port_consts.json
 
-BOOT_START_APP  := $(abspath $(TRUSTY_APP_BUILDDIR)/trusty/user/app/sample/app-mgmt-test/boot-start-srv/boot-start-srv.app)
-NEVER_START_APP := $(abspath $(TRUSTY_APP_BUILDDIR)/trusty/user/app/sample/app-mgmt-test/never-start-srv/never-start-srv.app)
-PORT_START_APP  := $(abspath $(TRUSTY_APP_BUILDDIR)/trusty/user/app/sample/app-mgmt-test/port-start-srv/port-start-srv.app)
-RESTART_APP     := $(abspath $(TRUSTY_APP_BUILDDIR)/trusty/user/app/sample/app-mgmt-test/restart-srv/restart-srv.app)
-PORT_WAITER_APP := $(abspath $(TRUSTY_APP_BUILDDIR)/trusty/user/app/sample/app-mgmt-test/port-waiter-srv/port-waiter-srv.app)
-UNSIGNED_APP    := $(abspath $(TRUSTY_APP_BUILDDIR)/trusty/user/app/sample/app-mgmt-test/boot-start-srv/boot-start-srv.app.initial)
-DEV_ONLY_APP    := $(abspath $(TRUSTY_APP_BUILDDIR)/trusty/user/app/sample/app-mgmt-test/dev-only-srv/dev-only-srv.app)
+BOOT_START_APP  := $(TRUSTY_APP_BUILDDIR)/trusty/user/app/sample/app-mgmt-test/boot-start-srv/boot-start-srv.app
+NEVER_START_APP := $(TRUSTY_APP_BUILDDIR)/trusty/user/app/sample/app-mgmt-test/never-start-srv/never-start-srv.app
+PORT_START_APP  := $(TRUSTY_APP_BUILDDIR)/trusty/user/app/sample/app-mgmt-test/port-start-srv/port-start-srv.app
+RESTART_APP     := $(TRUSTY_APP_BUILDDIR)/trusty/user/app/sample/app-mgmt-test/restart-srv/restart-srv.app
+PORT_WAITER_APP := $(TRUSTY_APP_BUILDDIR)/trusty/user/app/sample/app-mgmt-test/port-waiter-srv/port-waiter-srv.app
+UNSIGNED_APP    := $(TRUSTY_APP_BUILDDIR)/trusty/user/app/sample/app-mgmt-test/boot-start-srv/boot-start-srv.app.initial
+DEV_ONLY_APP    := $(TRUSTY_APP_BUILDDIR)/trusty/user/app/sample/app-mgmt-test/dev-only-srv/dev-only-srv.app
 
 MODULE_SRCS += \
 	$(LOCAL_DIR)/main.c \
