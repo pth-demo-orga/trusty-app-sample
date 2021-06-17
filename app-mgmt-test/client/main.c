@@ -41,6 +41,7 @@
  * runtime of the tests.
  */
 #define EXPECTED_TIMEOUT_MS 500
+#define UNEXPECTED_TIMEOUT_MS 10000
 #define WAIT_FOR_APP_SLEEP_NS 500000000
 
 /*
@@ -321,6 +322,7 @@ test_abort:
 extern char boot_start_app_begin[], boot_start_app_end[];
 extern char never_start_app_begin[], never_start_app_end[];
 extern char port_start_app_begin[], port_start_app_end[];
+extern char port_start_fail_app_begin[], port_start_fail_app_end[];
 extern char restart_app_begin[], restart_app_end[];
 extern char port_waiter_app_begin[], port_waiter_app_end[];
 extern char unsigned_app_begin[], unsigned_app_end[];
@@ -545,6 +547,44 @@ TEST(AppMgrRestart, AppRestartNegativePortStartPositive) {
 
 test_abort:
     close(chan);
+}
+
+/* Regular ports should not start an app on connection */
+TEST(AppMgrPortStartFail, PortStartFail) {
+    int rc;
+    handle_t chan = INVALID_IPC_HANDLE;
+    uevent_t uevt;
+
+    uint32_t error =
+            load_app(port_start_fail_app_begin, port_start_fail_app_end);
+    ASSERT_EQ(false, HasFailure());
+    ASSERT_EQ(true, error == APPLOADER_NO_ERROR ||
+                            error == APPLOADER_ERR_ALREADY_EXISTS);
+
+    /*
+     * A connection to START_FAIL_PORT should fail to start the
+     * port-start-fail-srv app, but it will first create a handle we can wait on
+     */
+    rc = connect(START_FAIL_PORT, IPC_CONNECT_ASYNC);
+    ASSERT_GE(rc, 0);
+
+    /* Wait for kernel to shut down channel after failing to start app */
+    chan = (handle_t)rc;
+    ASSERT_EQ(NO_ERROR, wait(chan, &uevt, UNEXPECTED_TIMEOUT_MS));
+    ASSERT_NE(0, IPC_HANDLE_POLL_HUP & uevt.event);
+    close(chan);
+
+    /* Try again to make sure we get the same error */
+    rc = chan = connect(START_FAIL_PORT, IPC_CONNECT_ASYNC);
+    ASSERT_GE(rc, 0);
+
+    /* Wait for kernel to shut down channel after failing to start app */
+    chan = (handle_t)rc;
+    ASSERT_EQ(NO_ERROR, wait(chan, &uevt, WAIT_FOR_APP_SLEEP_NS));
+    ASSERT_NE(0, IPC_HANDLE_POLL_HUP & uevt.event);
+    close(chan);
+
+test_abort:;
 }
 
 /* Regular ports should not start an app on connection */

@@ -17,6 +17,11 @@
             "type": "port"
         },
         {
+            "name": "START_FAIL_PORT",
+            "value": "com.android.trusty.appmgmt.portstartfailsrv",
+            "type": "port"
+        },
+        {
             "name": "RESTART_PORT",
             "value": "com.android.trusty.appmgmt.restartsrv",
             "type": "port"

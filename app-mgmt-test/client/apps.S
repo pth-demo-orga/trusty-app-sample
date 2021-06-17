@@ -38,6 +38,13 @@ port_start_app_begin:
 .incbin PORT_START_APP
 port_start_app_end:
 
+.global port_start_fail_app_begin, port_start_fail_app_end
+.hidden port_start_fail_app_begin, port_start_fail_app_end
+.balign 4096
+port_start_fail_app_begin:
+.incbin PORT_START_FAIL_APP
+port_start_fail_app_end:
+
 .global restart_app_begin, restart_app_end
 .hidden restart_app_begin, restart_app_end
 .balign 4096

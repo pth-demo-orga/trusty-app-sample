@@ -24,6 +24,7 @@ CONSTANTS := $(LOCAL_DIR)/../include/app_mgmt_port_consts.json
 BOOT_START_APP  := $(TRUSTY_APP_BUILDDIR)/trusty/user/app/sample/app-mgmt-test/boot-start-srv/boot-start-srv.app
 NEVER_START_APP := $(TRUSTY_APP_BUILDDIR)/trusty/user/app/sample/app-mgmt-test/never-start-srv/never-start-srv.app
 PORT_START_APP  := $(TRUSTY_APP_BUILDDIR)/trusty/user/app/sample/app-mgmt-test/port-start-srv/port-start-srv.app
+PORT_START_FAIL_APP := $(TRUSTY_APP_BUILDDIR)/trusty/user/app/sample/app-mgmt-test/port-start-fail-srv/port-start-fail-srv.app
 RESTART_APP     := $(TRUSTY_APP_BUILDDIR)/trusty/user/app/sample/app-mgmt-test/restart-srv/restart-srv.app
 PORT_WAITER_APP := $(TRUSTY_APP_BUILDDIR)/trusty/user/app/sample/app-mgmt-test/port-waiter-srv/port-waiter-srv.app
 UNSIGNED_APP    := $(TRUSTY_APP_BUILDDIR)/trusty/user/app/sample/app-mgmt-test/boot-start-srv/boot-start-srv.app.initial
@@ -44,6 +45,7 @@ MODULE_ASMFLAGS += \
 	-DBOOT_START_APP=\"$(BOOT_START_APP)\" \
 	-DNEVER_START_APP=\"$(NEVER_START_APP)\" \
 	-DPORT_START_APP=\"$(PORT_START_APP)\" \
+	-DPORT_START_FAIL_APP=\"$(PORT_START_FAIL_APP)\" \
 	-DRESTART_APP=\"$(RESTART_APP)\" \
 	-DPORT_WAITER_APP=\"$(PORT_WAITER_APP)\" \
 	-DUNSIGNED_APP=\"$(UNSIGNED_APP)\" \
@@ -56,6 +58,7 @@ MODULE_SRCDEPS += \
 	$(BOOT_START_APP) \
 	$(NEVER_START_APP) \
 	$(PORT_START_APP) \
+	$(PORT_START_FAIL_APP) \
 	$(RESTART_APP) \
 	$(PORT_WAITER_APP) \
 	$(UNSIGNED_APP) \
