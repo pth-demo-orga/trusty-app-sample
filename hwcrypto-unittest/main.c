@@ -49,6 +49,8 @@
     "com.android.trusty.hwcrypto.unittest.opaque_handle2"
 #define HWCRYPTO_UNITTEST_OPAQUE_HANDLE_NOACCESS_ID \
     "com.android.trusty.hwcrypto.unittest.opaque_handle_noaccess"
+#define HWCRYPTO_UNITTEST_OPAQUE_DERIVED_ID \
+    "com.android.trusty.hwcrypto.unittest.opaque_derived"
 
 #define STORAGE_AUTH_KEY_SIZE 32
 
@@ -227,7 +229,7 @@ TEST_F(hwkey, get_keybox) {
  * it with the UNITTEST_KEYSLOT key.
  */
 TEST_F(hwkey, get_derived_keybox) {
-    uint8_t dest[sizeof(HWCRYPTO_UNITTEST_DERIVED_KEYBOX_ID)];
+    uint8_t dest[sizeof(UNITTEST_DERIVED_KEYSLOT) - 1];
     uint32_t actual_size = sizeof(dest);
     long rc = hwkey_get_keyslot_data(_state->hwkey_session,
                                      HWCRYPTO_UNITTEST_DERIVED_KEYBOX_ID, dest,
@@ -463,6 +465,29 @@ TEST_F(hwkey, DISABLED_WITHOUT_HWCRYPTO_UNITTEST(try_empty_opaque_handle)) {
               "retrieving a key with an empty access token succeeded");
 
 test_abort:;
+}
+
+TEST_F(hwkey, DISABLED_WITHOUT_HWCRYPTO_UNITTEST(get_opaque_derived_key)) {
+    uint8_t handle[HWKEY_OPAQUE_HANDLE_MAX_SIZE] = {0};
+    uint32_t actual_size = sizeof(handle);
+    long rc = hwkey_get_keyslot_data(_state->hwkey_session,
+                                     HWCRYPTO_UNITTEST_OPAQUE_DERIVED_ID,
+                                     handle, &actual_size);
+
+    EXPECT_EQ(NO_ERROR, rc, "get hwcrypto-unittest opaque derived key");
+    EXPECT_LE(actual_size, HWKEY_OPAQUE_HANDLE_MAX_SIZE);
+    rc = strnlen((const char*)handle, HWKEY_OPAQUE_HANDLE_MAX_SIZE);
+    EXPECT_EQ(rc, actual_size - 1, "Unexpected opaque handle size");
+
+    uint8_t key_buf[sizeof(UNITTEST_DERIVED_KEYSLOT) - 1];
+    actual_size = sizeof(key_buf);
+    rc = hwkey_get_keyslot_data(_state->hwkey_session, (const char*)handle,
+                                key_buf, &actual_size);
+    EXPECT_EQ(NO_ERROR, rc, "get hwcrypto-unittest derived key failed");
+    EXPECT_EQ(actual_size, sizeof(key_buf), "Unexpected opaque handle size");
+
+    rc = memcmp(UNITTEST_DERIVED_KEYSLOT, key_buf, sizeof(key_buf));
+    EXPECT_EQ(0, rc, "get derived invalid");
 }
 
 /***********************   HWRNG  UNITTEST  ***********************/

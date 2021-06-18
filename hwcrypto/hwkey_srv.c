@@ -208,22 +208,19 @@ static uint32_t _handle_slots(struct hwkey_chan_ctx* ctx,
     return get_opaque_key(&ctx->uuid, slot_id, kbuf, kbuf_len, klen);
 }
 
-uint32_t hwkey_derived_keyslot_handler(const struct hwkey_keyslot* slot,
-                                       uint8_t* kbuf,
-                                       size_t kbuf_len,
-                                       size_t* klen) {
-    assert(slot);
+uint32_t hwkey_get_derived_key(const struct hwkey_derived_keyslot_data* data,
+                               uint8_t* kbuf,
+                               size_t kbuf_len,
+                               size_t* klen) {
     assert(kbuf);
     assert(klen);
-
-    const struct hwkey_derived_keyslot_data* data = slot->priv;
     assert(data);
     assert(data->encrypted_key_size_ptr);
 
     uint8_t key_buffer[HWKEY_DERIVED_KEY_MAX_SIZE] = {0};
     size_t key_len;
-    uint32_t rc = data->retriever(data->priv, key_buffer, sizeof(key_buffer),
-                                  &key_len);
+    uint32_t rc =
+            data->retriever(data, key_buffer, sizeof(key_buffer), &key_len);
     if (rc != HWKEY_NO_ERROR) {
         return rc;
     }
@@ -585,7 +582,7 @@ uint32_t get_opaque_key(const uuid_t* uuid,
             const struct hwkey_opaque_handle_data* handle =
                     entry->key_slot->priv;
             assert(handle);
-            return handle->retriever(entry->key_slot, kbuf, kbuf_len, klen);
+            return handle->retriever(handle, kbuf, kbuf_len, klen);
         }
     }
 

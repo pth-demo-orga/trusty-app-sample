@@ -134,8 +134,7 @@ uint32_t derive_key_v1(const uuid_t* uuid,
 static const uuid_t hwcrypto_unittest_uuid = HWCRYPTO_UNITTEST_APP_UUID;
 
 static uint8_t _unittest_key32[32] = "unittestkeyslotunittestkeyslotun";
-static uint32_t get_unittest_key32(const struct hwkey_keyslot* slot,
-                                   uint8_t* kbuf,
+static uint32_t get_unittest_key32(uint8_t* kbuf,
                                    size_t kbuf_len,
                                    size_t* klen) {
     assert(kbuf);
@@ -149,15 +148,11 @@ static uint32_t get_unittest_key32(const struct hwkey_keyslot* slot,
     return HWKEY_NO_ERROR;
 }
 
-static uint32_t get_unittest_derived_key32(const void* priv,
+static uint32_t get_unittest_key32_handler(const struct hwkey_keyslot* slot,
                                            uint8_t* kbuf,
                                            size_t kbuf_len,
                                            size_t* klen) {
-    /*
-     * get_unittest_key32 does not use the slot pointer, so we can reuse it as
-     * the retriever for hwkey_derived_keyslot_data
-     */
-    return get_unittest_key32(NULL, kbuf, kbuf_len, klen);
+    return get_unittest_key32(kbuf, kbuf_len, klen);
 }
 
 /*
@@ -174,34 +169,79 @@ static uint8_t _unittest_encrypted_key32[48] = {
 static unsigned int _unittest_encrypted_key32_size =
         sizeof(_unittest_encrypted_key32);
 
+static uint32_t get_unittest_key32_derived(
+        const struct hwkey_derived_keyslot_data* data,
+        uint8_t* kbuf,
+        size_t kbuf_len,
+        size_t* klen) {
+    return get_unittest_key32(kbuf, kbuf_len, klen);
+}
+
 static const struct hwkey_derived_keyslot_data hwcrypto_unittest_derived_data =
         {
                 .encrypted_key_data = _unittest_encrypted_key32,
                 .encrypted_key_size_ptr = &_unittest_encrypted_key32_size,
-                .retriever = get_unittest_derived_key32,
+                .retriever = get_unittest_key32_derived,
 };
+
+static uint32_t derived_keyslot_handler(const struct hwkey_keyslot* slot,
+                                        uint8_t* kbuf,
+                                        size_t kbuf_len,
+                                        size_t* klen) {
+    assert(slot);
+    return hwkey_get_derived_key(slot->priv, kbuf, kbuf_len, klen);
+}
 
 static const uuid_t* unittest_allowed_opaque_key_uuids[] = {
         &hwcrypto_unittest_uuid,
 };
 
+static uint32_t get_unittest_key32_opaque(
+        const struct hwkey_opaque_handle_data* data,
+        uint8_t* kbuf,
+        size_t kbuf_len,
+        size_t* klen) {
+    return get_unittest_key32(kbuf, kbuf_len, klen);
+}
+
 static struct hwkey_opaque_handle_data unittest_opaque_handle_data = {
         .allowed_uuids = unittest_allowed_opaque_key_uuids,
         .allowed_uuids_len = countof(unittest_allowed_opaque_key_uuids),
-        .retriever = get_unittest_key32,
+        .retriever = get_unittest_key32_opaque,
 };
 
 static struct hwkey_opaque_handle_data unittest_opaque_handle_data2 = {
         .allowed_uuids = unittest_allowed_opaque_key_uuids,
         .allowed_uuids_len = countof(unittest_allowed_opaque_key_uuids),
-        .retriever = get_unittest_key32,
+        .retriever = get_unittest_key32_opaque,
 };
 
 static struct hwkey_opaque_handle_data unittest_opaque_handle_data_noaccess = {
         .allowed_uuids = NULL,
         .allowed_uuids_len = 0,
-        .retriever = get_unittest_key32,
+        .retriever = get_unittest_key32_opaque,
 };
+
+/*
+ * Adapter to cast hwkey_opaque_handle_data.priv field to struct
+ * hwkey_derived_keyslot_data*
+ */
+static uint32_t get_derived_key_opaque(
+        const struct hwkey_opaque_handle_data* data,
+        uint8_t* kbuf,
+        size_t kbuf_len,
+        size_t* klen) {
+    assert(data);
+    return hwkey_get_derived_key(data->priv, kbuf, kbuf_len, klen);
+}
+
+static struct hwkey_opaque_handle_data unittest_opaque_derived_data = {
+        .allowed_uuids = unittest_allowed_opaque_key_uuids,
+        .allowed_uuids_len = countof(unittest_allowed_opaque_key_uuids),
+        .retriever = get_derived_key_opaque,
+        .priv = &hwcrypto_unittest_derived_data,
+};
+
 #endif /* WITH_HWCRYPTO_UNITTEST */
 
 /*
@@ -321,7 +361,7 @@ static const uuid_t* hwaes_unittest_allowed_opaque_key_uuids[] = {
 static struct hwkey_opaque_handle_data hwaes_unittest_opaque_handle_data = {
         .allowed_uuids = hwaes_unittest_allowed_opaque_key_uuids,
         .allowed_uuids_len = countof(hwaes_unittest_allowed_opaque_key_uuids),
-        .retriever = get_unittest_key32,
+        .retriever = get_unittest_key32_opaque,
 };
 #endif
 
@@ -451,17 +491,13 @@ static const uuid_t* apploader_allowed_opaque_key_uuids[] = {
         &hwaes_uuid,
 };
 
-/*
- * Retrieve apploader key data out of a slot containing an opaque handle
- * structure
- */
-static uint32_t get_apploader_encrypt_key(const struct hwkey_keyslot* slot,
-                                          uint8_t* kbuf,
-                                          size_t kbuf_len,
-                                          size_t* klen) {
-    assert(slot);
-    assert(slot->priv);
-    const struct hwkey_opaque_handle_data* data = slot->priv;
+/* Adapter to cast hwkey_opaque_handle_data.priv to struct apploader_key* */
+static uint32_t get_apploader_key_opaque(
+        const struct hwkey_opaque_handle_data* data,
+        uint8_t* kbuf,
+        size_t kbuf_len,
+        size_t* klen) {
+    assert(data);
     return get_apploader_key(data->priv, kbuf, kbuf_len, klen);
 }
 
@@ -471,7 +507,7 @@ static struct hwkey_opaque_handle_data
                 .allowed_uuids = apploader_allowed_opaque_key_uuids,
                 .allowed_uuids_len =
                         countof(apploader_allowed_opaque_key_uuids),
-                .retriever = get_apploader_encrypt_key,
+                .retriever = get_apploader_key_opaque,
                 .priv = &apploader_encrypt_key_0,
 };
 #endif
@@ -482,7 +518,7 @@ static struct hwkey_opaque_handle_data
                 .allowed_uuids = apploader_allowed_opaque_key_uuids,
                 .allowed_uuids_len =
                         countof(apploader_allowed_opaque_key_uuids),
-                .retriever = get_apploader_encrypt_key,
+                .retriever = get_apploader_key_opaque,
                 .priv = &apploader_encrypt_key_1,
 };
 #endif
@@ -540,13 +576,13 @@ static const struct hwkey_keyslot _keys[] = {
         {
                 .uuid = &hwcrypto_unittest_uuid,
                 .key_id = "com.android.trusty.hwcrypto.unittest.key32",
-                .handler = get_unittest_key32,
+                .handler = get_unittest_key32_handler,
         },
         {
                 .uuid = &hwcrypto_unittest_uuid,
                 .key_id = "com.android.trusty.hwcrypto.unittest.derived_key32",
                 .priv = &hwcrypto_unittest_derived_data,
-                .handler = hwkey_derived_keyslot_handler,
+                .handler = derived_keyslot_handler,
         },
         {
                 .uuid = &hwcrypto_unittest_uuid,
@@ -566,6 +602,12 @@ static const struct hwkey_keyslot _keys[] = {
                         "com.android.trusty.hwcrypto.unittest.opaque_handle_noaccess",
                 .handler = get_key_handle,
                 .priv = &unittest_opaque_handle_data_noaccess,
+        },
+        {
+                .uuid = &hwcrypto_unittest_uuid,
+                .key_id = "com.android.trusty.hwcrypto.unittest.opaque_derived",
+                .handler = get_key_handle,
+                .priv = &unittest_opaque_derived_data,
         },
         {
                 .uuid = &hwaes_unittest_uuid,

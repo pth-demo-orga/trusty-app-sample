@@ -34,8 +34,8 @@ struct hwkey_keyslot {
  * struct hwkey_derived_keyslot_data - data for a keyslot which derives its key
  * by decrypting a fixed key
  *
- * This slot data is used by hwkey_derived_keyslot_handler() which will decrypt
- * the encrypted data using the key from retriever().
+ * This slot data is used by hwkey_get_derived_key() which will decrypt the
+ * encrypted data using the key from retriever().
  *
  * @encrypted_key_data:
  *     Block-sized IV followed by encrypted key data
@@ -44,7 +44,7 @@ struct hwkey_derived_keyslot_data {
     const uint8_t* encrypted_key_data;
     const unsigned int* encrypted_key_size_ptr;
     const void* priv;
-    uint32_t (*retriever)(const void* priv,
+    uint32_t (*retriever)(const struct hwkey_derived_keyslot_data* data,
                           uint8_t* kbuf,
                           size_t kbuf_len,
                           size_t* klen);
@@ -81,7 +81,7 @@ struct hwkey_opaque_handle_data {
     const uuid_t** allowed_uuids;
     size_t allowed_uuids_len;
     const void* priv;
-    uint32_t (*retriever)(const struct hwkey_keyslot* slot,
+    uint32_t (*retriever)(const struct hwkey_opaque_handle_data* data,
                           uint8_t* kbuf,
                           size_t kbuf_len,
                           size_t* klen);
@@ -90,8 +90,8 @@ struct hwkey_opaque_handle_data {
 __BEGIN_CDECLS
 
 /**
- * hwkey_derived_keyslot_handler() - Return a slot-specific key using the key
- * data from hwkey_derived_keyslot_data
+ * hwkey_get_derived_key() - Return a slot-specific key using the key data from
+ * hwkey_derived_keyslot_data
  *
  * Some devices may store a shared encryption key in hardware. However, we do
  * not want to alllow multiple clients to directly use this key, as they would
@@ -107,10 +107,10 @@ __BEGIN_CDECLS
  * accessible using the shared key which is retrieved via the &struct
  * hwkey_derived_keyslot_data.retriever callback.
  */
-uint32_t hwkey_derived_keyslot_handler(const struct hwkey_keyslot* slot,
-                                       uint8_t* kbuf,
-                                       size_t kbuf_len,
-                                       size_t* klen);
+uint32_t hwkey_get_derived_key(const struct hwkey_derived_keyslot_data* data,
+                               uint8_t* kbuf,
+                               size_t kbuf_len,
+                               size_t* klen);
 
 /**
  * get_key_handle() - Handler for opaque keys
