@@ -55,11 +55,11 @@
 #define STORAGE_AUTH_KEY_SIZE 32
 
 static const uint8_t UNITTEST_KEYSLOT[] = "unittestkeyslotunittestkeyslotun";
+static const uint8_t UNITTEST_DERIVED_KEYSLOT[] =
+        "unittestderivedkeyslotunittestde";
 
 #if WITH_HWCRYPTO_UNITTEST
 #define DISABLED_WITHOUT_HWCRYPTO_UNITTEST(name) name
-static const uint8_t UNITTEST_DERIVED_KEYSLOT[] =
-        "unittestderivedkeyslotunittestde";
 #else
 #pragma message                                                                          \
         "hwcrypto-unittest is built with the WITH_HWCRYPTO_UNITTEST define not enabled." \
