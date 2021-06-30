@@ -20,7 +20,7 @@
 
 extern crate libc;
 use core::panic::PanicInfo;
-use libc::write;
+use trusty_sys::iovec;
 
 #[panic_handler]
 fn panic(_panic: &PanicInfo<'_>) -> ! {
@@ -31,7 +31,13 @@ fn panic(_panic: &PanicInfo<'_>) -> ! {
 fn main(_argc: isize, _argv: *const *const u8) -> isize {
     let message = b"Hello from Rust!\n";
     unsafe {
-        write(2, message.as_ptr().cast(), message.len());
+        libc::write(2, message.as_ptr().cast(), message.len());
+    }
+
+    let message2 = b"Hello from a Rust syscall!\n";
+    let iov = iovec { iov_base: message2.as_ptr().cast(), iov_len: message2.len() };
+    unsafe {
+        let _ = trusty_sys::writev(2, &iov, 1);
     }
 
     0

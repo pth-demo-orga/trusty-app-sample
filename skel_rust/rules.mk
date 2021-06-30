@@ -28,7 +28,7 @@ MODULE_LIBRARY_DEPS += \
 	trusty/user/base/lib/libcore-rust \
 	trusty/user/base/lib/libcompiler_builtins-rust \
 	trusty/user/base/lib/libc-rust \
-	trusty/user/base/lib/libc-trusty \
+	trusty/user/base/lib/trusty-sys \
 
 MODULE_RUSTFLAGS += -Z unstable-options \
 	--edition 2018
