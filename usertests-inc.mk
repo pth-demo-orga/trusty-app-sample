@@ -37,8 +37,10 @@ TRUSTY_ALL_USER_TASKS += \
 # system wide, even apps that opt out are linked against the sanitizer
 # coverage runtime that uses shadow call stacks which causes crashes.
 ifeq (false,$(call TOBOOL,$(USER_COVERAGE_ENABLED)))
-TRUSTY_ALL_USER_TASKS += \
-	trusty/user/app/sample/userscs-test/disabled \
+# TODO: This app requires a libc without shadow call stacks which we cannot
+# currently provide for the reasons stated in the comment above.
+# TRUSTY_ALL_USER_TASKS += \
+# 	trusty/user/app/sample/userscs-test/disabled \
 
 endif
 endif # USER_SCS_ENABLED
