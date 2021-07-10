@@ -20,6 +20,7 @@
 
 extern crate libc;
 use core::panic::PanicInfo;
+use log::info;
 use trusty_std::io::{stdout, Write};
 use trusty_std::write;
 use trusty_sys::iovec;
@@ -31,6 +32,8 @@ fn panic(_panic: &PanicInfo<'_>) -> ! {
 
 #[start]
 fn main(_argc: isize, _argv: *const *const u8) -> isize {
+    trusty_log::init();
+
     let message = b"Hello from Rust!\n";
     unsafe {
         libc::write(2, message.as_ptr().cast(), message.len());
@@ -43,6 +46,8 @@ fn main(_argc: isize, _argv: *const *const u8) -> isize {
     }
 
     write!(stdout(), "Hello from the Trusty Rust std!\n");
+
+    info!("Hello from the log crate!");
 
     0
 }
