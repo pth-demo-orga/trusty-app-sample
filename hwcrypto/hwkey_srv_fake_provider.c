@@ -34,6 +34,7 @@
 #include <interface/hwaes/hwaes.h>
 #include <interface/hwkey/hwkey.h>
 #include <lib/system_state/system_state.h>
+#include <lib/tipc/tipc.h>
 #include <trusty_log.h>
 
 #include <hwcrypto_consts.h>
@@ -124,14 +125,14 @@ uint32_t derive_key_v1(const uuid_t* uuid,
     return HWKEY_NO_ERROR;
 }
 
+/* UUID of HWCRYPTO_UNITTEST application */
+static const uuid_t hwcrypto_unittest_uuid = HWCRYPTO_UNITTEST_APP_UUID;
+
 #if WITH_HWCRYPTO_UNITTEST
 /*
  *  Support for hwcrypto unittest keys should be only enabled
  *  to test hwcrypto related APIs
  */
-
-/* UUID of HWCRYPTO_UNITTEST application */
-static const uuid_t hwcrypto_unittest_uuid = HWCRYPTO_UNITTEST_APP_UUID;
 
 static uint8_t _unittest_key32[32] = "unittestkeyslotunittestkeyslotun";
 static uint32_t get_unittest_key32(uint8_t* kbuf,
@@ -350,8 +351,9 @@ static uint32_t get_km_kak_key(const struct hwkey_keyslot* slot,
     return derive_key_v1(slot->uuid, kak_salt, KM_KAK_SIZE, kbuf, klen);
 }
 
-#if WITH_HWCRYPTO_UNITTEST
 static const uuid_t hwaes_uuid = SAMPLE_HWAES_APP_UUID;
+
+#if WITH_HWCRYPTO_UNITTEST
 static const uuid_t hwaes_unittest_uuid = HWAES_UNITTEST_APP_UUID;
 
 static const uuid_t* hwaes_unittest_allowed_opaque_key_uuids[] = {
@@ -483,10 +485,6 @@ static uint32_t get_apploader_sign_unlocked_key(
 
 #ifdef APPLOADER_HAS_ENCRYPTION_KEYS
 
-#if !WITH_HWCRYPTO_UNITTEST
-static const uuid_t hwaes_uuid = SAMPLE_HWAES_APP_UUID;
-#endif
-
 static const uuid_t* apploader_allowed_opaque_key_uuids[] = {
         &hwaes_uuid,
 };
@@ -524,6 +522,43 @@ static struct hwkey_opaque_handle_data
 #endif
 
 #endif
+
+static const uuid_t gatekeeper_uuid = GATEKEEPER_APP_UUID;
+
+/* Clients that are allowed to connect to this service */
+static const uuid_t* allowed_clients[] = {
+        /* Needs to derive keys and access keyslot RPMB_SS_AUTH_KEY_ID */
+        &ss_uuid,
+        /* Needs to derive keys and access keyslot KM_KAK_ID */
+        &km_uuid,
+        /* Needs access to opaque keys */
+        &hwaes_uuid,
+        /* Needs to derive keys */
+        &gatekeeper_uuid,
+
+#if defined(APPLOADER_HAS_SIGNING_KEYS) || \
+        defined(APPLOADER_HAS_ENCRYPTION_KEYS)
+        /* Needs to access apploader keys */
+        &apploader_uuid,
+#endif
+
+        /* Needs to derive keys even if it doesn't have test keyslots */
+        &hwcrypto_unittest_uuid,
+
+#if WITH_HWCRYPTO_UNITTEST
+        &hwaes_unittest_uuid,
+#endif
+};
+
+bool hwkey_client_allowed(const uuid_t* uuid) {
+    assert(uuid);
+    for (unsigned int i = 0; i < countof(allowed_clients); i++) {
+        if (memcmp(allowed_clients[i], uuid, sizeof(uuid_t)) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
 
 /*
  *  List of keys slots that hwkey service supports
