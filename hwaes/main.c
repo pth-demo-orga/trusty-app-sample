@@ -28,6 +28,8 @@
 
 #include <openssl/evp.h>
 
+#include <hwaes_consts.h>
+
 static EVP_CIPHER_CTX* cipher_ctx;
 
 static void crypt_init(void) {
@@ -275,6 +277,15 @@ uint32_t hwaes_aes_op(const struct hwaes_aes_op_args* args) {
     return HWAES_NO_ERROR;
 }
 
+static const uuid_t apploader_uuid = APPLOADER_APP_UUID;
+
+static const uuid_t hwaes_unittest_uuid = HWAES_UNITTEST_APP_UUID;
+
+static const uuid_t* allowed_clients[] = {
+        &apploader_uuid,
+        &hwaes_unittest_uuid,
+};
+
 int main(void) {
     int rc;
     struct tipc_hset* hset;
@@ -285,7 +296,7 @@ int main(void) {
         return EXIT_FAILURE;
     }
 
-    rc = add_hwaes_service(hset);
+    rc = add_hwaes_service(hset, allowed_clients, countof(allowed_clients));
     if (rc != NO_ERROR) {
         TLOGE("failed (%d) to initialize hwaes service\n", rc);
         return EXIT_FAILURE;

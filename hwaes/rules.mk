@@ -20,6 +20,8 @@ MODULE := $(LOCAL_DIR)
 
 MANIFEST := $(LOCAL_DIR)/manifest.json
 
+MODULE_CONSTANTS := $(LOCAL_DIR)/hwaes_consts.json
+
 MODULE_INCLUDES := $(LOCAL_DIR)/include
 
 MODULE_SRCS := \
