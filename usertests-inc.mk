@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 
-TRUSTY_ALL_USER_TASKS += \
+TRUSTY_USER_TESTS += \
 	trusty/user/app/sample/app-mgmt-test/client\
 	trusty/user/app/sample/hwcrypto-unittest \
 	trusty/user/app/sample/manifest-test \
@@ -25,7 +25,7 @@ TRUSTY_ALL_USER_TASKS += \
 	trusty/user/app/sample/spi/swspi-test \
 
 ifeq (true,$(call TOBOOL,$(USER_SCS_ENABLED)))
-TRUSTY_ALL_USER_TASKS += \
+TRUSTY_USER_TESTS += \
 	trusty/user/app/sample/userscs-test/default \
 	trusty/user/app/sample/userscs-test/custom \
 
@@ -39,14 +39,14 @@ TRUSTY_ALL_USER_TASKS += \
 ifeq (false,$(call TOBOOL,$(USER_COVERAGE_ENABLED)))
 # TODO: This app requires a libc without shadow call stacks which we cannot
 # currently provide for the reasons stated in the comment above.
-# TRUSTY_ALL_USER_TASKS += \
+# TRUSTY_USER_TESTS += \
 # 	trusty/user/app/sample/userscs-test/disabled \
 
 endif
 endif # USER_SCS_ENABLED
 
 ifneq (,$(findstring arm,$(TRUSTY_USER_ARCH)))
-TRUSTY_ALL_USER_TASKS += \
+TRUSTY_USER_TESTS += \
 	trusty/user/app/sample/prebuilts-test \
 
 endif
