@@ -41,7 +41,7 @@
  * runtime of the tests.
  */
 #define EXPECTED_TIMEOUT_MS 500
-#define UNEXPECTED_TIMEOUT_MS 10000
+#define UNEXPECTED_TIMEOUT_MS 60000
 #define WAIT_FOR_APP_SLEEP_NS 500000000
 
 /*
