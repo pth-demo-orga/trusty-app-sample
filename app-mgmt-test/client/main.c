@@ -389,12 +389,17 @@ TEST(AppMgrWaitForPort, WaitConnectForPort) {
     ASSERT_EQ(load_error, APPLOADER_NO_ERROR);
 
     /* Connect to port-waiter-srv */
-    rc = connect(PORT_WAITER_PORT, 0);
+    rc = connect(PORT_WAITER_PORT,
+                 IPC_CONNECT_ASYNC | IPC_CONNECT_WAIT_FOR_PORT);
     ASSERT_GE(rc, 0);
     chan = (handle_t)rc;
 
-    ASSERT_EQ(NO_ERROR, wait(chan, &uevt, INFINITE_TIME));
-    ASSERT_NE(0, uevt.event & IPC_HANDLE_POLL_MSG);
+    ASSERT_EQ(NO_ERROR, wait(chan, &uevt, UNEXPECTED_TIMEOUT_MS));
+    ASSERT_NE(0, uevt.event & IPC_HANDLE_POLL_READY);
+    if (!(uevt.event & IPC_HANDLE_POLL_MSG)) {
+        ASSERT_EQ(NO_ERROR, wait(chan, &uevt, INFINITE_TIME));
+        ASSERT_NE(0, uevt.event & IPC_HANDLE_POLL_MSG);
+    }
     ASSERT_EQ(sizeof(rsp), tipc_recv1(chan, sizeof(rsp), &rsp, sizeof(rsp)));
     ASSERT_EQ(RSP_OK, rsp);
 
