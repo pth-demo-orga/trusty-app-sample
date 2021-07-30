@@ -19,16 +19,10 @@
 #![no_std]
 
 extern crate libc;
-use core::panic::PanicInfo;
 use log::info;
 use trusty_std::io::{stdout, Write};
 use trusty_std::write;
 use trusty_sys::iovec;
-
-#[panic_handler]
-fn panic(_panic: &PanicInfo<'_>) -> ! {
-    loop {}
-}
 
 #[start]
 fn main(_argc: isize, _argv: *const *const u8) -> isize {
