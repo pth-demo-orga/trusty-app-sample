@@ -524,6 +524,8 @@ static struct hwkey_opaque_handle_data
 #endif
 
 static const uuid_t gatekeeper_uuid = GATEKEEPER_APP_UUID;
+static const uuid_t hwbcc_uuid = SAMPLE_HWBCC_APP_UUID;
+static const uuid_t hwbcc_unittest_uuid = HWBCC_UNITTEST_APP_UUID;
 
 /* Clients that are allowed to connect to this service */
 static const uuid_t* allowed_clients[] = {
@@ -548,6 +550,10 @@ static const uuid_t* allowed_clients[] = {
 #if WITH_HWCRYPTO_UNITTEST
         &hwaes_unittest_uuid,
 #endif
+        /* Needs to derive keys */
+        &hwbcc_uuid,
+        /* Needs to derive keys */
+        &hwbcc_unittest_uuid,
 };
 
 bool hwkey_client_allowed(const uuid_t* uuid) {

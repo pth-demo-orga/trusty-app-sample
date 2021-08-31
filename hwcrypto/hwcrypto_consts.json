@@ -40,6 +40,16 @@
             "name": "GATEKEEPER_APP_UUID",
             "value": "38ba0cdc-df0e-11e4-9869-233fb6ae4795",
             "type": "uuid"
+        },
+        {
+            "name": "SAMPLE_HWBCC_APP_UUID",
+            "value": "f758d162-3481-4bb4-ab54-5ed41652f44e",
+            "type": "uuid"
+        },
+        {
+            "name": "HWBCC_UNITTEST_APP_UUID",
+            "value": "0e109d31-8bbe-47d6-bb47-e1dd08910e16",
+            "type": "uuid"
         }
     ]
 }
