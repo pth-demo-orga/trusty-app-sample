@@ -59,4 +59,5 @@ TRUSTY_LOADABLE_USER_TASKS += \
 	trusty/user/app/sample/app-mgmt-test/port-start-fail-srv \
 	trusty/user/app/sample/app-mgmt-test/restart-srv \
 	trusty/user/app/sample/app-mgmt-test/port-waiter-srv \
+	trusty/user/app/sample/storage-test \
 
