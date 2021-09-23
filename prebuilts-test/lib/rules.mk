@@ -22,4 +22,7 @@ MODULE_SRCS += \
 MODULE_LIBRARY_DEPS += \
 	trusty/user/base/lib/libc-trusty \
 
+MODULE_EXPORT_INCLUDES += \
+	$(LOCAL_DIR)/include/
+
 include make/library.mk
