@@ -39,7 +39,7 @@ MODULE_INCLUDES += \
 # Link in the prebuilt library. This prebuilt was built from source in lib/.
 # To generate it, set BUILD_FROM_SOURCE variable above. The archive can then be
 # found at:
-# build-root/build-<build_target>/user_tasks/<path_to_app>/<path_to_lib>.mod.a
+# build-root/build-<build_target>/lib/<path_to_app>/lib.mod.a
 MODULE_EXTRA_ARCHIVES += \
 	$(LOCAL_DIR)/prebuilts/arch/$(ARCH)/lib.mod.a \
 
