@@ -22,6 +22,7 @@ MODULE_SRCS := \
 	$(LOCAL_DIR)/main.c \
 
 MODULE_LIBRARY_DEPS := \
+	external/open-dice \
 	trusty/user/base/interface/hwbcc \
 	trusty/user/base/lib/hwbcc/common \
 	trusty/user/base/lib/hwbcc/srv \

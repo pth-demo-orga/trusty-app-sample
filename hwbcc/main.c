@@ -16,10 +16,12 @@
 
 #define TLOG_TAG "hwbcc-srv-impl"
 
+#include <dice/android/bcc.h>
 #include <lib/hwbcc/common/swbcc.h>
 #include <lib/hwbcc/srv/srv.h>
 #include <lib/tipc/tipc_srv.h>
 #include <lk/err_ptr.h>
+#include <string.h>
 #include <trusty_log.h>
 #include <uapi/err.h>
 
@@ -38,6 +40,29 @@ int main(void) {
     ops.close = swbcc_close;
     ops.sign_mac = swbcc_sign_mac;
     ops.get_bcc = swbcc_get_bcc;
+    ops.get_dice_artifacts = swbcc_get_dice_artifacts;
+    ops.ns_deprivilege = swbcc_ns_deprivilege;
+
+    uint8_t FRS[DICE_HIDDEN_SIZE];
+    /* FRS, code hash and authority hash are set to all zeros in the sample
+     * hwbcc app. */
+    memset(FRS, 0, DICE_HIDDEN_SIZE);
+
+    uint8_t code_hash[DICE_HASH_SIZE];
+    memset(code_hash, 0, DICE_HASH_SIZE);
+
+    uint8_t authority_hash[DICE_HASH_SIZE];
+    memset(authority_hash, 0, DICE_HASH_SIZE);
+
+    /* Initialize DICE information of the child node in non-secure world. */
+    BccConfigValues config_descriptor = {
+            /* TODO: add BCC_INPUT_RESETTABLE when the FRS is reliable */
+            .inputs = BCC_INPUT_COMPONENT_NAME | BCC_INPUT_COMPONENT_VERSION,
+            .component_name = "ABL",
+            .component_version = 1,
+    };
+
+    swbcc_glob_init(FRS, code_hash, authority_hash, &config_descriptor);
     rc = add_hwbcc_service(hset, &ops);
     if (rc != NO_ERROR) {
         TLOGE("failed (%d) to initialize system state service\n", rc);
