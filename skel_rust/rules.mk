@@ -32,6 +32,5 @@ MODULE_LIBRARY_DEPS += \
 	trusty/user/base/lib/trusty-std \
 
 MODULE_RUSTFLAGS += -Z unstable-options \
-	--edition 2018
 
 include make/trusted_app.mk
